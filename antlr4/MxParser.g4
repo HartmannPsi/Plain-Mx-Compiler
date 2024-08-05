@@ -64,13 +64,13 @@ expr:
 	| <assoc = right> lhs = expr op = Assign rhs = expr
 	| NumberConst
 	| StringConst
+	| form_string
 	| True
 	| False
 	| Null
 	| This
 	| Identifier
-	| array
-	| form_string;
+	| array;
 
 form_string: (FStringL expr (FStringM expr)* FStringR)
 	| FStringN;

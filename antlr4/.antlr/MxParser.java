@@ -879,14 +879,14 @@ public class MxParser extends Parser {
 		}
 		public TerminalNode NumberConst() { return getToken(MxParser.NumberConst, 0); }
 		public TerminalNode StringConst() { return getToken(MxParser.StringConst, 0); }
+		public Form_stringContext form_string() {
+			return getRuleContext(Form_stringContext.class,0);
+		}
 		public TerminalNode True() { return getToken(MxParser.True, 0); }
 		public TerminalNode False() { return getToken(MxParser.False, 0); }
 		public TerminalNode Null() { return getToken(MxParser.Null, 0); }
 		public TerminalNode This() { return getToken(MxParser.This, 0); }
 		public TerminalNode Identifier() { return getToken(MxParser.Identifier, 0); }
-		public Form_stringContext form_string() {
-			return getRuleContext(Form_stringContext.class,0);
-		}
 		public TerminalNode Mul() { return getToken(MxParser.Mul, 0); }
 		public TerminalNode Div() { return getToken(MxParser.Div, 0); }
 		public TerminalNode Mod() { return getToken(MxParser.Mod, 0); }
@@ -1051,43 +1051,43 @@ public class MxParser extends Parser {
 			case 9:
 				{
 				setState(174);
-				match(True);
+				form_string();
 				}
 				break;
 			case 10:
 				{
 				setState(175);
-				match(False);
+				match(True);
 				}
 				break;
 			case 11:
 				{
 				setState(176);
-				match(Null);
+				match(False);
 				}
 				break;
 			case 12:
 				{
 				setState(177);
-				match(This);
+				match(Null);
 				}
 				break;
 			case 13:
 				{
 				setState(178);
-				match(Identifier);
+				match(This);
 				}
 				break;
 			case 14:
 				{
 				setState(179);
-				array();
+				match(Identifier);
 				}
 				break;
 			case 15:
 				{
 				setState(180);
-				form_string();
+				array();
 				}
 				break;
 			}
@@ -2275,10 +2275,10 @@ public class MxParser extends Parser {
 		"\u00a7\u00a8\u0005\b\u0000\u0000\u00a8\u00aa\u0003\u0004\u0002\u0000\u00a9"+
 		"\u00ab\u0003\u0010\b\u0000\u00aa\u00a9\u0001\u0000\u0000\u0000\u00aa\u00ab"+
 		"\u0001\u0000\u0000\u0000\u00ab\u00b6\u0001\u0000\u0000\u0000\u00ac\u00b6"+
-		"\u0005@\u0000\u0000\u00ad\u00b6\u0005;\u0000\u0000\u00ae\u00b6\u0005\u000b"+
-		"\u0000\u0000\u00af\u00b6\u0005\f\u0000\u0000\u00b0\u00b6\u0005\n\u0000"+
-		"\u0000\u00b1\u00b6\u0005\r\u0000\u0000\u00b2\u00b6\u0005:\u0000\u0000"+
-		"\u00b3\u00b6\u0003\u0010\b\u0000\u00b4\u00b6\u0003\u0016\u000b\u0000\u00b5"+
+		"\u0005@\u0000\u0000\u00ad\u00b6\u0005;\u0000\u0000\u00ae\u00b6\u0003\u0016"+
+		"\u000b\u0000\u00af\u00b6\u0005\u000b\u0000\u0000\u00b0\u00b6\u0005\f\u0000"+
+		"\u0000\u00b1\u00b6\u0005\n\u0000\u0000\u00b2\u00b6\u0005\r\u0000\u0000"+
+		"\u00b3\u00b6\u0005:\u0000\u0000\u00b4\u00b6\u0003\u0010\b\u0000\u00b5"+
 		"\u0096\u0001\u0000\u0000\u0000\u00b5\u009b\u0001\u0000\u0000\u0000\u00b5"+
 		"\u009d\u0001\u0000\u0000\u0000\u00b5\u009f\u0001\u0000\u0000\u0000\u00b5"+
 		"\u00a1\u0001\u0000\u0000\u0000\u00b5\u00a7\u0001\u0000\u0000\u0000\u00b5"+
