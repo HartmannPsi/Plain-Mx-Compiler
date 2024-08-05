@@ -27,14 +27,6 @@ def_class:
 class_constructor:
 	className = Identifier LP RP LBrace code = stmt* RBrace;
 
-const_val:
-	array
-	| StringConst
-	| NumberConst
-	| True
-	| False
-	| Null;
-
 array: LBrace expr (Comma expr)* RBrace;
 
 expr_list: expr (Comma expr)*;
