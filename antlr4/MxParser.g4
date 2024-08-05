@@ -76,7 +76,7 @@ form_string: (FStringL expr (FStringM expr)* FStringR)
 	| FStringN;
 
 stmt:
-	LBrace stmt* RBrace
+	(LBrace stmt* RBrace)
 	| empty_stmt
 	| def_var_stmt
 	| if_stmt
@@ -98,7 +98,7 @@ if_stmt:
 while_stmt: While LP cond = expr RP stmt;
 
 for_stmt:
-	For LP init = stmt (cond = expr_stmt | empty_stmt) step = expr? RP stmt;
+	For LP init = stmt cond = expr? Semicolon step = expr? RP stmt;
 
 return_stmt: Return val = expr Semicolon;
 
