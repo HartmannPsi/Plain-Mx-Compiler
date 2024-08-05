@@ -40,37 +40,37 @@ array: LBrace expr (Comma expr)* RBrace;
 expr_list: expr (Comma expr)*;
 
 expr:
-	LP expr RP
-	| expr op = (SelfAdd | SelfSub)
-	| funcName = expr LP expr_list? RP
-	| arrayName = expr LBracket serial = expr RBracket
-	| object = expr op = Component Identifier
-	| <assoc = right> op = (SelfAdd | SelfSub) expr
-	| <assoc = right> op = (Add | Sub) expr
-	| <assoc = right> op = (LogicNot | BitNot) expr
-	| <assoc = right> op = New type = typename (LP RP)?
-	| <assoc = right> op = New type = typename array?
-	| lhs = expr op = (Mul | Div | Mod) rhs = expr
-	| lhs = expr op = (Add | Sub) rhs = expr
-	| lhs = expr op = (ShiftL | ShiftR) rhs = expr
-	| lhs = expr op = (Lt | Le | Gt | Ge) rhs = expr
-	| lhs = expr op = (Eq | Ne) rhs = expr
-	| lhs = expr op = BitAnd rhs = expr
-	| lhs = expr op = BitXor rhs = expr
-	| lhs = expr op = BitOr rhs = expr
-	| lhs = expr op = LogicAnd rhs = expr
-	| lhs = expr op = LogicOr rhs = expr
-	| <assoc = right> expr op = QuesMark expr Colon expr
-	| <assoc = right> lhs = expr op = Assign rhs = expr
-	| NumberConst
-	| StringConst
-	| form_string
-	| True
-	| False
-	| Null
-	| This
-	| Identifier
-	| array;
+	LP expr RP												# ParenExpr
+	| expr op = (SelfAdd | SelfSub)							# RSelfOps
+	| funcName = expr LP expr_list? RP						# FuncCall
+	| arrayName = expr LBracket serial = expr RBracket		# ArrayAccess
+	| object = expr op = Component Identifier				# MemberAccess
+	| <assoc = right> op = (SelfAdd | SelfSub) expr			# LSelfOps
+	| <assoc = right> op = (Add | Sub) expr					# SignOps
+	| <assoc = right> op = (LogicNot | BitNot) expr			# NotOps
+	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
+	| <assoc = right> op = New type = typename array?		# ArrayInit
+	| lhs = expr op = (Mul | Div | Mod) rhs = expr			# MulOps
+	| lhs = expr op = (Add | Sub) rhs = expr				# AddOps
+	| lhs = expr op = (ShiftL | ShiftR) rhs = expr			# ShiftOps
+	| lhs = expr op = (Lt | Le | Gt | Ge) rhs = expr		# CompOps
+	| lhs = expr op = (Eq | Ne) rhs = expr					# EqOps
+	| lhs = expr op = BitAnd rhs = expr						# BAnd
+	| lhs = expr op = BitXor rhs = expr						# BXor
+	| lhs = expr op = BitOr rhs = expr						# BOr
+	| lhs = expr op = LogicAnd rhs = expr					# LAnd
+	| lhs = expr op = LogicOr rhs = expr					# LOr
+	| <assoc = right> expr op = QuesMark expr Colon expr	# Ternary
+	| <assoc = right> lhs = expr op = Assign rhs = expr		# Assign
+	| NumberConst											# Num
+	| StringConst											# String
+	| form_string											# FString
+	| True													# True
+	| False													# False
+	| Null													# Null
+	| This													# BuiltInPtr
+	| Identifier											# Id
+	| array													# Arr;
 
 form_string: (FStringL expr (FStringM expr)* FStringR)
 	| FStringN;

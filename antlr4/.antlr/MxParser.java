@@ -848,28 +848,138 @@ public class MxParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class ExprContext extends ParserRuleContext {
-		public ExprContext funcName;
-		public ExprContext arrayName;
-		public ExprContext object;
+		public ExprContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_expr; }
+	 
+		public ExprContext() { }
+		public void copyFrom(ExprContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ArrContext extends ExprContext {
+		public ArrayContext array() {
+			return getRuleContext(ArrayContext.class,0);
+		}
+		public ArrContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class NullContext extends ExprContext {
+		public TerminalNode Null() { return getToken(MxParser.Null, 0); }
+		public NullContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class BOrContext extends ExprContext {
 		public ExprContext lhs;
 		public Token op;
-		public TypenameContext type;
 		public ExprContext rhs;
-		public ExprContext serial;
-		public TerminalNode LP() { return getToken(MxParser.LP, 0); }
 		public List<ExprContext> expr() {
 			return getRuleContexts(ExprContext.class);
 		}
 		public ExprContext expr(int i) {
 			return getRuleContext(ExprContext.class,i);
 		}
-		public TerminalNode RP() { return getToken(MxParser.RP, 0); }
-		public TerminalNode SelfAdd() { return getToken(MxParser.SelfAdd, 0); }
-		public TerminalNode SelfSub() { return getToken(MxParser.SelfSub, 0); }
-		public TerminalNode Add() { return getToken(MxParser.Add, 0); }
-		public TerminalNode Sub() { return getToken(MxParser.Sub, 0); }
+		public TerminalNode BitOr() { return getToken(MxParser.BitOr, 0); }
+		public BOrContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class EqOpsContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode Eq() { return getToken(MxParser.Eq, 0); }
+		public TerminalNode Ne() { return getToken(MxParser.Ne, 0); }
+		public EqOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class LAndContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode LogicAnd() { return getToken(MxParser.LogicAnd, 0); }
+		public LAndContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class TrueContext extends ExprContext {
+		public TerminalNode True() { return getToken(MxParser.True, 0); }
+		public TrueContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class StringContext extends ExprContext {
+		public TerminalNode StringConst() { return getToken(MxParser.StringConst, 0); }
+		public StringContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class FalseContext extends ExprContext {
+		public TerminalNode False() { return getToken(MxParser.False, 0); }
+		public FalseContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class LOrContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode LogicOr() { return getToken(MxParser.LogicOr, 0); }
+		public LOrContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ArrayAccessContext extends ExprContext {
+		public ExprContext arrayName;
+		public ExprContext serial;
+		public TerminalNode LBracket() { return getToken(MxParser.LBracket, 0); }
+		public TerminalNode RBracket() { return getToken(MxParser.RBracket, 0); }
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public ArrayAccessContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class NotOpsContext extends ExprContext {
+		public Token op;
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
 		public TerminalNode LogicNot() { return getToken(MxParser.LogicNot, 0); }
 		public TerminalNode BitNot() { return getToken(MxParser.BitNot, 0); }
+		public NotOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class RSelfOpsContext extends ExprContext {
+		public Token op;
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
+		public TerminalNode SelfAdd() { return getToken(MxParser.SelfAdd, 0); }
+		public TerminalNode SelfSub() { return getToken(MxParser.SelfSub, 0); }
+		public RSelfOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ArrayInitContext extends ExprContext {
+		public Token op;
+		public TypenameContext type;
 		public TerminalNode New() { return getToken(MxParser.New, 0); }
 		public TypenameContext typename() {
 			return getRuleContext(TypenameContext.class,0);
@@ -877,45 +987,212 @@ public class MxParser extends Parser {
 		public ArrayContext array() {
 			return getRuleContext(ArrayContext.class,0);
 		}
-		public TerminalNode NumberConst() { return getToken(MxParser.NumberConst, 0); }
-		public TerminalNode StringConst() { return getToken(MxParser.StringConst, 0); }
+		public ArrayInitContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class BuiltInPtrContext extends ExprContext {
+		public TerminalNode This() { return getToken(MxParser.This, 0); }
+		public BuiltInPtrContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class FStringContext extends ExprContext {
 		public Form_stringContext form_string() {
 			return getRuleContext(Form_stringContext.class,0);
 		}
-		public TerminalNode True() { return getToken(MxParser.True, 0); }
-		public TerminalNode False() { return getToken(MxParser.False, 0); }
-		public TerminalNode Null() { return getToken(MxParser.Null, 0); }
-		public TerminalNode This() { return getToken(MxParser.This, 0); }
-		public TerminalNode Identifier() { return getToken(MxParser.Identifier, 0); }
-		public TerminalNode Mul() { return getToken(MxParser.Mul, 0); }
-		public TerminalNode Div() { return getToken(MxParser.Div, 0); }
-		public TerminalNode Mod() { return getToken(MxParser.Mod, 0); }
-		public TerminalNode ShiftL() { return getToken(MxParser.ShiftL, 0); }
-		public TerminalNode ShiftR() { return getToken(MxParser.ShiftR, 0); }
+		public FStringContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class CompOpsContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
 		public TerminalNode Lt() { return getToken(MxParser.Lt, 0); }
 		public TerminalNode Le() { return getToken(MxParser.Le, 0); }
 		public TerminalNode Gt() { return getToken(MxParser.Gt, 0); }
 		public TerminalNode Ge() { return getToken(MxParser.Ge, 0); }
-		public TerminalNode Eq() { return getToken(MxParser.Eq, 0); }
-		public TerminalNode Ne() { return getToken(MxParser.Ne, 0); }
-		public TerminalNode BitAnd() { return getToken(MxParser.BitAnd, 0); }
-		public TerminalNode BitXor() { return getToken(MxParser.BitXor, 0); }
-		public TerminalNode BitOr() { return getToken(MxParser.BitOr, 0); }
-		public TerminalNode LogicAnd() { return getToken(MxParser.LogicAnd, 0); }
-		public TerminalNode LogicOr() { return getToken(MxParser.LogicOr, 0); }
+		public CompOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class LSelfOpsContext extends ExprContext {
+		public Token op;
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
+		public TerminalNode SelfAdd() { return getToken(MxParser.SelfAdd, 0); }
+		public TerminalNode SelfSub() { return getToken(MxParser.SelfSub, 0); }
+		public LSelfOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class SignOpsContext extends ExprContext {
+		public Token op;
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
+		public TerminalNode Add() { return getToken(MxParser.Add, 0); }
+		public TerminalNode Sub() { return getToken(MxParser.Sub, 0); }
+		public SignOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class TernaryContext extends ExprContext {
+		public Token op;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
 		public TerminalNode Colon() { return getToken(MxParser.Colon, 0); }
 		public TerminalNode QuesMark() { return getToken(MxParser.QuesMark, 0); }
-		public TerminalNode Assign() { return getToken(MxParser.Assign, 0); }
+		public TernaryContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class MulOpsContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode Mul() { return getToken(MxParser.Mul, 0); }
+		public TerminalNode Div() { return getToken(MxParser.Div, 0); }
+		public TerminalNode Mod() { return getToken(MxParser.Mod, 0); }
+		public MulOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class BXorContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode BitXor() { return getToken(MxParser.BitXor, 0); }
+		public BXorContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class NumContext extends ExprContext {
+		public TerminalNode NumberConst() { return getToken(MxParser.NumberConst, 0); }
+		public NumContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class BAndContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode BitAnd() { return getToken(MxParser.BitAnd, 0); }
+		public BAndContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class AddOpsContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode Add() { return getToken(MxParser.Add, 0); }
+		public TerminalNode Sub() { return getToken(MxParser.Sub, 0); }
+		public AddOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ObjectInitContext extends ExprContext {
+		public Token op;
+		public TypenameContext type;
+		public TerminalNode New() { return getToken(MxParser.New, 0); }
+		public TypenameContext typename() {
+			return getRuleContext(TypenameContext.class,0);
+		}
+		public TerminalNode LP() { return getToken(MxParser.LP, 0); }
+		public TerminalNode RP() { return getToken(MxParser.RP, 0); }
+		public ObjectInitContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class FuncCallContext extends ExprContext {
+		public ExprContext funcName;
+		public TerminalNode LP() { return getToken(MxParser.LP, 0); }
+		public TerminalNode RP() { return getToken(MxParser.RP, 0); }
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
 		public Expr_listContext expr_list() {
 			return getRuleContext(Expr_listContext.class,0);
 		}
-		public TerminalNode LBracket() { return getToken(MxParser.LBracket, 0); }
-		public TerminalNode RBracket() { return getToken(MxParser.RBracket, 0); }
-		public TerminalNode Component() { return getToken(MxParser.Component, 0); }
-		public ExprContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
+		public FuncCallContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class MemberAccessContext extends ExprContext {
+		public ExprContext object;
+		public Token op;
+		public TerminalNode Identifier() { return getToken(MxParser.Identifier, 0); }
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
 		}
-		@Override public int getRuleIndex() { return RULE_expr; }
+		public TerminalNode Component() { return getToken(MxParser.Component, 0); }
+		public MemberAccessContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ShiftOpsContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode ShiftL() { return getToken(MxParser.ShiftL, 0); }
+		public TerminalNode ShiftR() { return getToken(MxParser.ShiftR, 0); }
+		public ShiftOpsContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class AssignContext extends ExprContext {
+		public ExprContext lhs;
+		public Token op;
+		public ExprContext rhs;
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public TerminalNode Assign() { return getToken(MxParser.Assign, 0); }
+		public AssignContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class IdContext extends ExprContext {
+		public TerminalNode Identifier() { return getToken(MxParser.Identifier, 0); }
+		public IdContext(ExprContext ctx) { copyFrom(ctx); }
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ParenExprContext extends ExprContext {
+		public TerminalNode LP() { return getToken(MxParser.LP, 0); }
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
+		public TerminalNode RP() { return getToken(MxParser.RP, 0); }
+		public ParenExprContext(ExprContext ctx) { copyFrom(ctx); }
 	}
 
 	public final ExprContext expr() throws RecognitionException {
@@ -939,6 +1216,10 @@ public class MxParser extends Parser {
 			switch ( getInterpreter().adaptivePredict(_input,16,_ctx) ) {
 			case 1:
 				{
+				_localctx = new ParenExprContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+
 				setState(151);
 				match(LP);
 				setState(152);
@@ -949,11 +1230,14 @@ public class MxParser extends Parser {
 				break;
 			case 2:
 				{
+				_localctx = new LSelfOpsContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(155);
-				((ExprContext)_localctx).op = _input.LT(1);
+				((LSelfOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==SelfAdd || _la==SelfSub) ) {
-					((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+					((LSelfOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 				}
 				else {
 					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -966,11 +1250,14 @@ public class MxParser extends Parser {
 				break;
 			case 3:
 				{
+				_localctx = new SignOpsContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(157);
-				((ExprContext)_localctx).op = _input.LT(1);
+				((SignOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==Add || _la==Sub) ) {
-					((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+					((SignOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 				}
 				else {
 					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -983,11 +1270,14 @@ public class MxParser extends Parser {
 				break;
 			case 4:
 				{
+				_localctx = new NotOpsContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(159);
-				((ExprContext)_localctx).op = _input.LT(1);
+				((NotOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==LogicNot || _la==BitNot) ) {
-					((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+					((NotOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 				}
 				else {
 					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1000,10 +1290,13 @@ public class MxParser extends Parser {
 				break;
 			case 5:
 				{
+				_localctx = new ObjectInitContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(161);
-				((ExprContext)_localctx).op = match(New);
+				((ObjectInitContext)_localctx).op = match(New);
 				setState(162);
-				((ExprContext)_localctx).type = typename();
+				((ObjectInitContext)_localctx).type = typename();
 				setState(165);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,14,_ctx) ) {
@@ -1020,10 +1313,13 @@ public class MxParser extends Parser {
 				break;
 			case 6:
 				{
+				_localctx = new ArrayInitContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(167);
-				((ExprContext)_localctx).op = match(New);
+				((ArrayInitContext)_localctx).op = match(New);
 				setState(168);
-				((ExprContext)_localctx).type = typename();
+				((ArrayInitContext)_localctx).type = typename();
 				setState(170);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,15,_ctx) ) {
@@ -1038,54 +1334,81 @@ public class MxParser extends Parser {
 				break;
 			case 7:
 				{
+				_localctx = new NumContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(172);
 				match(NumberConst);
 				}
 				break;
 			case 8:
 				{
+				_localctx = new StringContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(173);
 				match(StringConst);
 				}
 				break;
 			case 9:
 				{
+				_localctx = new FStringContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(174);
 				form_string();
 				}
 				break;
 			case 10:
 				{
+				_localctx = new TrueContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(175);
 				match(True);
 				}
 				break;
 			case 11:
 				{
+				_localctx = new FalseContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(176);
 				match(False);
 				}
 				break;
 			case 12:
 				{
+				_localctx = new NullContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(177);
 				match(Null);
 				}
 				break;
 			case 13:
 				{
+				_localctx = new BuiltInPtrContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(178);
 				match(This);
 				}
 				break;
 			case 14:
 				{
+				_localctx = new IdContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(179);
 				match(Identifier);
 				}
 				break;
 			case 15:
 				{
+				_localctx = new ArrContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
 				setState(180);
 				array();
 				}
@@ -1105,16 +1428,16 @@ public class MxParser extends Parser {
 					switch ( getInterpreter().adaptivePredict(_input,18,_ctx) ) {
 					case 1:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new MulOpsContext(new ExprContext(_parentctx, _parentState));
+						((MulOpsContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(183);
 						if (!(precpred(_ctx, 21))) throw new FailedPredicateException(this, "precpred(_ctx, 21)");
 						setState(184);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((MulOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 58720256L) != 0)) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((MulOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1122,21 +1445,21 @@ public class MxParser extends Parser {
 							consume();
 						}
 						setState(185);
-						((ExprContext)_localctx).rhs = expr(22);
+						((MulOpsContext)_localctx).rhs = expr(22);
 						}
 						break;
 					case 2:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new AddOpsContext(new ExprContext(_parentctx, _parentState));
+						((AddOpsContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(186);
 						if (!(precpred(_ctx, 20))) throw new FailedPredicateException(this, "precpred(_ctx, 20)");
 						setState(187);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((AddOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==Add || _la==Sub) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((AddOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1144,21 +1467,21 @@ public class MxParser extends Parser {
 							consume();
 						}
 						setState(188);
-						((ExprContext)_localctx).rhs = expr(21);
+						((AddOpsContext)_localctx).rhs = expr(21);
 						}
 						break;
 					case 3:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new ShiftOpsContext(new ExprContext(_parentctx, _parentState));
+						((ShiftOpsContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(189);
 						if (!(precpred(_ctx, 19))) throw new FailedPredicateException(this, "precpred(_ctx, 19)");
 						setState(190);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((ShiftOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==ShiftR || _la==ShiftL) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((ShiftOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1166,21 +1489,21 @@ public class MxParser extends Parser {
 							consume();
 						}
 						setState(191);
-						((ExprContext)_localctx).rhs = expr(20);
+						((ShiftOpsContext)_localctx).rhs = expr(20);
 						}
 						break;
 					case 4:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new CompOpsContext(new ExprContext(_parentctx, _parentState));
+						((CompOpsContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(192);
 						if (!(precpred(_ctx, 18))) throw new FailedPredicateException(this, "precpred(_ctx, 18)");
 						setState(193);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((CompOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 1006632960L) != 0)) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((CompOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1188,21 +1511,21 @@ public class MxParser extends Parser {
 							consume();
 						}
 						setState(194);
-						((ExprContext)_localctx).rhs = expr(19);
+						((CompOpsContext)_localctx).rhs = expr(19);
 						}
 						break;
 					case 5:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new EqOpsContext(new ExprContext(_parentctx, _parentState));
+						((EqOpsContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(195);
 						if (!(precpred(_ctx, 17))) throw new FailedPredicateException(this, "precpred(_ctx, 17)");
 						setState(196);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((EqOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==Ne || _la==Eq) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((EqOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1210,82 +1533,82 @@ public class MxParser extends Parser {
 							consume();
 						}
 						setState(197);
-						((ExprContext)_localctx).rhs = expr(18);
+						((EqOpsContext)_localctx).rhs = expr(18);
 						}
 						break;
 					case 6:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new BAndContext(new ExprContext(_parentctx, _parentState));
+						((BAndContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(198);
 						if (!(precpred(_ctx, 16))) throw new FailedPredicateException(this, "precpred(_ctx, 16)");
 						setState(199);
-						((ExprContext)_localctx).op = match(BitAnd);
+						((BAndContext)_localctx).op = match(BitAnd);
 						setState(200);
-						((ExprContext)_localctx).rhs = expr(17);
+						((BAndContext)_localctx).rhs = expr(17);
 						}
 						break;
 					case 7:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new BXorContext(new ExprContext(_parentctx, _parentState));
+						((BXorContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(201);
 						if (!(precpred(_ctx, 15))) throw new FailedPredicateException(this, "precpred(_ctx, 15)");
 						setState(202);
-						((ExprContext)_localctx).op = match(BitXor);
+						((BXorContext)_localctx).op = match(BitXor);
 						setState(203);
-						((ExprContext)_localctx).rhs = expr(16);
+						((BXorContext)_localctx).rhs = expr(16);
 						}
 						break;
 					case 8:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new BOrContext(new ExprContext(_parentctx, _parentState));
+						((BOrContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(204);
 						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(205);
-						((ExprContext)_localctx).op = match(BitOr);
+						((BOrContext)_localctx).op = match(BitOr);
 						setState(206);
-						((ExprContext)_localctx).rhs = expr(15);
+						((BOrContext)_localctx).rhs = expr(15);
 						}
 						break;
 					case 9:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new LAndContext(new ExprContext(_parentctx, _parentState));
+						((LAndContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(207);
 						if (!(precpred(_ctx, 13))) throw new FailedPredicateException(this, "precpred(_ctx, 13)");
 						setState(208);
-						((ExprContext)_localctx).op = match(LogicAnd);
+						((LAndContext)_localctx).op = match(LogicAnd);
 						setState(209);
-						((ExprContext)_localctx).rhs = expr(14);
+						((LAndContext)_localctx).rhs = expr(14);
 						}
 						break;
 					case 10:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new LOrContext(new ExprContext(_parentctx, _parentState));
+						((LOrContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(210);
 						if (!(precpred(_ctx, 12))) throw new FailedPredicateException(this, "precpred(_ctx, 12)");
 						setState(211);
-						((ExprContext)_localctx).op = match(LogicOr);
+						((LOrContext)_localctx).op = match(LogicOr);
 						setState(212);
-						((ExprContext)_localctx).rhs = expr(13);
+						((LOrContext)_localctx).rhs = expr(13);
 						}
 						break;
 					case 11:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
+						_localctx = new TernaryContext(new ExprContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(213);
 						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
 						setState(214);
-						((ExprContext)_localctx).op = match(QuesMark);
+						((TernaryContext)_localctx).op = match(QuesMark);
 						setState(215);
 						expr(0);
 						setState(216);
@@ -1296,28 +1619,28 @@ public class MxParser extends Parser {
 						break;
 					case 12:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.lhs = _prevctx;
+						_localctx = new AssignContext(new ExprContext(_parentctx, _parentState));
+						((AssignContext)_localctx).lhs = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(219);
 						if (!(precpred(_ctx, 10))) throw new FailedPredicateException(this, "precpred(_ctx, 10)");
 						setState(220);
-						((ExprContext)_localctx).op = match(Assign);
+						((AssignContext)_localctx).op = match(Assign);
 						setState(221);
-						((ExprContext)_localctx).rhs = expr(10);
+						((AssignContext)_localctx).rhs = expr(10);
 						}
 						break;
 					case 13:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
+						_localctx = new RSelfOpsContext(new ExprContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(222);
 						if (!(precpred(_ctx, 30))) throw new FailedPredicateException(this, "precpred(_ctx, 30)");
 						setState(223);
-						((ExprContext)_localctx).op = _input.LT(1);
+						((RSelfOpsContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==SelfAdd || _la==SelfSub) ) {
-							((ExprContext)_localctx).op = (Token)_errHandler.recoverInline(this);
+							((RSelfOpsContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 						}
 						else {
 							if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1328,8 +1651,8 @@ public class MxParser extends Parser {
 						break;
 					case 14:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.funcName = _prevctx;
+						_localctx = new FuncCallContext(new ExprContext(_parentctx, _parentState));
+						((FuncCallContext)_localctx).funcName = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(224);
 						if (!(precpred(_ctx, 29))) throw new FailedPredicateException(this, "precpred(_ctx, 29)");
@@ -1351,28 +1674,28 @@ public class MxParser extends Parser {
 						break;
 					case 15:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.arrayName = _prevctx;
+						_localctx = new ArrayAccessContext(new ExprContext(_parentctx, _parentState));
+						((ArrayAccessContext)_localctx).arrayName = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(230);
 						if (!(precpred(_ctx, 28))) throw new FailedPredicateException(this, "precpred(_ctx, 28)");
 						setState(231);
 						match(LBracket);
 						setState(232);
-						((ExprContext)_localctx).serial = expr(0);
+						((ArrayAccessContext)_localctx).serial = expr(0);
 						setState(233);
 						match(RBracket);
 						}
 						break;
 					case 16:
 						{
-						_localctx = new ExprContext(_parentctx, _parentState);
-						_localctx.object = _prevctx;
+						_localctx = new MemberAccessContext(new ExprContext(_parentctx, _parentState));
+						((MemberAccessContext)_localctx).object = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(235);
 						if (!(precpred(_ctx, 27))) throw new FailedPredicateException(this, "precpred(_ctx, 27)");
 						setState(236);
-						((ExprContext)_localctx).op = match(Component);
+						((MemberAccessContext)_localctx).op = match(Component);
 						setState(237);
 						match(Identifier);
 						}

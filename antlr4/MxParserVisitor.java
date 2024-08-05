@@ -58,11 +58,11 @@ public interface MxParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConst_val(MxParser.Const_valContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MxParser#array_const}.
+	 * Visit a parse tree produced by {@link MxParser#array}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitArray_const(MxParser.Array_constContext ctx);
+	T visitArray(MxParser.ArrayContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MxParser#expr_list}.
 	 * @param ctx the parse tree
@@ -75,12 +75,6 @@ public interface MxParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExpr(MxParser.ExprContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link MxParser#form_string_none}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitForm_string_none(MxParser.Form_string_noneContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MxParser#form_string}.
 	 * @param ctx the parse tree
