@@ -8,7 +8,7 @@ prog: (def_func | def_class | def_var_stmt)* EOF;
 
 basic_type: Int | String | Bool;
 
-typename: basic_type | Identifier;
+typename: (basic_type | Identifier) (LBracket RBracket)*;
 
 def_func:
 	(returnType = typename | Void) funcId = Identifier LP (
@@ -41,31 +41,42 @@ expr_list: expr (Comma expr)*;
 expr:
 	LP expr RP
 	| expr op = (SelfAdd | SelfSub)
-	| expr LP expr_list? RP
-	| expr LBracket expr RBracket
-	| expr op = Component Identifier
+	| funcName = expr LP expr_list? RP
+	| array = expr LBracket serial = expr RBracket
+	| object = expr op = Component Identifier
 	| <assoc = right> op = (SelfAdd | SelfSub) expr
 	| <assoc = right> op = (Add | Sub) expr
 	| <assoc = right> op = (LogicNot | BitNot) expr
-	| <assoc = right> op = New typename (LP RP)?
-	| expr op = (Mul | Div | Mod) expr
-	| expr op = (Add | Sub) expr
-	| expr op = (ShiftL | ShiftR) expr
-	| expr op = (Lt | Le | Gt | Ge) expr
-	| expr op = (Eq | Ne) expr
-	| expr op = BitAnd expr
-	| expr op = BitXor expr
-	| expr op = BitOr expr
-	| expr op = LogicAnd expr
-	| expr op = LogicOr expr
+	| <assoc = right> op = New type = typename (LP RP)?
+	| <assoc = right> op = New type = typename LBracket expr? RBracket array_const?
+	| lhs = expr op = (Mul | Div | Mod) rhs = expr
+	| lhs = expr op = (Add | Sub) rhs = expr
+	| lhs = expr op = (ShiftL | ShiftR) rhs = expr
+	| lhs = expr op = (Lt | Le | Gt | Ge) rhs = expr
+	| lhs = expr op = (Eq | Ne) rhs = expr
+	| lhs = expr op = BitAnd rhs = expr
+	| lhs = expr op = BitXor rhs = expr
+	| lhs = expr op = BitOr rhs = expr
+	| lhs = expr op = LogicAnd rhs = expr
+	| lhs = expr op = LogicOr rhs = expr
 	| <assoc = right> expr op = QuesMark expr Colon expr
-	| <assoc = right> expr op = Assign expr
+	| <assoc = right> lhs = expr op = Assign rhs = expr
 	| NumberConst
 	| StringConst
 	| LogicConst
 	| Null
 	| This
-	| Identifier;
+	| Identifier
+	| array_const
+	| form_string;
+
+form_string_none: FQuote (FormSpChar | .)*? Quote;
+
+form_string:
+	FQuote ((FormSpChar | .)*? Dollar expr Dollar)+ (
+		FormSpChar
+		| .
+	)*? Quote;
 
 stmt:
 	LBrace stmt* RBrace

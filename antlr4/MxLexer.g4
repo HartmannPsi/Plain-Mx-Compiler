@@ -1,9 +1,9 @@
 lexer grammar MxLexer;
 
-NL: '\r'? '\n';
-LineComm: '//' .*? (NL | EOF) -> skip;
+//NL: '\r'? '\n';
+LineComm: '//' .*? (('\r'? '\n') | EOF) -> skip;
 BlockComm: '/*' .*? '*/' -> skip;
-WS: (NL | ' ' | '\t') -> skip;
+WS: ('\r' | '\n' | ' ' | '\t') -> skip;
 
 Void: 'void';
 Bool: 'bool';
@@ -68,11 +68,19 @@ Comma: ',';
 LBrace: '{';
 RBrace: '}';
 
+FQuote: 'f"';
+
+Quote: '"';
+
+Dollar: '$';
+
 Identifier: [A-Za-z][A-Za-z0-9_]*;
+
+FormSpChar: ('\\n' | '\\\\' | '\\"' | '$$');
 
 SpChar: ('\\n' | '\\\\' | '\\"');
 
-StringConst: '"' (SpChar | .)*? '"';
+StringConst: Quote (SpChar | .)*? Quote;
 
 NumberConst: '0' | ([1-9][0-9]*);
 

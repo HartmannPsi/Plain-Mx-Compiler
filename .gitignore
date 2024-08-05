@@ -1,1 +1,10 @@
-antlr4/con.txt
+antlr4/environment.sh
+antlr4/antlr-4.13.2-complete.jar
+antlr4/compile
+antlr4/grun
+antlr4/input.txt
+antlr4/visit
+antlr4/antlr
+antlr4/lib/
+.vscode/
+antlr4/bin/
