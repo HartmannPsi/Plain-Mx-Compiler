@@ -11,7 +11,7 @@ basic_type: Int | String | Bool;
 typename: (basic_type | Identifier) (LBracket RBracket)*;
 
 def_func:
-	(returnType = typename | Void) funcId = Identifier LP (
+	(returnType = typename | Void) funcName = Identifier LP (
 		paras = para_list
 	)? RP LBrace code = stmt* RBrace;
 

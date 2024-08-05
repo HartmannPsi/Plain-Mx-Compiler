@@ -80,7 +80,7 @@ fragment FormSpChar: ('\\n' | '\\\\' | '\\"' | '$$');
 
 fragment SpChar: ('\\n' | '\\\\' | '\\"');
 
-StringConst: Quote (SpChar | ~["\\])*? Quote;
+StringConst: Quote (SpChar | ~["\\])* Quote;
 
 FStringL: FQuote (FormSpChar | ~[$"\\])* Dollar;
 

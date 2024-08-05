@@ -321,7 +321,7 @@ public class MxParser extends Parser {
 	@SuppressWarnings("CheckReturnValue")
 	public static class Def_funcContext extends ParserRuleContext {
 		public TypenameContext returnType;
-		public Token funcId;
+		public Token funcName;
 		public Para_listContext paras;
 		public StmtContext code;
 		public TerminalNode LP() { return getToken(MxParser.LP, 0); }
@@ -377,7 +377,7 @@ public class MxParser extends Parser {
 				throw new NoViableAltException(this);
 			}
 			setState(71);
-			((Def_funcContext)_localctx).funcId = match(Identifier);
+			((Def_funcContext)_localctx).funcName = match(Identifier);
 			setState(72);
 			match(LP);
 			setState(74);
