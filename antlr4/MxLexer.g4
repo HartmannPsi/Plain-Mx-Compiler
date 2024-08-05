@@ -76,12 +76,18 @@ Dollar: '$';
 
 Identifier: [A-Za-z][A-Za-z0-9_]*;
 
-FormSpChar: ('\\n' | '\\\\' | '\\"' | '$$');
+fragment FormSpChar: ('\\n' | '\\\\' | '\\"' | '$$');
 
-SpChar: ('\\n' | '\\\\' | '\\"');
+fragment SpChar: ('\\n' | '\\\\' | '\\"');
 
-StringConst: Quote (SpChar | .)*? Quote;
+StringConst: Quote (SpChar | ~["\\])*? Quote;
+
+FStringL: FQuote (FormSpChar | ~[$"\\])*? Dollar;
+
+FStringM: Dollar (FormSpChar | ~[$"\\])*? Dollar;
+
+FStringR: Dollar (FormSpChar | ~[$"\\])*? Quote;
+
+FStringN: FQuote (FormSpChar | ~[$"\\])*? Quote;
 
 NumberConst: '0' | ([1-9][0-9]*);
-
-LogicConst: True | False;

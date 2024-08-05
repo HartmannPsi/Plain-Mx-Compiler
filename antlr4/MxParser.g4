@@ -22,19 +22,20 @@ def_class:
 		def_var_stmt
 		| def_func
 		| class_constructor
-	)* RBrace;
+	)* RBrace Semicolon;
 
 class_constructor:
 	className = Identifier LP RP LBrace code = stmt* RBrace;
 
 const_val:
-	array_const
+	array
 	| StringConst
 	| NumberConst
-	| LogicConst
+	| True
+	| False
 	| Null;
 
-array_const: LBrace const_val (Comma const_val)* RBrace;
+array: LBrace expr (Comma expr)* RBrace;
 
 expr_list: expr (Comma expr)*;
 
@@ -42,13 +43,13 @@ expr:
 	LP expr RP
 	| expr op = (SelfAdd | SelfSub)
 	| funcName = expr LP expr_list? RP
-	| array = expr LBracket serial = expr RBracket
+	| arrayName = expr LBracket serial = expr RBracket
 	| object = expr op = Component Identifier
 	| <assoc = right> op = (SelfAdd | SelfSub) expr
 	| <assoc = right> op = (Add | Sub) expr
 	| <assoc = right> op = (LogicNot | BitNot) expr
 	| <assoc = right> op = New type = typename (LP RP)?
-	| <assoc = right> op = New type = typename LBracket expr? RBracket array_const?
+	| <assoc = right> op = New type = typename array?
 	| lhs = expr op = (Mul | Div | Mod) rhs = expr
 	| lhs = expr op = (Add | Sub) rhs = expr
 	| lhs = expr op = (ShiftL | ShiftR) rhs = expr
@@ -63,20 +64,16 @@ expr:
 	| <assoc = right> lhs = expr op = Assign rhs = expr
 	| NumberConst
 	| StringConst
-	| LogicConst
+	| True
+	| False
 	| Null
 	| This
 	| Identifier
-	| array_const
+	| array
 	| form_string;
 
-form_string_none: FQuote (FormSpChar | .)*? Quote;
-
-form_string:
-	FQuote ((FormSpChar | .)*? Dollar expr Dollar)+ (
-		FormSpChar
-		| .
-	)*? Quote;
+form_string: (FStringL expr (FStringM expr)* FStringR)
+	| FStringN;
 
 stmt:
 	LBrace stmt* RBrace
