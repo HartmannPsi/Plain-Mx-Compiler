@@ -10,6 +10,10 @@ basic_type: Int | String | Bool;
 
 typename: (basic_type | Identifier) (LBracket RBracket)*;
 
+array_init_tp: (basic_type | Identifier) (
+		LBracket NumberConst RBracket
+	)* (LBracket NumberConst? RBracket) (LBracket RBracket)*;
+
 def_func:
 	(returnType = typename | Void) funcName = Identifier LP (
 		paras = para_list
@@ -41,7 +45,7 @@ expr:
 	| <assoc = right> op = (Add | Sub) expr					# SignOps
 	| <assoc = right> op = (LogicNot | BitNot) expr			# NotOps
 	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
-	| <assoc = right> op = New type = typename array?		# ArrayInit
+	| <assoc = right> op = New type = array_init_tp array?	# ArrayInit
 	| lhs = expr op = (Mul | Div | Mod) rhs = expr			# MulOps
 	| lhs = expr op = (Add | Sub) rhs = expr				# AddOps
 	| lhs = expr op = (ShiftL | ShiftR) rhs = expr			# ShiftOps
