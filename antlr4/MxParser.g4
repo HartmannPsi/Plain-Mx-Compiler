@@ -41,13 +41,13 @@ expr:
 	LP expr RP												# ParenExpr
 	| expr op = (SelfAdd | SelfSub)							# RSelfOps
 	| funcName = expr LP expr_list? RP						# FuncCall
-	| <assoc = right> op = New type = array_init_tp array?	# ArrayInit
-	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
 	| arrayName = expr LBracket serial = expr RBracket		# ArrayAccess
 	| object = expr op = Component Identifier				# MemberAccess
 	| <assoc = right> op = (SelfAdd | SelfSub) expr			# LSelfOps
 	| <assoc = right> op = (Add | Sub) expr					# SignOps
 	| <assoc = right> op = (LogicNot | BitNot) expr			# NotOps
+	| <assoc = right> op = New type = array_init_tp array?	# ArrayInit
+	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
 	| lhs = expr op = (Mul | Div | Mod) rhs = expr			# MulOps
 	| lhs = expr op = (Add | Sub) rhs = expr				# AddOps
 	| lhs = expr op = (ShiftL | ShiftR) rhs = expr			# ShiftOps

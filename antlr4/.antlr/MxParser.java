@@ -1269,54 +1269,10 @@ public class MxParser extends Parser {
 				break;
 			case 2:
 				{
-				_localctx = new ArrayInitContext(_localctx);
-				_ctx = _localctx;
-				_prevctx = _localctx;
-				setState(172);
-				((ArrayInitContext)_localctx).op = match(New);
-				setState(173);
-				((ArrayInitContext)_localctx).type = array_init_tp();
-				setState(175);
-				_errHandler.sync(this);
-				switch ( getInterpreter().adaptivePredict(_input,17,_ctx) ) {
-				case 1:
-					{
-					setState(174);
-					array();
-					}
-					break;
-				}
-				}
-				break;
-			case 3:
-				{
-				_localctx = new ObjectInitContext(_localctx);
-				_ctx = _localctx;
-				_prevctx = _localctx;
-				setState(177);
-				((ObjectInitContext)_localctx).op = match(New);
-				setState(178);
-				((ObjectInitContext)_localctx).type = typename();
-				setState(181);
-				_errHandler.sync(this);
-				switch ( getInterpreter().adaptivePredict(_input,18,_ctx) ) {
-				case 1:
-					{
-					setState(179);
-					match(LP);
-					setState(180);
-					match(RP);
-					}
-					break;
-				}
-				}
-				break;
-			case 4:
-				{
 				_localctx = new LSelfOpsContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(183);
+				setState(172);
 				((LSelfOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==SelfAdd || _la==SelfSub) ) {
@@ -1327,16 +1283,16 @@ public class MxParser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(184);
-				expr(24);
+				setState(173);
+				expr(26);
 				}
 				break;
-			case 5:
+			case 3:
 				{
 				_localctx = new SignOpsContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(185);
+				setState(174);
 				((SignOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==Add || _la==Sub) ) {
@@ -1347,16 +1303,16 @@ public class MxParser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(186);
-				expr(23);
+				setState(175);
+				expr(25);
 				}
 				break;
-			case 6:
+			case 4:
 				{
 				_localctx = new NotOpsContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(187);
+				setState(176);
 				((NotOpsContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==LogicNot || _la==BitNot) ) {
@@ -1367,8 +1323,52 @@ public class MxParser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(188);
-				expr(22);
+				setState(177);
+				expr(24);
+				}
+				break;
+			case 5:
+				{
+				_localctx = new ArrayInitContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+				setState(178);
+				((ArrayInitContext)_localctx).op = match(New);
+				setState(179);
+				((ArrayInitContext)_localctx).type = array_init_tp();
+				setState(181);
+				_errHandler.sync(this);
+				switch ( getInterpreter().adaptivePredict(_input,17,_ctx) ) {
+				case 1:
+					{
+					setState(180);
+					array();
+					}
+					break;
+				}
+				}
+				break;
+			case 6:
+				{
+				_localctx = new ObjectInitContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+				setState(183);
+				((ObjectInitContext)_localctx).op = match(New);
+				setState(184);
+				((ObjectInitContext)_localctx).type = typename();
+				setState(187);
+				_errHandler.sync(this);
+				switch ( getInterpreter().adaptivePredict(_input,18,_ctx) ) {
+				case 1:
+					{
+					setState(185);
+					match(LP);
+					setState(186);
+					match(RP);
+					}
+					break;
+				}
 				}
 				break;
 			case 7:
@@ -1717,7 +1717,7 @@ public class MxParser extends Parser {
 						((ArrayAccessContext)_localctx).arrayName = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(247);
-						if (!(precpred(_ctx, 26))) throw new FailedPredicateException(this, "precpred(_ctx, 26)");
+						if (!(precpred(_ctx, 28))) throw new FailedPredicateException(this, "precpred(_ctx, 28)");
 						setState(248);
 						match(LBracket);
 						setState(249);
@@ -1732,7 +1732,7 @@ public class MxParser extends Parser {
 						((MemberAccessContext)_localctx).object = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(252);
-						if (!(precpred(_ctx, 25))) throw new FailedPredicateException(this, "precpred(_ctx, 25)");
+						if (!(precpred(_ctx, 27))) throw new FailedPredicateException(this, "precpred(_ctx, 27)");
 						setState(253);
 						((MemberAccessContext)_localctx).op = match(Component);
 						setState(254);
@@ -2495,9 +2495,9 @@ public class MxParser extends Parser {
 		case 13:
 			return precpred(_ctx, 29);
 		case 14:
-			return precpred(_ctx, 26);
+			return precpred(_ctx, 28);
 		case 15:
-			return precpred(_ctx, 25);
+			return precpred(_ctx, 27);
 		}
 		return true;
 	}
@@ -2528,23 +2528,23 @@ public class MxParser extends Parser {
 		"\u008e\b\u0007\n\u0007\f\u0007\u0091\t\u0007\u0001\u0007\u0001\u0007\u0001"+
 		"\b\u0001\b\u0001\b\u0001\b\u0005\b\u0099\b\b\n\b\f\b\u009c\t\b\u0001\b"+
 		"\u0001\b\u0001\t\u0001\t\u0001\t\u0005\t\u00a3\b\t\n\t\f\t\u00a6\t\t\u0001"+
-		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00b0"+
-		"\b\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00b6\b\n\u0001\n\u0001\n"+
-		"\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
-		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00c7\b\n\u0001\n\u0001\n\u0001"+
+		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
+		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00b6\b\n\u0001\n\u0001\n\u0001"+
+		"\n\u0001\n\u0003\n\u00bc\b\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
+		"\n\u0001\n\u0001\n\u0001\n\u0003\n\u00c7\b\n\u0001\n\u0001\n\u0001\n\u0001"+
 		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
 		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
 		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
 		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001"+
-		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00f5\b\n\u0001\n\u0001"+
-		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0005\n\u0100"+
-		"\b\n\n\n\f\n\u0103\t\n\u0001\u000b\u0001\u000b\u0001\u000b\u0001\u000b"+
-		"\u0005\u000b\u0109\b\u000b\n\u000b\f\u000b\u010c\t\u000b\u0001\u000b\u0001"+
-		"\u000b\u0001\u000b\u0003\u000b\u0111\b\u000b\u0001\f\u0001\f\u0005\f\u0115"+
-		"\b\f\n\f\f\f\u0118\t\f\u0001\f\u0001\f\u0001\f\u0001\f\u0001\f\u0001\f"+
-		"\u0001\f\u0001\f\u0001\f\u0001\f\u0003\f\u0124\b\f\u0001\r\u0001\r\u0001"+
-		"\r\u0001\r\u0003\r\u012a\b\r\u0001\r\u0001\r\u0001\r\u0001\r\u0003\r\u0130"+
-		"\b\r\u0005\r\u0132\b\r\n\r\f\r\u0135\t\r\u0001\r\u0001\r\u0001\u000e\u0001"+
+		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0003\n\u00f5\b\n\u0001\n\u0001\n\u0001"+
+		"\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0001\n\u0005\n\u0100\b\n\n"+
+		"\n\f\n\u0103\t\n\u0001\u000b\u0001\u000b\u0001\u000b\u0001\u000b\u0005"+
+		"\u000b\u0109\b\u000b\n\u000b\f\u000b\u010c\t\u000b\u0001\u000b\u0001\u000b"+
+		"\u0001\u000b\u0003\u000b\u0111\b\u000b\u0001\f\u0001\f\u0005\f\u0115\b"+
+		"\f\n\f\f\f\u0118\t\f\u0001\f\u0001\f\u0001\f\u0001\f\u0001\f\u0001\f\u0001"+
+		"\f\u0001\f\u0001\f\u0001\f\u0003\f\u0124\b\f\u0001\r\u0001\r\u0001\r\u0001"+
+		"\r\u0003\r\u012a\b\r\u0001\r\u0001\r\u0001\r\u0001\r\u0003\r\u0130\b\r"+
+		"\u0005\r\u0132\b\r\n\r\f\r\u0135\t\r\u0001\r\u0001\r\u0001\u000e\u0001"+
 		"\u000e\u0001\u000e\u0001\u000e\u0001\u000e\u0001\u000e\u0001\u000e\u0003"+
 		"\u000e\u0140\b\u000e\u0001\u000f\u0001\u000f\u0001\u000f\u0001\u000f\u0001"+
 		"\u000f\u0001\u000f\u0001\u0010\u0001\u0010\u0001\u0010\u0001\u0010\u0003"+
@@ -2624,22 +2624,22 @@ public class MxParser extends Parser {
 		"\u0000\u0000\u00a6\u00a4\u0001\u0000\u0000\u0000\u00a7\u00a8\u0006\n\uffff"+
 		"\uffff\u0000\u00a8\u00a9\u0005/\u0000\u0000\u00a9\u00aa\u0003\u0014\n"+
 		"\u0000\u00aa\u00ab\u00050\u0000\u0000\u00ab\u00c7\u0001\u0000\u0000\u0000"+
-		"\u00ac\u00ad\u0005\b\u0000\u0000\u00ad\u00af\u0003\u0006\u0003\u0000\u00ae"+
-		"\u00b0\u0003\u0010\b\u0000\u00af\u00ae\u0001\u0000\u0000\u0000\u00af\u00b0"+
-		"\u0001\u0000\u0000\u0000\u00b0\u00c7\u0001\u0000\u0000\u0000\u00b1\u00b2"+
-		"\u0005\b\u0000\u0000\u00b2\u00b5\u0003\u0004\u0002\u0000\u00b3\u00b4\u0005"+
-		"/\u0000\u0000\u00b4\u00b6\u00050\u0000\u0000\u00b5\u00b3\u0001\u0000\u0000"+
-		"\u0000\u00b5\u00b6\u0001\u0000\u0000\u0000\u00b6\u00c7\u0001\u0000\u0000"+
-		"\u0000\u00b7\u00b8\u0007\u0001\u0000\u0000\u00b8\u00c7\u0003\u0014\n\u0018"+
-		"\u00b9\u00ba\u0007\u0002\u0000\u0000\u00ba\u00c7\u0003\u0014\n\u0017\u00bb"+
-		"\u00bc\u0007\u0003\u0000\u0000\u00bc\u00c7\u0003\u0014\n\u0016\u00bd\u00c7"+
+		"\u00ac\u00ad\u0007\u0001\u0000\u0000\u00ad\u00c7\u0003\u0014\n\u001a\u00ae"+
+		"\u00af\u0007\u0002\u0000\u0000\u00af\u00c7\u0003\u0014\n\u0019\u00b0\u00b1"+
+		"\u0007\u0003\u0000\u0000\u00b1\u00c7\u0003\u0014\n\u0018\u00b2\u00b3\u0005"+
+		"\b\u0000\u0000\u00b3\u00b5\u0003\u0006\u0003\u0000\u00b4\u00b6\u0003\u0010"+
+		"\b\u0000\u00b5\u00b4\u0001\u0000\u0000\u0000\u00b5\u00b6\u0001\u0000\u0000"+
+		"\u0000\u00b6\u00c7\u0001\u0000\u0000\u0000\u00b7\u00b8\u0005\b\u0000\u0000"+
+		"\u00b8\u00bb\u0003\u0004\u0002\u0000\u00b9\u00ba\u0005/\u0000\u0000\u00ba"+
+		"\u00bc\u00050\u0000\u0000\u00bb\u00b9\u0001\u0000\u0000\u0000\u00bb\u00bc"+
+		"\u0001\u0000\u0000\u0000\u00bc\u00c7\u0001\u0000\u0000\u0000\u00bd\u00c7"+
 		"\u0005@\u0000\u0000\u00be\u00c7\u0005;\u0000\u0000\u00bf\u00c7\u0003\u0016"+
 		"\u000b\u0000\u00c0\u00c7\u0005\u000b\u0000\u0000\u00c1\u00c7\u0005\f\u0000"+
 		"\u0000\u00c2\u00c7\u0005\n\u0000\u0000\u00c3\u00c7\u0005\r\u0000\u0000"+
 		"\u00c4\u00c7\u0005:\u0000\u0000\u00c5\u00c7\u0003\u0010\b\u0000\u00c6"+
 		"\u00a7\u0001\u0000\u0000\u0000\u00c6\u00ac\u0001\u0000\u0000\u0000\u00c6"+
-		"\u00b1\u0001\u0000\u0000\u0000\u00c6\u00b7\u0001\u0000\u0000\u0000\u00c6"+
-		"\u00b9\u0001\u0000\u0000\u0000\u00c6\u00bb\u0001\u0000\u0000\u0000\u00c6"+
+		"\u00ae\u0001\u0000\u0000\u0000\u00c6\u00b0\u0001\u0000\u0000\u0000\u00c6"+
+		"\u00b2\u0001\u0000\u0000\u0000\u00c6\u00b7\u0001\u0000\u0000\u0000\u00c6"+
 		"\u00bd\u0001\u0000\u0000\u0000\u00c6\u00be\u0001\u0000\u0000\u0000\u00c6"+
 		"\u00bf\u0001\u0000\u0000\u0000\u00c6\u00c0\u0001\u0000\u0000\u0000\u00c6"+
 		"\u00c1\u0001\u0000\u0000\u0000\u00c6\u00c2\u0001\u0000\u0000\u0000\u00c6"+
@@ -2666,10 +2666,10 @@ public class MxParser extends Parser {
 		"\u0100\u0007\u0001\u0000\u0000\u00f1\u00f2\n\u001d\u0000\u0000\u00f2\u00f4"+
 		"\u0005/\u0000\u0000\u00f3\u00f5\u0003\u0012\t\u0000\u00f4\u00f3\u0001"+
 		"\u0000\u0000\u0000\u00f4\u00f5\u0001\u0000\u0000\u0000\u00f5\u00f6\u0001"+
-		"\u0000\u0000\u0000\u00f6\u0100\u00050\u0000\u0000\u00f7\u00f8\n\u001a"+
+		"\u0000\u0000\u0000\u00f6\u0100\u00050\u0000\u0000\u00f7\u00f8\n\u001c"+
 		"\u0000\u0000\u00f8\u00f9\u0005-\u0000\u0000\u00f9\u00fa\u0003\u0014\n"+
 		"\u0000\u00fa\u00fb\u0005.\u0000\u0000\u00fb\u0100\u0001\u0000\u0000\u0000"+
-		"\u00fc\u00fd\n\u0019\u0000\u0000\u00fd\u00fe\u0005,\u0000\u0000\u00fe"+
+		"\u00fc\u00fd\n\u001b\u0000\u0000\u00fd\u00fe\u0005,\u0000\u0000\u00fe"+
 		"\u0100\u0005:\u0000\u0000\u00ff\u00c8\u0001\u0000\u0000\u0000\u00ff\u00cb"+
 		"\u0001\u0000\u0000\u0000\u00ff\u00ce\u0001\u0000\u0000\u0000\u00ff\u00d1"+
 		"\u0001\u0000\u0000\u0000\u00ff\u00d4\u0001\u0000\u0000\u0000\u00ff\u00d7"+
@@ -2736,7 +2736,7 @@ public class MxParser extends Parser {
 		"\u0000\u0000\u0000\u0160\u0161\u0003\u0014\n\u0000\u0161\u0162\u00053"+
 		"\u0000\u0000\u0162)\u0001\u0000\u0000\u0000\u0163\u0164\u00053\u0000\u0000"+
 		"\u0164+\u0001\u0000\u0000\u0000\"/1:@ELQY^cjw\u0080\u0082\u008f\u009a"+
-		"\u00a4\u00af\u00b5\u00c6\u00f4\u00ff\u0101\u010a\u0110\u0116\u0123\u0129"+
+		"\u00a4\u00b5\u00bb\u00c6\u00f4\u00ff\u0101\u010a\u0110\u0116\u0123\u0129"+
 		"\u012f\u0133\u013f\u014b\u014f\u0156";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
