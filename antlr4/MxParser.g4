@@ -12,9 +12,9 @@ basic_type: Int | String | Bool;
 
 typename: (basic_type | Identifier) (LBracket RBracket)*;
 
-array_init_tp: (basic_type | Identifier) (
-		LBracket NumberConst RBracket
-	)* (LBracket NumberConst? RBracket) (LBracket RBracket)*;
+array_init_tp: (basic_type | Identifier) (LBracket expr RBracket)* (
+		LBracket expr? RBracket
+	) (LBracket RBracket)*;
 
 def_func:
 	(returnType = typename | Void) funcName = Identifier LP (
