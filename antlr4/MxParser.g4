@@ -1,5 +1,7 @@
 parser grammar MxParser;
 
+//TODO: 数组初始化语句修改
+
 options{
 	tokenVocab = MxLexer;
 }
@@ -39,13 +41,13 @@ expr:
 	LP expr RP												# ParenExpr
 	| expr op = (SelfAdd | SelfSub)							# RSelfOps
 	| funcName = expr LP expr_list? RP						# FuncCall
+	| <assoc = right> op = New type = array_init_tp array?	# ArrayInit
+	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
 	| arrayName = expr LBracket serial = expr RBracket		# ArrayAccess
 	| object = expr op = Component Identifier				# MemberAccess
 	| <assoc = right> op = (SelfAdd | SelfSub) expr			# LSelfOps
 	| <assoc = right> op = (Add | Sub) expr					# SignOps
 	| <assoc = right> op = (LogicNot | BitNot) expr			# NotOps
-	| <assoc = right> op = New type = typename (LP RP)?		# ObjectInit
-	| <assoc = right> op = New type = array_init_tp array?	# ArrayInit
 	| lhs = expr op = (Mul | Div | Mod) rhs = expr			# MulOps
 	| lhs = expr op = (Add | Sub) rhs = expr				# AddOps
 	| lhs = expr op = (ShiftL | ShiftR) rhs = expr			# ShiftOps
@@ -96,7 +98,7 @@ while_stmt: While LP cond = expr RP stmt;
 for_stmt:
 	For LP init = stmt cond = expr? Semicolon step = expr? RP stmt;
 
-return_stmt: Return val = expr Semicolon;
+return_stmt: Return val = expr? Semicolon;
 
 break_stmt: Break Semicolon;
 
