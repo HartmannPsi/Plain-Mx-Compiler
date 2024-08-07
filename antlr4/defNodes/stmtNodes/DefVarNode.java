@@ -3,7 +3,7 @@ package defNodes.stmtNodes;
 import defNodes.*;
 
 public class DefVarNode extends Node {
-    public Type type = null;
+    public Node type = null;
 
     public class VarInit {
         public Node id = null;
