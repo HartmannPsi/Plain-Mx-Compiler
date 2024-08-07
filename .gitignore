@@ -1,5 +1,4 @@
 antlr4/environment.sh
-antlr4/antlr-4.13.2-complete.jar
 antlr4/compile
 antlr4/grun
 antlr4/visit
@@ -8,3 +7,6 @@ antlr4/lib/
 .vscode/
 antlr4/bin/
 antlr4/testcases/
+antlr4/clear.sh
+antlr4/compile.sh
+antlr4/antlr-4.13.2-complete.jar

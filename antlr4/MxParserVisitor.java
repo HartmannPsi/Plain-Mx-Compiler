@@ -28,6 +28,12 @@ public interface MxParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypename(MxParser.TypenameContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MxParser#array_init_tp}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArray_init_tp(MxParser.Array_init_tpContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MxParser#def_func}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+    <classpathentry kind="lib" path="lib/antlr-4.13.2-complete.jar"/> <!-- 替换为ANTLR库的实际路径 -->
+    <classpathentry kind="src" path="."/>
+    <classpathentry kind="output" path="bin"/>
+</classpath>

@@ -91,12 +91,18 @@ def_var_stmt:
 	)* Semicolon;
 
 if_stmt:
-	If LP cond = expr RP thenStmt = stmt (Else elseStmt = stmt)?;
+	If LP cond = expr RP ((LBrace stmt* RBrace) | stmt) (
+		Else ((LBrace stmt* RBrace) | stmt)
+	)?;
 
-while_stmt: While LP cond = expr RP stmt;
+while_stmt:
+	While LP cond = expr RP ((LBrace stmt* RBrace) | stmt);
 
 for_stmt:
-	For LP init = stmt cond = expr? Semicolon step = expr? RP stmt;
+	For LP init = stmt cond = expr? Semicolon step = expr? RP (
+		( LBrace stmt* RBrace)
+		| stmt
+	);
 
 return_stmt: Return val = expr? Semicolon;
 
