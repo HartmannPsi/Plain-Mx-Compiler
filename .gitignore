@@ -10,4 +10,4 @@ antlr4/testcases/
 antlr4/clear.sh
 antlr4/compile.sh
 antlr4/antlr-4.13.2-complete.jar
-lib/antlr-4.13.2-complete.jar
+lib/
