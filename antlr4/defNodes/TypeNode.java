@@ -1,5 +1,6 @@
 package defNodes;
 
 public class TypeNode extends Node {
-    Type type = null;
+    public Type type = null;
+    public Node[] dim_lens = null;
 }
