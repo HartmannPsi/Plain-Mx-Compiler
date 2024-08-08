@@ -293,11 +293,19 @@ public interface MxParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitForm_string(MxParser.Form_stringContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MxParser#stmt}.
+	 * Visit a parse tree produced by the {@code NewStmtScope}
+	 * labeled alternative in {@link MxParser#stmt}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitStmt(MxParser.StmtContext ctx);
+	T visitNewStmtScope(MxParser.NewStmtScopeContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code OtherStmt}
+	 * labeled alternative in {@link MxParser#stmt}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOtherStmt(MxParser.OtherStmtContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MxParser#def_var_stmt}.
 	 * @param ctx the parse tree

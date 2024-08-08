@@ -8,6 +8,6 @@ public class UnaryOpNode extends ExprNode {
         SAddR, SSubR, SAddL, SSubL, Plus, Minus, LNot, BNot, None
     };
 
-    public Node oprand = null;
-    public UnaryOprand operator = null;
+    public Node expr = null;
+    public UnaryOprand oprand = null;
 }

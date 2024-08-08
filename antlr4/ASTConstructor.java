@@ -1,8 +1,8 @@
-import javax.lang.model.element.TypeElement;
 
 import defNodes.*;
 import defNodes.exprNodes.*;
 import defNodes.exprNodes.BinaryOpNode.BinaryOprand;
+import defNodes.exprNodes.UnaryOpNode.UnaryOprand;
 import defNodes.stmtNodes.*;
 
 public class ASTConstructor extends MxParserBaseVisitor<Node> {
@@ -281,6 +281,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
 
         node.type = ((ExprNode) (node.vals[0])).type.clone();
+        ++node.type.dim;
+        node.type.is_lvalue = false;
 
         return node;
     }
@@ -363,7 +365,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = new Type(bool_type);
 
         return node;
     }
@@ -383,7 +385,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = new Type(bool_type);
 
         return node;
     }
@@ -451,7 +453,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = new Type(bool_type);
 
         return node;
     }
@@ -466,8 +468,16 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitArrayAccess(MxParser.ArrayAccessContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        ArrayAccessNode node = new ArrayAccessNode();
+
+        node.array = visit(ctx.arrayName);
+        node.serial = visit(ctx.serial);
+        node.array.father = node.serial.father = node;
+        node.type = ((ExprNode) node.array).type.clone();
+        --node.type.dim;
+        node.type.is_lvalue = true;
+
+        return node;
     }
 
     /**
@@ -480,8 +490,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitNotOps(MxParser.NotOpsContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        UnaryOpNode node = new UnaryOpNode();
+        node.oprand = ctx.op.getType() == MxParser.LogicNot ? UnaryOprand.LNot : UnaryOprand.BNot;
+        node.expr = visit(ctx.expr());
+        node.expr.father = node;
+        node.type = ((ExprNode) node.expr).type.clone();
+
+        return node;
     }
 
     /**
@@ -494,8 +509,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitRSelfOps(MxParser.RSelfOpsContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        UnaryOpNode node = new UnaryOpNode();
+        node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddR : UnaryOprand.SSubR;
+        node.expr = visit(ctx.expr());
+        node.expr.father = node;
+        node.type = ((ExprNode) node.expr).type.clone();
+
+        return node;
     }
 
     /**
@@ -508,8 +528,23 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitArrayInit(MxParser.ArrayInitContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        NewExprNode node = new NewExprNode();
+        TypeNode _tp = (TypeNode) visit(ctx.array_init_tp());
+        node.create_type = _tp;
+        node.lengths = _tp.dim_lens;
+        _tp.father = node;
+        for (int i = 0; i != node.lengths.length; ++i) {
+            node.lengths[i].father = node;
+        }
+        _tp.dim_lens = null;
+        if (ctx.array() != null) {
+            node.init_array = visit(ctx.array());
+            node.init_array.father = node;
+        }
+
+        node.type = _tp.type.clone();
+
+        return node;
     }
 
     /**
@@ -522,8 +557,11 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitBuiltInPtr(MxParser.BuiltInPtrContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+
+        ThisNode node = new ThisNode();
+
+        // TODO: get the type of *this* from class scope
+        return node;
     }
 
     /**
@@ -536,8 +574,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitFString(MxParser.FStringContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        // unused
+        return visit(ctx.form_string());
     }
 
     /**
@@ -568,7 +606,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = new Type(bool_type);
 
         return node;
     }
@@ -583,8 +621,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitLSelfOps(MxParser.LSelfOpsContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        UnaryOpNode node = new UnaryOpNode();
+        node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddL : UnaryOprand.SSubL;
+        node.expr = visit(ctx.expr());
+        node.expr.father = node;
+        node.type = ((ExprNode) node.expr).type.clone();
+
+        return node;
     }
 
     /**
@@ -597,8 +640,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitSignOps(MxParser.SignOpsContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        UnaryOpNode node = new UnaryOpNode();
+        node.oprand = ctx.op.getType() == MxParser.Add ? UnaryOprand.Plus : UnaryOprand.Minus;
+        node.expr = visit(ctx.expr());
+        node.expr.father = node;
+        node.type = ((ExprNode) node.expr).type.clone();
+
+        return node;
     }
 
     /**
@@ -611,8 +659,14 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitTernary(MxParser.TernaryContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        TernaryOpNode node = new TernaryOpNode();
+        node.cond = visit(ctx.expr(0));
+        node.lhs = visit(ctx.expr(1));
+        node.rhs = visit(ctx.expr(2));
+        node.cond.father = node.lhs.father = node.rhs.father = node;
+        node.type = ((ExprNode) node.lhs).type.clone();
+
+        return node;
     }
 
     /**
@@ -716,7 +770,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = ((ExprNode) node.lhs).type.clone();
 
         return node;
     }
@@ -731,8 +785,12 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitObjectInit(MxParser.ObjectInitContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        NewExprNode node = new NewExprNode();
+        node.create_type = visit(ctx.typename());
+        node.create_type.father = node;
+        node.type = ((TypeNode) node.create_type).type.clone();
+
+        return node;
     }
 
     /**
@@ -745,8 +803,21 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitFuncCall(MxParser.FuncCallContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        FuncCallNode node = new FuncCallNode();
+        node.id = visit(ctx.funcName);
+        node.id.father = node;
+
+        if (ctx.expr_list() != null) {
+            MxParser.Expr_listContext expr_ctx = ctx.expr_list();
+            node.paras = new Node[1 + expr_ctx.getChildCount() / 2];
+            for (int i = 0; i != 1 + expr_ctx.getChildCount() / 2; ++i) {
+                node.paras[i] = visit(expr_ctx.expr(i));
+                node.paras[i].father = node;
+            }
+        }
+
+        node.type = ((ExprNode) node.id).type.clone();
+        return node;
     }
 
     /**
@@ -759,8 +830,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitMemberAccess(MxParser.MemberAccessContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        MemAccNode node = new MemAccNode();
+        node.object = visit(ctx.expr());
+        node.member = visit(ctx.Identifier());
+        node.object.father = node.member.father = node;
+        // TODO: get type from class scope
+
+        return node;
     }
 
     /**
@@ -798,7 +874,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
+        node.type = ((ExprNode) node.rhs).type.clone();
 
         return node;
     }
@@ -813,8 +889,11 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitId(MxParser.IdContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        IdNode node = new IdNode();
+        node.id = ctx.Identifier().getText();
+        // TODO: get type from scope
+
+        return node;
     }
 
     /**
@@ -827,7 +906,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitParenExpr(MxParser.ParenExprContext ctx) {
-        return visit(ctx.getChild(1));
+        // simple
+        return visit(ctx.expr());
     }
 
     /**
@@ -840,8 +920,21 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitForm_string(MxParser.Form_stringContext ctx) {
-        // TODO:
-        return visitChildren(ctx);
+        FStringNode node = new FStringNode();
+        node.literals = new String[ctx.getChildCount() / 2 + 1];
+        node.exprs = new Node[ctx.getChildCount() / 2];
+
+        for (int i = 0; i != ctx.getChildCount(); ++i) {
+            if (i % 2 == 0) {// literals
+                node.literals[i / 2] = ctx.getChild(i).getText().substring(1, ctx.getChild(i).getText().length() - 1);
+            } else {// exprs
+                node.exprs[i / 2] = visit(ctx.getChild(i));
+                node.exprs[i / 2].father = node;
+            }
+        }
+
+        node.type = new Type(string_type);
+        return node;
     }
 
     /**
@@ -852,10 +945,10 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      * {@link #visitChildren} on {@code ctx}.
      * </p>
      */
-    @Override
-    public Node visitStmt(MxParser.StmtContext ctx) {
-        return visitChildren(ctx);
-    }
+    // @Override
+    // public Node visitStmt(MxParser.StmtContext ctx) {
+    // return visitChildren(ctx);
+    // }
 
     /**
      * {@inheritDoc}
@@ -867,7 +960,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitDef_var_stmt(MxParser.Def_var_stmtContext ctx) {
-        return visitChildren(ctx);
+        DefVarNode node = new DefVarNode();
+        node.type = visit(ctx.typename());
+        node.type.father = node;
+        // TODO:
+
+        // TODO: add ids to scope
+        return node;
     }
 
     /**
@@ -880,7 +979,37 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitIf_stmt(MxParser.If_stmtContext ctx) {
-        return visitChildren(ctx);
+        IfStmtNode node = new IfStmtNode();
+        node.cond = visit(ctx.cond);
+        node.cond.father = node;
+
+        if (ctx.stmt(0) instanceof MxParser.NewStmtScopeContext) {
+            node.then_stmt = visit(ctx.stmt(0));
+            node.then_stmt.father = node;
+        } else {
+            BraceStmtNode son_node = new BraceStmtNode();
+            node.then_stmt = son_node;
+            son_node.father = node;
+            son_node.stmts = new Node[1];
+            son_node.stmts[0] = visit(ctx.stmt(0));
+            son_node.stmts[0].father = son_node;
+        }
+
+        if (ctx.Else() != null) {// have else stmt
+            if (ctx.stmt(1) instanceof MxParser.NewStmtScopeContext) {
+                node.else_stmt = visit(ctx.stmt(1));
+                node.else_stmt.father = node;
+            } else {
+                BraceStmtNode son_node = new BraceStmtNode();
+                node.else_stmt = son_node;
+                son_node.father = node;
+                son_node.stmts = new Node[1];
+                son_node.stmts[0] = visit(ctx.stmt(1));
+                son_node.stmts[0].father = son_node;
+            }
+        }
+
+        return node;
     }
 
     /**
@@ -893,7 +1022,23 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitWhile_stmt(MxParser.While_stmtContext ctx) {
-        return visitChildren(ctx);
+        WhileStmtNode node = new WhileStmtNode();
+        node.cond = visit(ctx.cond);
+        node.cond.father = node;
+
+        if (ctx.getChildCount() == 5) {
+            node.stmts = new Node[1];
+            node.stmts[0] = visit(ctx.stmt(0));
+            node.stmts[0].father = node;
+        } else {
+            node.stmts = new Node[ctx.getChildCount() - 6];
+            for (int i = 0; i != ctx.getChildCount() - 6; ++i) {
+                node.stmts[i] = visit(ctx.stmt(i));
+                node.stmts[i].father = node;
+            }
+        }
+
+        return node;
     }
 
     /**
@@ -906,7 +1051,39 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitFor_stmt(MxParser.For_stmtContext ctx) {
-        return visitChildren(ctx);
+        ForStmtNode node = new ForStmtNode();
+
+        int other_child_count = 4;
+
+        if (ctx.init != null) {
+            node.init = visit(ctx.init);
+            node.init.father = node;
+            ++other_child_count;
+        }
+        if (ctx.cond != null) {
+            node.cond = visit(ctx.cond);
+            node.cond.father = node;
+            ++other_child_count;
+        }
+        if (ctx.step != null) {
+            node.step = visit(ctx.step);
+            node.step.father = node;
+            ++other_child_count;
+        }
+
+        if (ctx.getChildCount() == other_child_count + 1) {
+            node.stmts = new Node[1];
+            node.stmts[0] = visit(ctx.stmt(0));
+            node.stmts[0].father = node;
+        } else {
+            node.stmts = new Node[ctx.getChildCount() - other_child_count - 2];
+            for (int i = 0; i != ctx.getChildCount() - other_child_count - 2; ++i) {
+                node.stmts[i] = visit(ctx.stmt(i));
+                node.stmts[i].father = node;
+            }
+        }
+
+        return node;
     }
 
     /**
@@ -919,7 +1096,11 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitReturn_stmt(MxParser.Return_stmtContext ctx) {
-        return visitChildren(ctx);
+        ReturnNode node = new ReturnNode();
+        if (ctx.val != null) {
+            node.expr = visit(ctx.val);
+        }
+        return node;
     }
 
     /**
@@ -932,7 +1113,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitBreak_stmt(MxParser.Break_stmtContext ctx) {
-        return visitChildren(ctx);
+        // simple
+        return new BreakNode();
     }
 
     /**
@@ -945,7 +1127,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitContinue_stmt(MxParser.Continue_stmtContext ctx) {
-        return visitChildren(ctx);
+        // simple
+        return new ContinueNode();
     }
 
     /**
@@ -958,7 +1141,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitExpr_stmt(MxParser.Expr_stmtContext ctx) {
-        return visitChildren(ctx);
+        ExprStmtNode node = new ExprStmtNode();
+        node.expr = visit(ctx.expr());
+        return node;
     }
 
     /**
@@ -971,6 +1156,41 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
      */
     @Override
     public Node visitEmpty_stmt(MxParser.Empty_stmtContext ctx) {
-        return visitChildren(ctx);
+        // simple
+        return new EmptyStmtNode();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.
+     * </p>
+     */
+    @Override
+    public Node visitNewStmtScope(MxParser.NewStmtScopeContext ctx) {
+        BraceStmtNode node = new BraceStmtNode();
+        node.stmts = new Node[ctx.getChildCount() - 2];
+        for (int i = 0; i != ctx.getChildCount() - 2; ++i) {
+            node.stmts[i] = visit(ctx.stmt(i));
+            node.stmts[i].father = node;
+        }
+
+        return node;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.
+     * </p>
+     */
+    @Override
+    public Node visitOtherStmt(MxParser.OtherStmtContext ctx) {
+        // unused
+        return visit(ctx.getChild(0));
     }
 }

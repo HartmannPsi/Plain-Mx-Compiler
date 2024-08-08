@@ -74,26 +74,23 @@ form_string: (FStringL expr (FStringM expr)* FStringR)
 	| FStringN;
 
 stmt:
-	(LBrace stmt* RBrace)
-	| empty_stmt
-	| def_var_stmt
-	| if_stmt
-	| while_stmt
-	| for_stmt
-	| return_stmt
-	| break_stmt
-	| continue_stmt
-	| expr_stmt;
+	(LBrace stmt* RBrace)	# NewStmtScope
+	| empty_stmt			# OtherStmt
+	| def_var_stmt			# OtherStmt
+	| if_stmt				# OtherStmt
+	| while_stmt			# OtherStmt
+	| for_stmt				# OtherStmt
+	| return_stmt			# OtherStmt
+	| break_stmt			# OtherStmt
+	| continue_stmt			# OtherStmt
+	| expr_stmt				# OtherStmt;
 
 def_var_stmt:
 	typename Identifier (Assign expr)? (
 		Comma Identifier (Assign expr)?
 	)* Semicolon;
 
-if_stmt:
-	If LP cond = expr RP ((LBrace stmt* RBrace) | stmt) (
-		Else ((LBrace stmt* RBrace) | stmt)
-	)?;
+if_stmt: If LP cond = expr RP (stmt) (Else (stmt))?;
 
 while_stmt:
 	While LP cond = expr RP ((LBrace stmt* RBrace) | stmt);
