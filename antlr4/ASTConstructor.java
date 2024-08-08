@@ -1,4 +1,5 @@
-
+import java.util.Map;
+import java.util.Set;
 import defNodes.*;
 import defNodes.exprNodes.*;
 import defNodes.exprNodes.BinaryOpNode.BinaryOprand;
@@ -8,6 +9,60 @@ import defNodes.stmtNodes.*;
 public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
     String int_type = "int", bool_type = "bool", string_type = "string", void_type = "void", null_type = "null";
+
+    Set<String> global_class = null;
+    Map<String, FuncType> global_func = null;
+    Map<String, Type> global_var = null;
+
+    void addToFuncs(String id, FuncType type) {
+        if (global_func.containsKey(id)) {
+            // throw sth
+        }
+        global_func.put(id, type);
+    }
+
+    void addToCls(String id) {
+        if (global_class.contains(id)) {
+            // throw sth
+        }
+        global_class.add(id);
+    }
+
+    FuncType getFuncType(String id) {
+        if (global_func.containsKey(id)) {
+            return global_func.get(id);
+        } else {
+            return null;
+        }
+    }
+
+    boolean existsCls(String id) {
+        return global_class.contains(id);
+    }
+
+    void addToVarScope(String id, Type type, Node node) {
+        while (!(node instanceof ScopeNode)) {
+            node = node.father;
+        }
+        Map<String, Type> scope = ((ScopeNode) node).vars;
+        if (scope.containsKey(id)) {
+            // throw sth
+        } else {
+            scope.put(id, type);
+        }
+    }
+
+    Type getVarType(String id, Node node) {
+        while (!(node instanceof ScopeNode)) {
+            node = node.father;
+        }
+        Map<String, Type> scope = ((ScopeNode) node).vars;
+        if (scope.containsKey(id)) {
+            return scope.get(id);
+        } else {
+            return null;
+        }
+    }
 
     @Override
     public Node visitProg(MxParser.ProgContext ctx) {
@@ -41,6 +96,10 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             root.global_stmt[i] = visit(ctx.getChild(i));
             root.global_stmt[i].father = root;
         }
+
+        global_class = root.class_ids;
+        global_func = root.func_ids;
+        global_var = root.vars;
 
         return root;
     }
