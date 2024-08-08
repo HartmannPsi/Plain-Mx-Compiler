@@ -85,10 +85,9 @@ stmt:
 	| continue_stmt			# OtherStmt
 	| expr_stmt				# OtherStmt;
 
-def_var_stmt:
-	typename Identifier (Assign expr)? (
-		Comma Identifier (Assign expr)?
-	)* Semicolon;
+var_def: Identifier (Assign expr)?;
+
+def_var_stmt: typename var_def (Comma var_def)* Semicolon;
 
 if_stmt: If LP cond = expr RP (stmt) (Else (stmt))?;
 

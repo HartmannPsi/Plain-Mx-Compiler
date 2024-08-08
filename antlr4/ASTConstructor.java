@@ -1,3 +1,4 @@
+
 import java.util.Map;
 import java.util.Set;
 import defNodes.*;
@@ -9,26 +10,40 @@ import defNodes.stmtNodes.*;
 public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
     String int_type = "int", bool_type = "bool", string_type = "string", void_type = "void", null_type = "null";
-
     Set<String> global_class = null;
     Map<String, FuncType> global_func = null;
     Map<String, Type> global_var = null;
+    public ProgNode root = null;
 
-    void addToFuncs(String id, FuncType type) {
-        if (global_func.containsKey(id)) {
-            // throw sth
+    void addToFuncs(String id, FuncType type, Node node) {
+
+        if (node.father instanceof ProgNode) {// global func
+            if (global_func.containsKey(id)) {
+                // TODO: throw sth
+            }
+            global_func.put(id, type);
+        } else if (node.father instanceof DefClassNode) {// method func
+            Map<String, FuncType> methods = ((DefClassNode) node.father).methods;
+            if (methods.containsKey(id)) {
+                // TODO: throw sth
+            }
+            global_func.put(id, type);
         }
-        global_func.put(id, type);
     }
 
-    void addToCls(String id) {
+    void addToCls(String id, Node node) {
+
+        if (!(node.father instanceof ProgNode)) {
+            // TODO: throw sth
+        }
+
         if (global_class.contains(id)) {
-            // throw sth
+            // TODO: throw sth
         }
         global_class.add(id);
     }
 
-    FuncType getFuncType(String id) {
+    FuncType getFuncTypeFromGlb(String id) {
         if (global_func.containsKey(id)) {
             return global_func.get(id);
         } else {
@@ -46,27 +61,79 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
         Map<String, Type> scope = ((ScopeNode) node).vars;
         if (scope.containsKey(id)) {
-            // throw sth
+            // TODO: throw sth
         } else {
             scope.put(id, type);
         }
     }
 
-    Type getVarType(String id, Node node) {
-        while (!(node instanceof ScopeNode)) {
+    Type getVarTypeFromScope(String id, Node node) {
+        while (node != null) {
+
+            while (!(node instanceof ScopeNode)) {
+                node = node.father;
+            }
+            Map<String, Type> scope = ((ScopeNode) node).vars;
+            if (scope.containsKey(id)) {
+                return scope.get(id);
+            }
             node = node.father;
         }
-        Map<String, Type> scope = ((ScopeNode) node).vars;
-        if (scope.containsKey(id)) {
-            return scope.get(id);
-        } else {
-            return null;
+
+        return null;
+    }
+
+    Type getVarTypeFromCls(String cls, String id) {
+        for (int i = 0; i != root.global_stmt.length; ++i) {
+            if (root.global_stmt[i] instanceof DefClassNode) {
+
+                DefClassNode node = (DefClassNode) root.global_stmt[i];
+                if (((IdNode) node.name).id == cls) {
+
+                    Map<String, Type> scope = node.vars;
+                    if (scope.containsKey(id)) {
+                        return scope.get(id);
+
+                    } else {
+                        // TODO: throw sth
+                        return null;
+                    }
+                } else {
+                    continue;
+                }
+            }
         }
+
+        // TODO: throw sth
+        return null;
+    }
+
+    FuncType getFuncTypeFromCls(String cls, String id) {
+        for (int i = 0; i != root.global_stmt.length; ++i) {
+            if (root.global_stmt[i] instanceof DefClassNode) {
+
+                DefClassNode node = (DefClassNode) root.global_stmt[i];
+                if (((IdNode) node.name).id == cls) {
+
+                    Map<String, FuncType> scope = node.methods;
+                    if (scope.containsKey(id)) {
+                        return scope.get(id);
+
+                    } else {
+                        // TODO: throw sth
+                        return null;
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+        return null;
     }
 
     @Override
     public Node visitProg(MxParser.ProgContext ctx) {
-        ProgNode root = new ProgNode();
+        root = new ProgNode();
 
         FuncType pr_tp = new FuncType();
 
@@ -249,7 +316,14 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             }
         }
 
-        // TODO: add function to global scope
+        String id = ((IdNode) node.name).id;
+        FuncType type = new FuncType();
+        type.return_type = ((TypeNode) node.type).type.clone();
+        type.paras = new Type[node.paras.length];
+        for (int i = 0; i != type.paras.length; ++i) {
+            type.paras[i] = ((TypeNode) node.paras[i].tp).type.clone();
+        }
+        addToFuncs(id, type, node);
 
         return node;
     }
@@ -290,7 +364,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.stmt[i - 3].father = node;
         }
 
-        // TODO: add class to global scope
+        String id = ((IdNode) node.name).id;
+        addToCls(id, node);
 
         return node;
     }
@@ -619,7 +694,17 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         ThisNode node = new ThisNode();
 
-        // TODO: get the type of *this* from class scope
+        Node tmp = node;
+
+        while (tmp != null && !(tmp instanceof DefClassNode)) {
+            tmp = tmp.father;
+        }
+
+        if (tmp == null) {
+            // TODO: throw sth
+        }
+        node.type = new Type(((IdNode) ((DefClassNode) tmp).name).id, 0, true);
+
         return node;
     }
 
@@ -875,7 +960,100 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             }
         }
 
-        node.type = ((ExprNode) node.id).type.clone();
+        if (node.id instanceof IdNode) {// global func
+            String id = ((IdNode) node.id).id;
+            FuncType func_type = getFuncTypeFromGlb(id);
+            if (node.paras.length != func_type.paras.length) {
+                // TODO: throw sth
+            }
+            for (int i = 0; i != node.paras.length; ++i) {
+                ExprNode expr = (ExprNode) node.paras[i];
+                Type para_type = func_type.paras[i];
+                if (!expr.type.equal(para_type)) {
+                    // TODO: throw sth
+                }
+            }
+            node.type = func_type.return_type.clone();
+
+        } else if (node.id instanceof MemAccNode) {// member method
+            MemAccNode expr = (MemAccNode) node.id;
+            ExprNode member = (ExprNode) expr.member;
+            IdNode object = (IdNode) expr.object;
+
+            if (member.type.dim > 0) {// array only has method size()
+                if (node.paras != null || object.id != "size") {
+                    // TODO: throw sth
+                }
+                node.type = new Type(int_type);
+
+            } else if (member.type.id == string_type) {// string has built-in methods
+                switch (object.id) {
+                    case "length":
+                        if (node.paras != null) {
+                            // TODO: throw sth
+                        }
+                        node.type = new Type(int_type);
+                        break;
+
+                    case "substring":
+                        if (node.paras.length != 2) {
+                            // TODO: throw sth
+                        }
+                        ExprNode p0 = (ExprNode) node.paras[0], p1 = (ExprNode) node.paras[1];
+                        Type int_tp = new Type(int_type, 0, false);
+                        if (!int_tp.equal(p0.type) || !int_tp.equal(p1.type)) {
+                            // TODO: throw sth
+                        }
+                        node.type = new Type(string_type);
+                        break;
+
+                    case "parseInt":
+                        if (node.paras != null) {
+                            // TODO: throw sth
+                        }
+                        node.type = new Type(int_type);
+                        break;
+
+                    case "ord":
+                        if (node.paras.length != 1) {
+                            // TODO: throw sth
+                        }
+                        ExprNode p = (ExprNode) node.paras[0];
+                        Type int_tp1 = new Type(int_type, 0, false);
+                        if (!int_tp1.equal(p.type)) {
+                            // TODO: throw sth
+                        }
+                        node.type = new Type(int_type);
+                        break;
+
+                    default:
+                        // TODO: throw sth
+                        break;
+                }
+
+            } else {// only has declared methods
+                String id = object.id;
+                String cls = ((ExprNode) member).type.id;
+                FuncType func_type = getFuncTypeFromCls(cls, id);
+
+                if (node.paras.length != func_type.paras.length) {
+                    // TODO: throw sth
+                }
+                for (int i = 0; i != node.paras.length; ++i) {
+                    ExprNode para = (ExprNode) node.paras[i];
+                    Type para_type = func_type.paras[i];
+                    if (!para.type.equal(para_type)) {
+                        // TODO: throw sth
+                    }
+                }
+                node.type = func_type.return_type.clone();
+
+            }
+
+        } else {
+            // TODO: throw sth
+        }
+
         return node;
     }
 
@@ -893,7 +1071,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.object = visit(ctx.expr());
         node.member = visit(ctx.Identifier());
         node.object.father = node.member.father = node;
-        // TODO: get type from class scope
+        node.type = getVarTypeFromCls(bool_type, void_type).clone();
 
         return node;
     }
@@ -950,7 +1128,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitId(MxParser.IdContext ctx) {
         IdNode node = new IdNode();
         node.id = ctx.Identifier().getText();
-        // TODO: get type from scope
+        node.type = getVarTypeFromScope(node.id, node);
 
         return node;
     }
@@ -1008,6 +1186,19 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     // public Node visitStmt(MxParser.StmtContext ctx) {
     // return visitChildren(ctx);
     // }
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.
+     * </p>
+     */
+    @Override
+    public Node visitVar_def(MxParser.Var_defContext ctx) {
+        // unused
+        return visitChildren(ctx);
+    }
 
     /**
      * {@inheritDoc}
@@ -1022,9 +1213,23 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         DefVarNode node = new DefVarNode();
         node.type = visit(ctx.typename());
         node.type.father = node;
-        // TODO:
+        node.var_init = new DefVarNode.VarInit[(ctx.getChildCount() - 2) / 2 + 1];
+        for (int i = 0; i != (ctx.getChildCount() - 2) / 2 + 1; ++i) {
+            MxParser.Var_defContext def_ctx = ctx.var_def(i);
+            node.var_init[i].id = visit(def_ctx.Identifier());
+            node.var_init[i].id.father = node;
+            if (def_ctx.expr() != null) {
+                node.var_init[i].init = visit(def_ctx.expr());
+                node.var_init[i].init.father = node;
+            }
+        }
 
-        // TODO: add ids to scope
+        for (int i = 0; i != node.var_init.length; ++i) {
+            IdNode id = (IdNode) node.var_init[i].id;
+            id.type = ((TypeNode) node.type).type.clone();
+            addToVarScope(id.id, id.type, node);
+        }
+
         return node;
     }
 

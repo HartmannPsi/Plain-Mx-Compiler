@@ -22,4 +22,12 @@ public class Type {
     public Type clone() {
         return new Type(id, dim, is_lvalue);
     }
+
+    public boolean equal(Type other) {
+        return this.id == other.id && this.dim == other.dim;
+    }
+
+    public boolean equal_hard(Type other) {
+        return this.id == other.id && this.dim == other.dim && this.is_lvalue == other.is_lvalue;
+    }
 }

@@ -10,5 +10,5 @@ public class DefVarNode extends Node {
         public Node init = null;
     };
 
-    public VarInit var_init = null;
+    public VarInit[] var_init = null;
 }
