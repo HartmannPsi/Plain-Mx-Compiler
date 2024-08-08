@@ -1057,7 +1057,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.literals = new String[ctx.getChildCount() / 2 + 1];
         node.exprs = new Node[ctx.getChildCount() / 2];
 
-        for (int i = 0; i != ctx.getChildCount(); ++i) {
+        node.literals[0] = ctx.getChild(0).getText().substring(2, ctx.getChild(0).getText().length() - 1);
+        for (int i = 1; i != ctx.getChildCount(); ++i) {
             if (i % 2 == 0) {// literals
                 node.literals[i / 2] = ctx.getChild(i).getText().substring(1, ctx.getChild(i).getText().length() - 1);
             } else {// exprs
