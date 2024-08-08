@@ -26,6 +26,8 @@ public class Main {
             MxParser.ProgContext parsetree_root = parser.prog();
             ASTConstructor constructor = new ASTConstructor();
             ast_root = (ProgNode) constructor.visit(parsetree_root);
+            SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
+            checker.check();
 
         } catch (error err) {
             System.out.println(err.toString());
