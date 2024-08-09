@@ -1,6 +1,5 @@
 import java.util.Map;
 import java.util.Set;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import defNodes.*;
 import defNodes.exprNodes.*;
@@ -274,6 +273,40 @@ public class SemanticChecker {
 
     void collectIds() {
         // TODO:
+        /*
+         * first: cls declarations
+         * second: func declartions
+         * third: cls member declarations
+         */
+
+        int def_cls_cnt = 0, def_func_cnt = 0;
+        for (int i = 0; i != root.global_stmt.length; ++i) {
+            if (root.global_stmt[i] instanceof DefClassNode) {
+                ++def_cls_cnt;
+            } else if (root.global_stmt[i] instanceof DefFuncNode) {
+                ++def_func_cnt;
+            }
+        }
+
+        DefClassNode[] def_cls_stmt = new DefClassNode[def_cls_cnt];
+        DefFuncNode[] def_func_stmt = new DefFuncNode[def_func_cnt];
+        def_cls_cnt = def_func_cnt = 0;
+
+        for (int i = 0; i != root.global_stmt.length; ++i) {
+            if (root.global_stmt[i] instanceof DefClassNode) {
+                def_cls_stmt[def_cls_cnt] = (DefClassNode) root.global_stmt[i];
+                ++def_cls_cnt;
+            } else if (root.global_stmt[i] instanceof DefFuncNode) {
+                def_func_stmt[def_func_cnt] = (DefFuncNode) root.global_stmt[i];
+                ++def_func_cnt;
+            }
+        }
+
+        // collect cls decl
+
+        // collect func decl
+
+        // collect cls member decl
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -297,6 +330,10 @@ public class SemanticChecker {
 
         collectIds();
         // TODO:
+
+        for (int i = 0; i != node.global_stmt.length; ++i) {
+            check(node.global_stmt[i]);
+        }
     }
 
     void check(BraceStmtNode node) {
@@ -321,7 +358,7 @@ public class SemanticChecker {
     }
 
     void check(DefClassNode node) {
-        // TODO:
+        // TODO: collect ids
         boolean has_cons = false;
         check(node.name);
         for (int i = 0; i != node.stmt.length; ++i) {
@@ -338,7 +375,7 @@ public class SemanticChecker {
     }
 
     void check(DefFuncNode node) {
-        // TODO: separate pro/post
+        // TODO: collect ids
         check(node.type);
         check(node.name);
 
