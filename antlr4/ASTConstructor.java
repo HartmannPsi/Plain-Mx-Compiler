@@ -53,7 +53,10 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         root.func_ids.put("toString", pr_tp);// (int) -> string
 
         root.global_stmt = new Node[ctx.getChildCount()];
-        for (int i = 0; i < ctx.getChildCount(); ++i) {
+
+        // System.out.println(ctx.getChildCount());
+
+        for (int i = 0; i < ctx.getChildCount() - 1; ++i) {
             root.global_stmt[i] = visit(ctx.getChild(i));
             root.global_stmt[i].father = root;
         }
@@ -170,28 +173,32 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
         node.type.father = node;
 
-        node.name = visit(ctx.getChild(1));
+        node.name = new IdNode();
+        ((IdNode) node.name).id = ctx.Identifier().getText();
         node.name.father = node;
 
         if (ctx.getChild(3) instanceof MxParser.Para_listContext) {
 
             MxParser.Para_listContext para_ctx = (MxParser.Para_listContext) ctx.getChild(3);
 
-            node.paras = new DefFuncNode.Para[1 + (para_ctx.getChildCount() - 2) / 3];
+            // node.paras = new DefFuncNode.Para[1 + (para_ctx.getChildCount() - 2) / 3];
+            node.tps = new Node[1 + (para_ctx.getChildCount() - 2) / 3];
+            node.ids = new Node[1 + (para_ctx.getChildCount() - 2) / 3];
 
             for (int i = 0; i != para_ctx.getChildCount(); ++i) {
                 if (i % 3 == 0) {// typename
-                    (node.paras[i / 3]).tp = visit(para_ctx.getChild(i));
-                    (node.paras[i / 3]).tp.father = node;
+                    node.tps[i / 3] = visit(para_ctx.getChild(i));
+                    node.tps[i / 3].father = node;
                 } else if (i % 3 == 1) {// id
-                    (node.paras[i / 3]).id = visit(para_ctx.getChild(i));
-                    (node.paras[i / 3]).id.father = node;
+                    node.ids[i / 3] = new IdNode();
+                    ((IdNode) node.ids[i / 3]).id = para_ctx.getChild(i).getText();
+                    node.ids[i / 3].father = node;
                 }
             }
 
-            for (int i = 0; i != node.paras.length; ++i) {
-                String id = ((IdNode) (node.paras[i].id)).id;
-                Type tp = ((TypeNode) (node.paras[i].tp)).type;
+            for (int i = 0; i != node.tps.length; ++i) {
+                String id = ((IdNode) (node.ids[i])).id;
+                Type tp = ((TypeNode) (node.tps[i])).type;
                 node.vars.put(id, tp);
             }
 
@@ -201,7 +208,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.stmt[i - 6].father = node;
             }
         } else {
-            node.paras = null;
+            // node.paras = null;
 
             node.stmt = new Node[ctx.getChildCount() - 6];
             for (int i = 5; i != ctx.getChildCount() - 1; ++i) {
@@ -210,13 +217,16 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             }
         }
 
-        String id = ((IdNode) node.name).id;
-        FuncType type = new FuncType();
-        type.return_type = ((TypeNode) node.type).type.clone();
-        type.paras = new Type[node.paras.length];
-        for (int i = 0; i != type.paras.length; ++i) {
-            type.paras[i] = ((TypeNode) node.paras[i].tp).type.clone();
-        }
+        // String id = ((IdNode) node.name).id;
+        // FuncType type = new FuncType();
+        // type.return_type = ((TypeNode) node.type).type.clone();
+
+        // if (node.paras != null) {
+        // type.paras = new Type[node.paras.length];
+        // for (int i = 0; i != type.paras.length; ++i) {
+        // type.paras[i] = ((TypeNode) node.paras[i].tp).type.clone();
+        // }
+        // }
         /// addToFuncs(id, type, node, ctx);
 
         return node;
@@ -249,7 +259,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         DefClassNode node = new DefClassNode();
 
-        node.name = visit(ctx.getChild(1));
+        node.name = new IdNode();
+        ((IdNode) node.name).id = ctx.Identifier().getText();
         node.name.father = node;
 
         node.stmt = new Node[ctx.getChildCount() - 5];
@@ -258,7 +269,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.stmt[i - 3].father = node;
         }
 
-        String id = ((IdNode) node.name).id;
+        // String id = ((IdNode) node.name).id;
         // addToCls(id, node, ctx);
 
         return node;
@@ -276,7 +287,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitClass_constructor(MxParser.Class_constructorContext ctx) {
         ClsConsNode node = new ClsConsNode();
 
-        node.id = visit(ctx.getChild(0));
+        node.id = new IdNode();
+        ((IdNode) node.id).id = ctx.Identifier().getText();
         node.id.father = node;
 
         node.stmt = new Node[ctx.getChildCount() - 5];
@@ -307,10 +319,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.vals[i / 2].father = node;
             }
         }
-
-        node.type = ((ExprNode) (node.vals[0])).type.clone();
-        ++node.type.dim;
-        node.type.is_lvalue = false;
 
         return node;
     }
@@ -373,7 +381,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
 
         return node;
     }
@@ -393,7 +400,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(bool_type);
 
         return node;
     }
@@ -413,7 +419,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(bool_type);
 
         return node;
     }
@@ -481,7 +486,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(bool_type);
 
         return node;
     }
@@ -501,9 +505,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.array = visit(ctx.arrayName);
         node.serial = visit(ctx.serial);
         node.array.father = node.serial.father = node;
-        node.type = ((ExprNode) node.array).type.clone();
-        --node.type.dim;
-        node.type.is_lvalue = true;
 
         return node;
     }
@@ -522,7 +523,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.LogicNot ? UnaryOprand.LNot : UnaryOprand.BNot;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
-        node.type = ((ExprNode) node.expr).type.clone();
 
         return node;
     }
@@ -541,7 +541,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddR : UnaryOprand.SSubR;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
-        node.type = ((ExprNode) node.expr).type.clone();
 
         return node;
     }
@@ -562,15 +561,15 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lengths = _tp.dim_lens;
         _tp.father = node;
         for (int i = 0; i != node.lengths.length; ++i) {
-            node.lengths[i].father = node;
+            if (node.lengths[i] != null) {
+                node.lengths[i].father = node;
+            }
         }
         _tp.dim_lens = null;
         if (ctx.array() != null) {
             node.init_array = visit(ctx.array());
             node.init_array.father = node;
         }
-
-        node.type = _tp.type.clone();
 
         return node;
     }
@@ -587,17 +586,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitBuiltInPtr(MxParser.BuiltInPtrContext ctx) {
 
         ThisNode node = new ThisNode();
-
-        Node tmp = node;
-
-        while (tmp != null && !(tmp instanceof DefClassNode)) {
-            tmp = tmp.father;
-        }
-
-        if (tmp == null) {
-            // throw_syntax("Illegal \"this\" Method", ctx);
-        }
-        node.type = new Type(((IdNode) ((DefClassNode) tmp).name).id, 0, true);
 
         return node;
     }
@@ -644,7 +632,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(bool_type);
 
         return node;
     }
@@ -663,7 +650,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddL : UnaryOprand.SSubL;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
-        node.type = ((ExprNode) node.expr).type.clone();
 
         return node;
     }
@@ -682,7 +668,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.Add ? UnaryOprand.Plus : UnaryOprand.Minus;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
-        node.type = ((ExprNode) node.expr).type.clone();
 
         return node;
     }
@@ -702,7 +687,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.expr(1));
         node.rhs = visit(ctx.expr(2));
         node.cond.father = node.lhs.father = node.rhs.father = node;
-        node.type = ((ExprNode) node.lhs).type.clone();
 
         return node;
     }
@@ -732,7 +716,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
 
         return node;
     }
@@ -752,7 +735,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
 
         return node;
     }
@@ -788,7 +770,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
 
         return node;
     }
@@ -808,7 +789,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = ((ExprNode) node.lhs).type.clone();
 
         return node;
     }
@@ -826,7 +806,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         NewExprNode node = new NewExprNode();
         node.create_type = visit(ctx.typename());
         node.create_type.father = node;
-        node.type = ((TypeNode) node.create_type).type.clone();
 
         return node;
     }
@@ -853,102 +832,103 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.paras[i].father = node;
             }
         }
-
-        if (node.id instanceof IdNode) {// global func
-            // String id = ((IdNode) node.id).id;
-            // FuncType func_type = getFuncTypeFromGlb(id);
-            // if (node.paras.length != func_type.paras.length) {
-            // throw_semantic(undef_id, ctx);
-            // }
-            // for (int i = 0; i != node.paras.length; ++i) {
-            // ExprNode expr = (ExprNode) node.paras[i];
-            // Type para_type = func_type.paras[i];
-            // if (!expr.type.equal(para_type)) {
-            // throw_semantic(undef_id, ctx);
-            // }
-            // }
-            // node.type = func_type.return_type.clone();
-            // TODO: finish check in Checker
-
-        } else if (node.id instanceof MemAccNode) {// member method
-            MemAccNode expr = (MemAccNode) node.id;
-            ExprNode member = (ExprNode) expr.member;
-            IdNode object = (IdNode) expr.object;
-
-            if (member.type.dim > 0) {// array only has method size()
-                if (node.paras != null || object.id != "size") {
-                    throw_semantic(undef_id, ctx);
-                }
-                node.type = new Type(int_type);
-
-            } else if (member.type.id == string_type) {// string has built-in methods
-                switch (object.id) {
-                    case "length":
-                        if (node.paras != null) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        node.type = new Type(int_type);
-                        break;
-
-                    case "substring":
-                        if (node.paras.length != 2) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        ExprNode p0 = (ExprNode) node.paras[0], p1 = (ExprNode) node.paras[1];
-                        Type int_tp = new Type(int_type, 0, false);
-                        if (!int_tp.equal(p0.type) || !int_tp.equal(p1.type)) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        node.type = new Type(string_type);
-                        break;
-
-                    case "parseInt":
-                        if (node.paras != null) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        node.type = new Type(int_type);
-                        break;
-
-                    case "ord":
-                        if (node.paras.length != 1) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        ExprNode p = (ExprNode) node.paras[0];
-                        Type int_tp1 = new Type(int_type, 0, false);
-                        if (!int_tp1.equal(p.type)) {
-                            throw_semantic(undef_id, ctx);
-                        }
-                        node.type = new Type(int_type);
-                        break;
-
-                    default:
-                        throw_semantic(undef_id, ctx);
-                        break;
-                }
-
-            } else {// only has declared methods
-                // String id = object.id;
-                // String cls = ((ExprNode) member).type.id;
-                // FuncType func_type = getFuncTypeFromCls(cls, id, ctx);
-
-                // if (node.paras.length != func_type.paras.length) {
-                // throw_semantic(undef_id, ctx);
-                // }
-                // for (int i = 0; i != node.paras.length; ++i) {
-                // ExprNode para = (ExprNode) node.paras[i];
-                // Type para_type = func_type.paras[i];
-                // if (!para.type.equal(para_type)) {
-                // throw_semantic(undef_id, ctx);
-                // }
-                // }
-                // node.type = func_type.return_type.clone();
-                // TODO: finish in Checker
-
-            }
-
-        } else {
-            throw_semantic(inv_tp, ctx);
-        }
+        /*
+         * if (node.id instanceof IdNode) {// global func
+         * // String id = ((IdNode) node.id).id;
+         * // FuncType func_type = getFuncTypeFromGlb(id);
+         * // if (node.paras.length != func_type.paras.length) {
+         * // throw_semantic(undef_id, ctx);
+         * // }
+         * // for (int i = 0; i != node.paras.length; ++i) {
+         * // ExprNode expr = (ExprNode) node.paras[i];
+         * // Type para_type = func_type.paras[i];
+         * // if (!expr.type.equal(para_type)) {
+         * // throw_semantic(undef_id, ctx);
+         * // }
+         * // }
+         * // node.type = func_type.return_type.clone();
+         * 
+         * 
+         * } else if (node.id instanceof MemAccNode) {// member method
+         * MemAccNode expr = (MemAccNode) node.id;
+         * ExprNode object = (ExprNode) expr.object;
+         * IdNode member = (IdNode) expr.member;
+         * 
+         * if (object.type.dim > 0) {// array only has method size()
+         * if (node.paras != null || member.id != "size") {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * node.type = new Type(int_type);
+         * 
+         * } else if (object.type.id == string_type) {// string has built-in methods
+         * switch (member.id) {
+         * case "length":
+         * if (node.paras != null) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * node.type = new Type(int_type);
+         * break;
+         * 
+         * case "substring":
+         * if (node.paras.length != 2) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * ExprNode p0 = (ExprNode) node.paras[0], p1 = (ExprNode) node.paras[1];
+         * Type int_tp = new Type(int_type, 0, false);
+         * if (!int_tp.equal(p0.type) || !int_tp.equal(p1.type)) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * node.type = new Type(string_type);
+         * break;
+         * 
+         * case "parseInt":
+         * if (node.paras != null) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * node.type = new Type(int_type);
+         * break;
+         * 
+         * case "ord":
+         * if (node.paras.length != 1) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * ExprNode p = (ExprNode) node.paras[0];
+         * Type int_tp1 = new Type(int_type, 0, false);
+         * if (!int_tp1.equal(p.type)) {
+         * throw_semantic(undef_id, ctx);
+         * }
+         * node.type = new Type(int_type);
+         * break;
+         * 
+         * default:
+         * throw_semantic(undef_id, ctx);
+         * break;
+         * }
+         * 
+         * } else {// only has declared methods
+         * // String id = object.id;
+         * // String cls = ((ExprNode) member).type.id;
+         * // FuncType func_type = getFuncTypeFromCls(cls, id, ctx);
+         * 
+         * // if (node.paras.length != func_type.paras.length) {
+         * // throw_semantic(undef_id, ctx);
+         * // }
+         * // for (int i = 0; i != node.paras.length; ++i) {
+         * // ExprNode para = (ExprNode) node.paras[i];
+         * // Type para_type = func_type.paras[i];
+         * // if (!para.type.equal(para_type)) {
+         * // throw_semantic(undef_id, ctx);
+         * // }
+         * // }
+         * // node.type = func_type.return_type.clone();
+         * //
+         * 
+         * }
+         * 
+         * } else {
+         * throw_semantic(inv_tp, ctx);
+         * }
+         */
 
         return node;
     }
@@ -965,9 +945,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitMemberAccess(MxParser.MemberAccessContext ctx) {
         MemAccNode node = new MemAccNode();
         node.object = visit(ctx.expr());
-        node.member = visit(ctx.Identifier());
+        node.member = new IdNode();
+        ((IdNode) node.member).id = ctx.Identifier().getText();
         node.object.father = node.member.father = node;
-        // node.type = getVarTypeFromCls(bool_type, void_type, ctx).clone();
 
         return node;
     }
@@ -987,7 +967,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = new Type(int_type);
 
         return node;
     }
@@ -1007,7 +986,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
-        node.type = ((ExprNode) node.rhs).type.clone();
 
         return node;
     }
@@ -1024,7 +1002,6 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitId(MxParser.IdContext ctx) {
         IdNode node = new IdNode();
         node.id = ctx.Identifier().getText();
-        // node.type = getVarTypeFromScope(node.id, node);
 
         return node;
     }
@@ -1110,19 +1087,26 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         DefVarNode node = new DefVarNode();
         node.type = visit(ctx.typename());
         node.type.father = node;
-        node.var_init = new DefVarNode.VarInit[(ctx.getChildCount() - 2) / 2 + 1];
+        // node.var_init = new DefVarNode.VarInit[(ctx.getChildCount() - 2) / 2 + 1];
+        node.ids = new Node[(ctx.getChildCount() - 2) / 2 + 1];
+        node.inits = new Node[(ctx.getChildCount() - 2) / 2 + 1];
+        // node.var_init = new DefVarNode.VarInit[1];
+        // node.var_init[0].id = new IdNode();
+        // System.out.println((ctx.getChildCount() - 2) / 2 + 1);
 
         for (int i = 0; i != (ctx.getChildCount() - 2) / 2 + 1; ++i) {
+            // System.out.println(i);
             MxParser.Var_defContext def_ctx = ctx.var_def(i);
-            node.var_init[i].id = visit(def_ctx.Identifier());
-            node.var_init[i].id.father = node;
-            IdNode id = (IdNode) node.var_init[i].id;
+            node.ids[i] = new IdNode();
+            ((IdNode) node.ids[i]).id = def_ctx.Identifier().getText();
+            node.ids[i].father = node;
+            IdNode id = (IdNode) node.ids[i];
             id.type = ((TypeNode) node.type).type.clone();
             // ddToVarScope(id.id, id.type, node, ctx);
 
             if (def_ctx.expr() != null) {
-                node.var_init[i].init = visit(def_ctx.expr());
-                node.var_init[i].init.father = node;
+                node.inits[i] = visit(def_ctx.expr());
+                node.inits[i].father = node;
             }
         }
 
