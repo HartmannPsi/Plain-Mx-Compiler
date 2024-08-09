@@ -2,9 +2,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.stringtemplate.v4.compiler.CodeGenerator.exprOptions_return;
-import org.stringtemplate.v4.compiler.STParser.memberExpr_return;
-
 import defNodes.*;
 import defNodes.exprNodes.*;
 import defNodes.stmtNodes.*;
@@ -124,7 +121,7 @@ public class SemanticChecker {
                         return scope.get(id);
 
                     } else {
-                        // TODO: throw sth
+                        throw_semantic(undef_id, ctx);
                         return null;
                     }
                 } else {
@@ -133,7 +130,7 @@ public class SemanticChecker {
             }
         }
 
-        throw_semantic(tp_mis, ctx);
+        throw_semantic(undef_id, ctx);
         return null;
     }
 
@@ -158,7 +155,7 @@ public class SemanticChecker {
             }
         }
 
-        throw_semantic(tp_mis, ctx);
+        throw_semantic(undef_id, ctx);
         return null;
     }
 
@@ -275,10 +272,14 @@ public class SemanticChecker {
         }
     }
 
+    void collectIds() {
+        // TODO:
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     void check(TypeNode node) {
-        if (node.type.id != int_type && node.type.id != bool_type && node.type.id != string_type) {
+        if (!node.type.id.equals(int_type) && !node.type.id.equals(bool_type) && !node.type.id.equals(string_type)) {
             if (!existsCls(node.type.id)) {
                 throw_semantic(inv_id, null);
             }
@@ -293,6 +294,8 @@ public class SemanticChecker {
         if (node.father == null) {
             throw_syntax("Illegal Node Structure", null);
         }
+
+        collectIds();
         // TODO:
     }
 
@@ -339,6 +342,10 @@ public class SemanticChecker {
         check(node.type);
         check(node.name);
 
+        Type ret_tp = ((TypeNode) node.type).type;
+        boolean has_ret_stmt = false;
+        String id = ((IdNode) node.name).id;
+
         Node father = node.father;
         Map<String, FuncType> scope;
         if (father instanceof ProgNode) {
@@ -356,31 +363,40 @@ public class SemanticChecker {
             }
         }
 
-        for (int i = 0; i != node.paras.length; ++i) {
-            check(node.paras[i].tp);
-            check(node.paras[i].id);
+        for (int i = 0; i != node.ids.length; ++i) {
+            check(node.tps[i]);
+            check(node.ids[i]);
 
-            String id = ((IdNode) node.paras[i].id).id;
-            Type tp = ((TypeNode) node.paras[i].tp).type;
+            String _id = ((IdNode) node.ids[i]).id;
+            Type tp = ((TypeNode) node.tps[i]).type;
             tp.is_lvalue = true;
 
-            if (node.vars.containsKey(id)) {
+            if (node.vars.containsKey(_id)) {
                 throw_semantic(mul_def, null);
             } else {
-                node.vars.put(id, tp);
+                node.vars.put(_id, tp);
             }
         }
 
         FuncType func_tp = new FuncType();
         func_tp.return_type = ((TypeNode) node.type).type.clone();
-        func_tp.paras = new Type[node.paras.length];
-        for (int i = 0; i != node.paras.length; ++i) {
-            func_tp.paras[i] = ((TypeNode) node.paras[i].tp).type.clone();
+        func_tp.paras = new Type[node.ids.length];
+        for (int i = 0; i != node.ids.length; ++i) {
+            func_tp.paras[i] = ((TypeNode) node.tps[i]).type.clone();
         }
 
         scope.put(((IdNode) node.name).id, func_tp);
         for (int i = 0; i != node.stmt.length; ++i) {
             check(node.stmt[i]);
+            if (node.stmt[i] instanceof ReturnNode) {
+                has_ret_stmt = true;
+            }
+        }
+
+        if (!has_ret_stmt) {
+            if (!ret_tp.equal(void_type) && !id.equals("main")) {
+                throw_semantic(miss_ret, null);
+            }
         }
     }
 
@@ -388,12 +404,12 @@ public class SemanticChecker {
 
         check(node.type);
 
-        for (int i = 0; i != node.var_init.length; ++i) {
-            check(node.var_init[i].id);
+        for (int i = 0; i != node.ids.length; ++i) {
+            check(node.ids[i]);
 
-            if (node.var_init[i].init != null) {
-                check(node.var_init[i].init);
-                if (!((TypeNode) node.type).type.equal(((TypeNode) node.var_init[i].init).type)) {
+            if (node.inits[i] != null) {
+                check(node.inits[i]);
+                if (!((TypeNode) node.type).type.equal(((TypeNode) node.inits[i]).type)) {
                     throw_semantic(tp_mis, null);
                 }
             }
@@ -401,8 +417,9 @@ public class SemanticChecker {
             Type tp = ((TypeNode) node.type).type.clone();
             tp.is_lvalue = true;
 
-            addToVarScope(((IdNode) node.var_init[i].id).id, tp, node, null);
+            addToVarScope(((IdNode) node.ids[i]).id, tp, node, null);
         }
+
     }
 
     void check(EmptyStmtNode node) {
@@ -453,20 +470,24 @@ public class SemanticChecker {
 
         if (tmp instanceof ClsConsNode) {
             if (node.expr != null) {
-                throw_semantic(tp_mis, null);
+                throw_syntax("Class Constructor Has Return Value", null);
             }
         } else {
+
             if (node.expr == null) {
-                if (!((TypeNode) ((DefFuncNode) tmp).type).type.equal(void_type)) {
+                if (!((TypeNode) ((DefFuncNode) tmp).type).type.equal(void_type)
+                        && !((IdNode) ((DefFuncNode) tmp).name).id.equals("main")) {
                     throw_semantic(tp_mis, null);
                 }
 
-            } else if (!((ExprNode) node.expr).equals(((TypeNode) ((DefFuncNode) tmp).type).type)) {
+            } else if (((TypeNode) ((DefFuncNode) tmp).type).type.equal(void_type)) {
+                throw_syntax("Void Function Has Return Value", null);
+
+            } else if (!((ExprNode) node.expr).type.equal(((TypeNode) ((DefFuncNode) tmp).type).type)) {
                 throw_semantic(tp_mis, null);
             }
         }
 
-        // TODO: special: main / type check
     }
 
     void check(WhileStmtNode node) {
@@ -482,11 +503,33 @@ public class SemanticChecker {
     }
 
     void check(ArrayAccessNode node) {
-        // TODO:
+        check(node.array);
+        node.type = ((ExprNode) node.array).type.clone();
+        --node.type.dim;
+        node.type.is_lvalue = true;
+        if (node.type.dim < 0) {
+            throw_semantic(out_of_bd, null);
+        }
+
+        check(node.serial);
+        if (!((ExprNode) node.serial).type.equal(int_type)) {
+            throw_semantic(tp_mis, null);
+        }
     }
 
     void check(ArrayNode node) {
-        // TODO:
+        check(node.vals[0]);
+        Type tps = ((ExprNode) node.vals[0]).type.clone();
+        node.type = tps.clone();
+        ++node.type.dim;
+
+        for (int i = 1; i != node.vals.length; ++i) {
+            check(node.vals[i]);
+
+            if (!((ExprNode) node.vals[i]).type.equal(tps)) {
+                throw_semantic(tp_mis, null);
+            }
+        }
     }
 
     void check(BinaryOpNode node) {
@@ -550,8 +593,6 @@ public class SemanticChecker {
                     throw_semantic(tp_mis, null);
                 }
 
-                // TODO: check if lvalue
-
                 if (!lhs.type.is_lvalue) {
                     throw_semantic(tp_mis, null);
                 }
@@ -610,7 +651,101 @@ public class SemanticChecker {
     }
 
     void check(FuncCallNode node) {
+        if (node.id instanceof MemAccNode) {// call member methods
+            Type cls_tp = ((ExprNode) ((MemAccNode) node.id).object).type;
 
+            if (cls_tp.dim > 0) {// only has size method
+
+                if (!((IdNode) ((MemAccNode) node.id).member).id.equals("size")) {
+                    throw_semantic(undef_id, null);
+                }
+
+                if (node.paras != null) {
+                    throw_semantic(undef_id, null);
+                }
+
+                node.type = new Type(int_type);
+
+            } else if (cls_tp.id.equals(string_type)) {// built-in methods
+
+                Type int_tp = new Type(int_type, 0, false);
+
+                switch (((IdNode) ((MemAccNode) node.id).member).type.id) {
+                    case "length":
+                        node.type = new Type(int_type);
+                        if (node.paras != null) {
+                            throw_semantic(undef_id, null);
+                        }
+                        break;
+
+                    case "substring":
+                        node.type = new Type(string_type);
+                        if (node.paras.length != 2) {
+                            throw_semantic(undef_id, null);
+                        }
+                        ExprNode p0 = (ExprNode) node.paras[0], p1 = (ExprNode) node.paras[1];
+                        if (!int_tp.equal(p0.type) || !int_tp.equal(p1.type)) {
+                            throw_semantic(undef_id, null);
+                        }
+                        break;
+
+                    case "parseInt":
+                        node.type = new Type(int_type);
+                        if (node.paras != null) {
+                            throw_semantic(undef_id, null);
+                        }
+                        break;
+
+                    case "ord":
+                        node.type = new Type(int_type);
+                        if (node.paras.length != 1) {
+                            throw_semantic(undef_id, null);
+                        }
+                        ExprNode p = (ExprNode) node.paras[0];
+                        if (!int_tp.equal(p.type)) {
+                            throw_semantic(undef_id, null);
+                        }
+                        break;
+
+                    default:
+                        throw_semantic(undef_id, null);
+                        break;
+                }
+
+            } else {// member method
+                for (int i = 0; i != root.global_stmt.length; ++i) {
+
+                    if (root.global_stmt[i] instanceof DefClassNode) {
+                        DefClassNode def_cls = (DefClassNode) root.global_stmt[i];
+
+                        if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
+                            Map<String, FuncType> scope = def_cls.methods;
+                            String id = ((IdNode) ((MemAccNode) node.id).member).id;
+
+                            if (scope.containsKey(id)) {
+                                node.type = scope.get(id).return_type.clone();
+                            } else {
+                                throw_semantic(undef_id, null);
+                            }
+                        }
+                    }
+                }
+
+            }
+
+        } else if (node.id instanceof IdNode) {// call global functions
+
+            String id = ((IdNode) node.id).id;
+
+            if (global_func.containsKey(id)) {
+                node.type = global_func.get(id).return_type.clone();
+            } else {
+                throw_semantic(undef_id, null);
+            }
+
+        } else {
+            throw_semantic(tp_mis, null);
+        }
     }
 
     void check(IdNode node) {
@@ -620,12 +755,12 @@ public class SemanticChecker {
 
             if (cls_tp.dim > 0) {// only has size method
 
-                if (node.id != "size") {
+                if (!node.id.equals("size")) {
                     throw_semantic(undef_id, null);
                 }
                 node.type = new Type(int_type);
 
-            } else if (cls_tp.id == string_type) {// built-in methods
+            } else if (cls_tp.id.equals(string_type)) {// built-in methods
 
                 switch (node.id) {
                     case "length":
@@ -655,7 +790,7 @@ public class SemanticChecker {
                     if (root.global_stmt[i] instanceof DefClassNode) {
                         DefClassNode def_cls = (DefClassNode) root.global_stmt[i];
 
-                        if (((IdNode) def_cls.name).id == cls_tp.id) {
+                        if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
                             Map<String, FuncType> scope = def_cls.methods;
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).return_type.clone();
@@ -707,11 +842,10 @@ public class SemanticChecker {
         check(node.object);
         check(node.member);
         node.type = ((ExprNode) node.member).type.clone();
+        node.type.is_lvalue = true;
     }
 
     void check(NewExprNode node) {
-        // TODO:
-
         check(node.create_type);
         node.type = ((TypeNode) node.create_type).type.clone();
 

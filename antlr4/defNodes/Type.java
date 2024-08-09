@@ -7,7 +7,7 @@ public class Type {
     // public Node[] dim_lens = null;
 
     public Type(String id, int dim, boolean is_lvalue) {
-        this.id = id;
+        this.id = new String(id);
         this.dim = dim;
         this.is_lvalue = is_lvalue;
     }
@@ -16,7 +16,7 @@ public class Type {
     }
 
     public Type(String id) {
-        this.id = id;
+        this.id = new String(id);
     }
 
     public Type clone() {
