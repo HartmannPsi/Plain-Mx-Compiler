@@ -17,7 +17,7 @@ public class IfStmtNode extends Node {
         }
 
         if (else_stmt != null) {
-            System.out.print("\b else ");
+            System.out.print(" else ");
             else_stmt.printToString();
         }
     }

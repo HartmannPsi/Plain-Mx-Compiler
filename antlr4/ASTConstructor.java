@@ -141,11 +141,12 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
 
         node.dim_lens = new Node[ind];
+        // System.out.println("IND: " + ind);
+
         for (int j = 0; j != ind; ++j) {
+            // System.out.println("J: " + j);
             node.dim_lens[j] = visit(ctx.expr(j));
             node.dim_lens[j].father = node;
-            ++j;
-
         }
 
         return node;
@@ -1203,11 +1204,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.init.father = node;
             ++other_child_count;
         }
+
         if (ctx.cond != null) {
             node.cond = visit(ctx.cond);
             node.cond.father = node;
             ++other_child_count;
         }
+
         if (ctx.step != null) {
             node.step = visit(ctx.step);
             node.step.father = node;
@@ -1221,7 +1224,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         } else {
             node.stmts = new Node[ctx.getChildCount() - other_child_count - 2];
             for (int i = 0; i != ctx.getChildCount() - other_child_count - 2; ++i) {
-                node.stmts[i] = visit(ctx.stmt(i));
+                node.stmts[i] = visit(ctx.stmt(i + 1));
                 node.stmts[i].father = node;
             }
         }

@@ -11,7 +11,7 @@ public class ForStmtNode extends ScopeNode {
         if (init != null) {
             init.printToString();
         }
-        System.out.print("\b");
+        // System.out.print("\b");
 
         if (cond != null) {
             cond.printToString();

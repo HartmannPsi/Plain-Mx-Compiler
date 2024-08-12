@@ -25,11 +25,14 @@ public class DefFuncNode extends ScopeNode {
             name.printToString();
         }
         System.out.print("(");
-        for (int i = 0; i < tps.length; i++) {
-            tps[i].printToString();
-            System.out.print(' ');
-            ids[i].printToString();
-            System.out.print(", ");
+
+        if (tps != null) {
+            for (int i = 0; i < tps.length; i++) {
+                tps[i].printToString();
+                System.out.print(' ');
+                ids[i].printToString();
+                System.out.print(", ");
+            }
         }
 
         System.out.println(") {");
