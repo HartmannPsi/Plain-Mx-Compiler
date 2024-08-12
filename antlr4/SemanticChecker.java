@@ -90,9 +90,8 @@ public class SemanticChecker {
         }
     }
 
-    boolean checkInVarScope(String id, Node node) {
+    boolean checkInVarScopeRecursive(String id, Node node) {
         while (node != null) {
-
             while (node != null && !(node instanceof ScopeNode)) {
                 node = node.father;
             }
@@ -104,7 +103,7 @@ public class SemanticChecker {
 
             Map<String, Type> scope = ((ScopeNode) node).vars;
             if (scope.containsKey(id)) {
-                return scope.containsKey(id);
+                return true;
             }
             node = node.father;
         }
@@ -514,6 +513,7 @@ public class SemanticChecker {
                 tp.is_lvalue = true;
 
                 if (node.vars.containsKey(_id)) {
+                    System.out.println(2);
                     throw_semantic(mul_def, node.pos);
                 } else {
                     node.vars.put(_id, tp);
@@ -552,7 +552,16 @@ public class SemanticChecker {
 
             if (node.inits[i] != null) {
                 check(node.inits[i]);
-                if (!((TypeNode) node.type).type.equal(((ExprNode) node.inits[i]).type)) {
+                if (!((TypeNode) node.type).type.equal(bool_type) && !((TypeNode) node.type).type.equal(int_type)
+                        && !((TypeNode) node.type).type.equal(string_type)) {
+
+                    if (!((ExprNode) node.inits[i]).type.equal(null_type)
+                            && !((TypeNode) node.type).type.equal(((ExprNode) node.inits[i]).type)) {
+                        throw_semantic(tp_mis, node.inits[i].pos);
+                    }
+
+                } else if (!((TypeNode) node.type).type.equal(((ExprNode) node.inits[i]).type)) {
+
                     throw_semantic(tp_mis, node.inits[i].pos);
                 }
             }
@@ -628,6 +637,17 @@ public class SemanticChecker {
                 throw_syntax("Void Function Has Return Value", node.pos);
 
             } else if (!((ExprNode) node.expr).type.equal(((TypeNode) ((DefFuncNode) tmp).type).type)) {
+
+                if (((ExprNode) node.expr).type.equal(null_type)) {
+                    Type tp = ((TypeNode) ((DefFuncNode) tmp).type).type;
+
+                    if (tp.equal(bool_type) || tp.equal(int_type) || tp.equal(string_type)) {
+                        throw_semantic(tp_mis, node.pos);
+                    } else {
+                        return;
+                    }
+                }
+
                 throw_semantic(tp_mis, node.pos);
             }
         }
@@ -846,7 +866,7 @@ public class SemanticChecker {
 
                 Type int_tp = new Type(int_type, 0, false);
 
-                switch (((IdNode) ((MemAccNode) node.id).member).type.id) {
+                switch (((IdNode) ((MemAccNode) node.id).member).id) {
                     case "length":
                         node.type = new Type(int_type);
                         if (node.paras != null) {
@@ -890,7 +910,7 @@ public class SemanticChecker {
                         break;
 
                     default:
-                        System.out.println(12);
+                        System.out.println(((IdNode) ((MemAccNode) node.id).member).id);
                         throw_semantic(undef_id, node.pos);
                         break;
                 }
@@ -1058,17 +1078,18 @@ public class SemanticChecker {
             }
 
         } else {// find in scope
-            if (node.father instanceof FuncCallNode) {// function
+            if (node.father instanceof FuncCallNode && ((FuncCallNode) node.father).id == node) {// function
                 if (global_func.containsKey(node.id)) {
                     node.type = global_func.get(node.id).return_type.clone();
                 } else {
                     System.out.println(19);
+                    System.out.println(node.id);
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type.is_lvalue = false;
 
             } else {// variable
-                if (checkInVarScope(node.id, node)) {
+                if (checkInVarScopeRecursive(node.id, node)) {
                     node.type = getVarTypeFromScope(node.id, node).clone();
                 } else {
                     System.out.println(20);
@@ -1096,7 +1117,7 @@ public class SemanticChecker {
             throw_semantic(inv_tp, node.pos);
         }
 
-        if (node.lengths.length != 0) {
+        if (node.lengths != null && node.lengths.length != 0) {
             if (node.init_array != null) {
                 throw_syntax("Invalid New Operation", node.pos);
             }

@@ -220,11 +220,11 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 }
             }
 
-            for (int i = 0; i != node.tps.length; ++i) {
-                String id = ((IdNode) (node.ids[i])).id;
-                Type tp = ((TypeNode) (node.tps[i])).type;
-                node.vars.put(id, tp);
-            }
+            // for (int i = 0; i != node.tps.length; ++i) {
+            // String id = ((IdNode) (node.ids[i])).id;
+            // Type tp = ((TypeNode) (node.tps[i])).type;
+            // node.vars.put(id, tp);
+            // }
 
             node.stmt = new Node[ctx.getChildCount() - 7];
             for (int i = 6; i != ctx.getChildCount() - 1; ++i) {
@@ -1313,6 +1313,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         ReturnNode node = new ReturnNode();
         if (ctx.val != null) {
             node.expr = visit(ctx.val);
+            node.expr.father = node;
         }
         node.pos = new position(ctx);
         return node;

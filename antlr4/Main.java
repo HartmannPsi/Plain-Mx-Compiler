@@ -10,7 +10,7 @@ import defNodes.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        String filename = "antlr4/testcases/simple.txt";
+        String filename = "antlr4/testcases/variable.txt";
         InputStream input = new FileInputStream(filename);
 
         PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
