@@ -131,22 +131,21 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
 
         int ind = 0;
-        for (int i = 1; i < ctx.getChildCount(); ++i) {
-            if (ctx.getChild(i).getText() == "[") {
+        for (int i = 1; i != ctx.getChildCount(); ++i) {
+            if (ctx.getChild(i).getText().equals("[")) {
                 ++node.type.dim;
-            } else if (ctx.getChild(i).getText() == "]") {
+            } else if (ctx.getChild(i).getText().equals("]")) {
             } else {
                 ++ind;
             }
         }
 
         node.dim_lens = new Node[ind];
-        for (int i = 0, j = 0; i < ctx.getChildCount() && j < ind; ++i) {
-            if (ctx.getChild(i).getText() != "[" && ctx.getChild(i).getText() == "]") {
-                node.dim_lens[j] = visit(ctx.getChild(i));
-                node.dim_lens[j].father = node;
-                ++j;
-            }
+        for (int j = 0; j != ind; ++j) {
+            node.dim_lens[j] = visit(ctx.expr(j));
+            node.dim_lens[j].father = node;
+            ++j;
+
         }
 
         return node;

@@ -113,7 +113,7 @@ public class SemanticChecker {
             if (root.global_stmt[i] instanceof DefClassNode) {
 
                 DefClassNode node = (DefClassNode) root.global_stmt[i];
-                if (((IdNode) node.name).id == cls) {
+                if (((IdNode) node.name).id.equals(cls)) {
 
                     Map<String, Type> scope = node.vars;
                     if (scope.containsKey(id)) {
@@ -138,7 +138,7 @@ public class SemanticChecker {
             if (root.global_stmt[i] instanceof DefClassNode) {
 
                 DefClassNode node = (DefClassNode) root.global_stmt[i];
-                if (((IdNode) node.name).id == cls) {
+                if (((IdNode) node.name).id.equals(cls)) {
 
                     Map<String, FuncType> scope = node.methods;
                     if (scope.containsKey(id)) {
@@ -272,7 +272,6 @@ public class SemanticChecker {
     }
 
     void collectIds() {
-        // TODO:
         /*
          * first: cls declarations
          * second: func declartions
@@ -304,9 +303,73 @@ public class SemanticChecker {
 
         // collect cls decl
 
+        for (int i = 0; i != def_cls_cnt; ++i) {
+            DefClassNode node = def_cls_stmt[i];
+            check(node.name);
+            addToCls(((IdNode) node.name).id, node, null);
+        }
+
         // collect func decl
 
+        for (int i = 0; i != def_func_cnt; ++i) {
+            DefFuncNode node = def_func_stmt[i];
+            FuncType func_tp = new FuncType();
+            check(node.type);
+            check(node.name);
+            func_tp.return_type = ((TypeNode) node.type).type.clone();
+            func_tp.paras = new Type[node.tps.length];
+            for (int j = 0; j != node.tps.length; ++j) {
+                check(node.tps[j]);
+                func_tp.paras[j] = ((TypeNode) node.tps[j]).type.clone();
+
+            }
+            addToFuncs(((IdNode) node.name).id, func_tp, node, null);
+        }
+
         // collect cls member decl
+
+        for (int i = 0; i != def_cls_cnt; ++i) {
+            DefClassNode node = def_cls_stmt[i];
+
+            for (int j = 0; j != node.stmt.length; ++j) {
+                if (node.stmt[j] instanceof DefVarNode) {
+
+                    DefVarNode var_node = (DefVarNode) node.stmt[j];
+                    check(var_node);
+
+                    for (int k = 0; k != var_node.ids.length; ++k) {
+                        Type tp = ((TypeNode) var_node.type).type.clone();
+                        String id = ((IdNode) var_node.ids[k]).id;
+                        addToVarScope(id, tp, var_node, null);
+                    }
+
+                } else if (node.stmt[j] instanceof DefFuncNode) {
+
+                    DefFuncNode func_node = (DefFuncNode) node.stmt[j];
+                    FuncType func_tp = new FuncType();
+                    check(func_node.type);
+                    check(func_node.name);
+                    func_tp.return_type = ((TypeNode) func_node.type).type.clone();
+                    func_tp.paras = new Type[func_node.tps.length];
+                    for (int k = 0; k != func_node.tps.length; ++k) {
+                        check(func_node.tps[k]);
+                        func_tp.paras[k] = ((TypeNode) func_node.tps[k]).type.clone();
+                    }
+                    addToFuncs(((IdNode) func_node.name).id, func_tp, func_node, null);
+                }
+            }
+        }
+    }
+
+    void checkMain() {
+        if (!global_func.containsKey("main")) {
+            throw_syntax("Missing Function Main", null);
+        }
+
+        FuncType main_tp = global_func.get("main");
+        if (!main_tp.return_type.equal(int_type) || main_tp.paras.length != 0) {
+            throw_syntax("Invalid Function Main Definition", null);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,11 +392,12 @@ public class SemanticChecker {
         }
 
         collectIds();
-        // TODO:
 
         for (int i = 0; i != node.global_stmt.length; ++i) {
             check(node.global_stmt[i]);
         }
+
+        checkMain();
     }
 
     void check(BraceStmtNode node) {
@@ -358,9 +422,8 @@ public class SemanticChecker {
     }
 
     void check(DefClassNode node) {
-        // TODO: collect ids
         boolean has_cons = false;
-        check(node.name);
+        // check(node.name);
         for (int i = 0; i != node.stmt.length; ++i) {
 
             if (node.stmt[i] instanceof ClsConsNode) {
@@ -369,39 +432,40 @@ public class SemanticChecker {
                 } else {
                     has_cons = true;
                 }
+            } else if (node.stmt[i] instanceof DefFuncNode) {
+                check(node.stmt[i]);
             }
-            check(node.stmt[i]);
         }
     }
 
     void check(DefFuncNode node) {
-        // TODO: collect ids
-        check(node.type);
-        check(node.name);
+        // check(node.type);
+        // check(node.name);
 
         Type ret_tp = ((TypeNode) node.type).type;
         boolean has_ret_stmt = false;
         String id = ((IdNode) node.name).id;
 
-        Node father = node.father;
-        Map<String, FuncType> scope;
-        if (father instanceof ProgNode) {
-            scope = global_func;
+        // Node father = node.father;
+        // Map<String, FuncType> scope;
 
-            if (scope.containsKey(((IdNode) node.name).id)) {
-                throw_semantic(mul_def, null);
-            }
+        // if (father instanceof ProgNode) {
+        // scope = global_func;
 
-        } else {
-            scope = ((DefClassNode) father).methods;
+        // // if (scope.containsKey(((IdNode) node.name).id)) {
+        // // throw_semantic(mul_def, null);
+        // // }
 
-            if (scope.containsKey(((IdNode) node.name).id)) {
-                throw_semantic(mul_def, null);
-            }
-        }
+        // } else {
+        // scope = ((DefClassNode) father).methods;
+
+        // // if (scope.containsKey(((IdNode) node.name).id)) {
+        // // throw_semantic(mul_def, null);
+        // // }
+        // }
 
         for (int i = 0; i != node.ids.length; ++i) {
-            check(node.tps[i]);
+            // check(node.tps[i]);
             check(node.ids[i]);
 
             String _id = ((IdNode) node.ids[i]).id;
@@ -415,14 +479,14 @@ public class SemanticChecker {
             }
         }
 
-        FuncType func_tp = new FuncType();
-        func_tp.return_type = ((TypeNode) node.type).type.clone();
-        func_tp.paras = new Type[node.ids.length];
-        for (int i = 0; i != node.ids.length; ++i) {
-            func_tp.paras[i] = ((TypeNode) node.tps[i]).type.clone();
-        }
+        // FuncType func_tp = new FuncType();
+        // func_tp.return_type = ((TypeNode) node.type).type.clone();
+        // func_tp.paras = new Type[node.ids.length];
+        // for (int i = 0; i != node.ids.length; ++i) {
+        // func_tp.paras[i] = ((TypeNode) node.tps[i]).type.clone();
+        // }
+        // scope.put(((IdNode) node.name).id, func_tp);
 
-        scope.put(((IdNode) node.name).id, func_tp);
         for (int i = 0; i != node.stmt.length; ++i) {
             check(node.stmt[i]);
             if (node.stmt[i] instanceof ReturnNode) {
@@ -513,7 +577,7 @@ public class SemanticChecker {
 
             if (node.expr == null) {
                 if (!((TypeNode) ((DefFuncNode) tmp).type).type.equal(void_type)
-                        && !((IdNode) ((DefFuncNode) tmp).name).id.equals("main")) {
+                /* && !((IdNode) ((DefFuncNode) tmp).name).id.equals("main") */) {
                     throw_semantic(tp_mis, null);
                 }
 
@@ -559,6 +623,7 @@ public class SemanticChecker {
         Type tps = ((ExprNode) node.vals[0]).type.clone();
         node.type = tps.clone();
         ++node.type.dim;
+        node.type.is_lvalue = false;
 
         for (int i = 1; i != node.vals.length; ++i) {
             check(node.vals[i]);
@@ -594,9 +659,20 @@ public class SemanticChecker {
             case Le:
             case Gt:
             case Ge:
-                if (!lhs.type.equal(new Type(int_type)) || !rhs.type.equal(new Type(int_type))) {
+                if (lhs.type.equal(int_type)) {
+                    if (!rhs.type.equal(int_type)) {
+                        throw_semantic(tp_mis, null);
+                    }
+
+                } else if (lhs.type.equal(string_type)) {
+                    if (!rhs.type.equal(string_type)) {
+                        throw_semantic(tp_mis, null);
+                    }
+
+                } else {
                     throw_semantic(tp_mis, null);
                 }
+
                 node.type = new Type(bool_type);
                 break;
 
@@ -658,6 +734,7 @@ public class SemanticChecker {
             case None:
                 break;
         }
+        node.type.is_lvalue = false;
 
     }
 
@@ -685,6 +762,8 @@ public class SemanticChecker {
             }
         }
         node.type = new Type(string_type);
+        node.type.is_lvalue = false;
+
     }
 
     void check(FuncCallNode node) {
@@ -783,6 +862,8 @@ public class SemanticChecker {
         } else {
             throw_semantic(tp_mis, null);
         }
+        node.type.is_lvalue = false;
+
     }
 
     void check(IdNode node) {
@@ -796,6 +877,7 @@ public class SemanticChecker {
                     throw_semantic(undef_id, null);
                 }
                 node.type = new Type(int_type);
+                node.type.is_lvalue = false;
 
             } else if (cls_tp.id.equals(string_type)) {// built-in methods
 
@@ -820,6 +902,7 @@ public class SemanticChecker {
                         throw_semantic(undef_id, null);
                         break;
                 }
+                node.type.is_lvalue = false;
 
             } else if (node.father.father instanceof FuncCallNode) {// member method
                 for (int i = 0; i != root.global_stmt.length; ++i) {
@@ -837,6 +920,7 @@ public class SemanticChecker {
                         }
                     }
                 }
+                node.type.is_lvalue = false;
 
             } else {// member variable
                 for (int i = 0; i != root.global_stmt.length; ++i) {
@@ -844,7 +928,7 @@ public class SemanticChecker {
                     if (root.global_stmt[i] instanceof DefClassNode) {
                         DefClassNode def_cls = (DefClassNode) root.global_stmt[i];
 
-                        if (((IdNode) def_cls.name).id == cls_tp.id) {
+                        if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
                             Map<String, Type> scope = def_cls.vars;
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).clone();
@@ -854,6 +938,7 @@ public class SemanticChecker {
                         }
                     }
                 }
+                node.type.is_lvalue = true;
             }
 
         } else {// find in scope
@@ -863,6 +948,7 @@ public class SemanticChecker {
                 } else {
                     throw_semantic(undef_id, null);
                 }
+                node.type.is_lvalue = false;
 
             } else {// variable
                 if (global_var.containsKey(node.id)) {
@@ -870,6 +956,8 @@ public class SemanticChecker {
                 } else {
                     throw_semantic(undef_id, null);
                 }
+                node.type.is_lvalue = true;
+
             }
 
         }
@@ -905,6 +993,8 @@ public class SemanticChecker {
                 }
             }
         }
+
+        node.type.is_lvalue = false;
     }
 
     void check(NullNode node) {
@@ -932,6 +1022,7 @@ public class SemanticChecker {
         }
 
         node.type = ((ExprNode) (node.lhs)).type.clone();
+        node.type.is_lvalue = false;
     }
 
     void check(ThisNode node) {
@@ -940,10 +1031,11 @@ public class SemanticChecker {
             tmp = tmp.father;
         }
         if (tmp == null) {
-            throw_semantic(inv_ctrl, null);
+            throw_syntax("This Pointer Out Of Bound", null);
         }
 
         node.type = new Type(((IdNode) ((DefClassNode) tmp).name).id);
+        node.type.is_lvalue = false;
     }
 
     void check(UnaryOpNode node) {
@@ -973,5 +1065,6 @@ public class SemanticChecker {
             case None:
                 break;
         }
+        node.type.is_lvalue = false;
     }
 }

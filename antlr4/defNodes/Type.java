@@ -24,7 +24,7 @@ public class Type {
     }
 
     public boolean equal(Type other) {
-        return this.id == other.id && this.dim == other.dim;
+        return this.id.equals(other.id) && this.dim == other.dim;
     }
 
     public boolean equal(String other) {
@@ -32,6 +32,6 @@ public class Type {
     }
 
     public boolean equal_hard(Type other) {
-        return this.id == other.id && this.dim == other.dim && this.is_lvalue == other.is_lvalue;
+        return this.id.equals(other.id) && this.dim == other.dim && this.is_lvalue == other.is_lvalue;
     }
 }
