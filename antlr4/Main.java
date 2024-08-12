@@ -24,12 +24,13 @@ public class Main {
             ASTConstructor constructor = new ASTConstructor();
             ast_root = (ProgNode) constructor.visit(parsetree_root);
 
-            System.out.println("AST Done");
+            System.out.println("AST Done.");
+            ast_root.printToString();
 
-            SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
-            checker.check();
+            // SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
+            // checker.check();
 
-            System.out.println("Semantic Done");
+            // System.out.println("Semantic Done");
 
         } catch (error err) {
             System.out.println(err.toString());

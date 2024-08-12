@@ -11,4 +11,14 @@ public class DefClassNode extends ScopeNode {
     public Node[] stmt = null;
     public Map<String, FuncType> methods = new HashMap<>();
 
+    public void printToString() {
+        System.out.print("class ");
+        name.printToString();
+        System.out.println(" {");
+        for (Node s : stmt) {
+            System.out.print('\t');
+            s.printToString();
+        }
+        System.out.println("};");
+    }
 }
