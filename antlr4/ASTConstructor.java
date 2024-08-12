@@ -33,21 +33,39 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         pr_tp.return_type = new Type(void_type, 0, false);
         pr_tp.paras = new Type[1];
-        pr_tp.paras[0] = new Type(string_type, 0, true);
+        pr_tp.paras[0] = new Type(string_type, 0, false);
         root.func_ids.put("print", pr_tp); // (string) -> void
+
+        pr_tp = new FuncType();
+        pr_tp.return_type = new Type(void_type, 0, false);
+        pr_tp.paras = new Type[1];
+        pr_tp.paras[0] = new Type(string_type, 0, false);
         root.func_ids.put("println", pr_tp);// (string) -> void
 
-        pr_tp.paras[0] = new Type(int_type, 0, true);
+        pr_tp = new FuncType();
+        pr_tp.return_type = new Type(void_type, 0, false);
+        pr_tp.paras = new Type[1];
+        pr_tp.paras[0] = new Type(int_type, 0, false);
         root.func_ids.put("printInt", pr_tp);// (int) -> void
+
+        pr_tp = new FuncType();
+        pr_tp.return_type = new Type(void_type, 0, false);
+        pr_tp.paras = new Type[1];
+        pr_tp.paras[0] = new Type(int_type, 0, false);
         root.func_ids.put("printlnInt", pr_tp);// (int) -> void
 
+        pr_tp = new FuncType();
         pr_tp.paras = null;
         pr_tp.return_type = new Type(int_type, 0, false);
         root.func_ids.put("getInt", pr_tp);// () -> int
 
+        pr_tp = new FuncType();
+        pr_tp.paras = null;
         pr_tp.return_type = new Type(string_type, 0, false);
         root.func_ids.put("getString", pr_tp);// () -> string
 
+        pr_tp = new FuncType();
+        pr_tp.return_type = new Type(string_type, 0, false);
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(int_type, 0, true);
         root.func_ids.put("toString", pr_tp);// (int) -> string
@@ -64,6 +82,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         global_class = root.class_ids;
         global_func = root.func_ids;
         global_var = root.vars;
+        root.pos = new position(ctx);
 
         return root;
     }
@@ -81,6 +100,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         TypeNode node = new TypeNode();
         node.type = new Type(ctx.getText(), 0, true);
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -106,6 +126,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         }
 
         node.type.dim = (ctx.getChildCount() - 1) / 2;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -148,6 +169,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.dim_lens[j] = visit(ctx.expr(j));
             node.dim_lens[j].father = node;
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -175,6 +197,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         node.name = new IdNode();
         ((IdNode) node.name).id = ctx.Identifier().getText();
+        node.name.pos = new position(ctx);
         node.name.father = node;
 
         if (ctx.getChild(3) instanceof MxParser.Para_listContext) {
@@ -192,6 +215,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 } else if (i % 3 == 1) {// id
                     node.ids[i / 3] = new IdNode();
                     ((IdNode) node.ids[i / 3]).id = para_ctx.getChild(i).getText();
+                    node.ids[i / 3].pos = new position(ctx);
                     node.ids[i / 3].father = node;
                 }
             }
@@ -228,6 +252,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         // }
         // }
         /// addToFuncs(id, type, node, ctx);
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -261,6 +286,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         node.name = new IdNode();
         ((IdNode) node.name).id = ctx.Identifier().getText();
+        node.name.pos = new position(ctx);
         node.name.father = node;
 
         node.stmt = new Node[ctx.getChildCount() - 5];
@@ -271,6 +297,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         // String id = ((IdNode) node.name).id;
         // addToCls(id, node, ctx);
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -289,6 +316,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         node.id = new IdNode();
         ((IdNode) node.id).id = ctx.Identifier().getText();
+        node.id.pos = new position(ctx);
         node.id.father = node;
 
         node.stmt = new Node[ctx.getChildCount() - 5];
@@ -296,6 +324,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.stmt[i - 4] = visit(ctx.getChild(i));
             node.stmt[i - 4].father = node;
         }
+
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -319,6 +349,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.vals[i / 2].father = node;
             }
         }
+
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -348,6 +380,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     @Override
     public Node visitArr(MxParser.ArrContext ctx) {
         ArrayNode node = (ArrayNode) visit(ctx.getChild(0));
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -363,6 +396,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitNull(MxParser.NullContext ctx) {
         NullNode node = new NullNode();
         node.type = new Type(null_type);
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -381,6 +415,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -400,6 +435,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -419,6 +455,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -436,6 +473,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         BoolConstNode node = new BoolConstNode();
         node.type = new Type(bool_type);
         node.val = true;
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -452,6 +490,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         StringConstNode node = new StringConstNode();
         node.type = new Type(string_type);
         node.val = ctx.getText().substring(1, ctx.getText().length() - 1);
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -468,6 +507,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         BoolConstNode node = new BoolConstNode();
         node.type = new Type(bool_type);
         node.val = false;
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -486,6 +526,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -505,6 +546,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.array = visit(ctx.arrayName);
         node.serial = visit(ctx.serial);
         node.array.father = node.serial.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -523,6 +565,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.LogicNot ? UnaryOprand.LNot : UnaryOprand.BNot;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -541,6 +584,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddR : UnaryOprand.SSubR;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -570,6 +614,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.init_array = visit(ctx.array());
             node.init_array.father = node;
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -586,6 +631,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitBuiltInPtr(MxParser.BuiltInPtrContext ctx) {
 
         ThisNode node = new ThisNode();
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -632,6 +678,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -650,6 +697,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.SelfAdd ? UnaryOprand.SAddL : UnaryOprand.SSubL;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -668,6 +716,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.oprand = ctx.op.getType() == MxParser.Add ? UnaryOprand.Plus : UnaryOprand.Minus;
         node.expr = visit(ctx.expr());
         node.expr.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -687,6 +736,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.expr(1));
         node.rhs = visit(ctx.expr(2));
         node.cond.father = node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -716,6 +766,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -735,6 +786,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -752,6 +804,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         NumConstNode node = new NumConstNode();
         node.type = new Type(int_type);
         node.val = Integer.valueOf(ctx.getText());
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -770,6 +823,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -789,6 +843,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -806,6 +861,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         NewExprNode node = new NewExprNode();
         node.create_type = visit(ctx.typename());
         node.create_type.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -929,6 +985,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
          * throw_semantic(inv_tp, ctx);
          * }
          */
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -947,7 +1004,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.object = visit(ctx.expr());
         node.member = new IdNode();
         ((IdNode) node.member).id = ctx.Identifier().getText();
+        node.member.pos = new position(ctx);
         node.object.father = node.member.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -967,6 +1026,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -986,6 +1046,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         node.lhs = visit(ctx.getChild(0));
         node.rhs = visit(ctx.getChild(2));
         node.lhs.father = node.rhs.father = node;
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1002,6 +1063,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitId(MxParser.IdContext ctx) {
         IdNode node = new IdNode();
         node.id = ctx.Identifier().getText();
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1044,7 +1106,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             }
         }
 
-        node.type = new Type(string_type);
+        // node.type = new Type(string_type);
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -1099,6 +1162,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             MxParser.Var_defContext def_ctx = ctx.var_def(i);
             node.ids[i] = new IdNode();
             ((IdNode) node.ids[i]).id = def_ctx.Identifier().getText();
+            node.ids[i].pos = new position(ctx);
             node.ids[i].father = node;
             IdNode id = (IdNode) node.ids[i];
             id.type = ((TypeNode) node.type).type.clone();
@@ -1109,6 +1173,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.inits[i].father = node;
             }
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1152,6 +1217,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 son_node.stmts[0].father = son_node;
             }
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1181,6 +1247,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.stmts[i].father = node;
             }
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1228,6 +1295,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
                 node.stmts[i].father = node;
             }
         }
+        node.pos = new position(ctx);
 
         return node;
     }
@@ -1246,6 +1314,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         if (ctx.val != null) {
             node.expr = visit(ctx.val);
         }
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -1260,7 +1329,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     @Override
     public Node visitBreak_stmt(MxParser.Break_stmtContext ctx) {
         // simple
-        return new BreakNode();
+        BreakNode node = new BreakNode();
+        node.pos = new position(ctx);
+        return node;
     }
 
     /**
@@ -1274,7 +1345,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     @Override
     public Node visitContinue_stmt(MxParser.Continue_stmtContext ctx) {
         // simple
-        return new ContinueNode();
+        ContinueNode node = new ContinueNode();
+        node.pos = new position(ctx);
+        return node;
     }
 
     /**
@@ -1289,6 +1362,8 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitExpr_stmt(MxParser.Expr_stmtContext ctx) {
         ExprStmtNode node = new ExprStmtNode();
         node.expr = visit(ctx.expr());
+        node.expr.father = node;
+        node.pos = new position(ctx);
         return node;
     }
 
@@ -1303,7 +1378,9 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     @Override
     public Node visitEmpty_stmt(MxParser.Empty_stmtContext ctx) {
         // simple
-        return new EmptyStmtNode();
+        EmptyStmtNode node = new EmptyStmtNode();
+        node.pos = new position(ctx);
+        return node;
     }
 
     /**
@@ -1322,6 +1399,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             node.stmts[i] = visit(ctx.stmt(i));
             node.stmts[i].father = node;
         }
+        node.pos = new position(ctx);
 
         return node;
     }

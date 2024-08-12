@@ -1,8 +1,10 @@
 package defNodes;
 
+import util.position;
+
 public abstract class Node {
-    // public Node[] sons = null;
     public Node father = null;
+    public position pos = null;
 
     public void printToString() {
     }

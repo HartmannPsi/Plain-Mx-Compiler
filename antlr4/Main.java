@@ -10,7 +10,7 @@ import defNodes.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        String filename = "antlr4/testcases/testAST.txt";
+        String filename = "antlr4/testcases/simple.txt";
         InputStream input = new FileInputStream(filename);
 
         PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
@@ -29,13 +29,13 @@ public class Main {
             ASTConstructor constructor = new ASTConstructor();
             ast_root = (ProgNode) constructor.visit(parsetree_root);
 
-            System.out.println("AST Done.");
-            ast_root.printToString();
+            // System.out.println("AST Done.");
+            // ast_root.printToString();
 
-            // SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
-            // checker.check();
+            SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
+            checker.check();
 
-            // System.out.println("Semantic Done");
+            System.out.println("Semantic Check Done: No Error.");
 
         } catch (error err) {
             System.out.println(err.toString());
