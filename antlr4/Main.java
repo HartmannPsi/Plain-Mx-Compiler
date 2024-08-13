@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import util.MxErrorListener;
 import util.error.error;
+import util.error.syntaxError;
 import defNodes.*;
 
 public class Main {
@@ -46,11 +47,18 @@ public class Main {
 
         } catch (error err) {
 
-            if (DEBUG)
-                System.out.println(err.toString());
-            else
-                System.out.println(err.getMessage());
+            if (err instanceof syntaxError) {
+                if (DEBUG)
+                    System.out.println(err.toString());
+                else
+                    System.out.println("Invalid Identifier");
+            } else {
 
+                if (DEBUG)
+                    System.out.println(err.toString());
+                else
+                    System.out.println(err.getMessage());
+            }
             System.exit(1);
             throw new RuntimeException();
         }

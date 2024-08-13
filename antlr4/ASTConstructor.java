@@ -352,11 +352,13 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitArray(MxParser.ArrayContext ctx) {
         ArrayNode node = new ArrayNode();
 
-        node.vals = new Node[(ctx.getChildCount() - 2) / 2 + 1];
-        for (int i = 1; i != ctx.getChildCount() - 1; ++i) {
-            if (i % 2 == 1) {// expr
-                node.vals[i / 2] = visit(ctx.getChild(i));
-                node.vals[i / 2].father = node;
+        if (ctx.getChildCount() > 2) {
+            node.vals = new Node[(ctx.getChildCount() - 2) / 2 + 1];
+            for (int i = 1; i != ctx.getChildCount() - 1; ++i) {
+                if (i % 2 == 1) {// expr
+                    node.vals[i / 2] = visit(ctx.getChild(i));
+                    node.vals[i / 2].father = node;
+                }
             }
         }
 

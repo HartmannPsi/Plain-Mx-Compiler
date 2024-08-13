@@ -27,6 +27,14 @@ public class Type {
         return this.id.equals(other.id) && this.dim == other.dim;
     }
 
+    public boolean equal_weak(Type other) {
+        return this.id.equals(other.id);
+    }
+
+    public boolean equal_weak(String other) {
+        return this.equal_weak(new Type(other));
+    }
+
     public boolean equal(String other) {
         return this.equal(new Type(other));
     }

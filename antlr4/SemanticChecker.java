@@ -723,24 +723,36 @@ public class SemanticChecker {
 
     void check(ArrayNode node) {
 
-        Type tps;
-        int k = 0;
-        do {
-            check(node.vals[k]);
-            tps = ((ExprNode) node.vals[k]).type;
-            ++k;
-        } while (!tps.equal(null_type) && k != node.vals.length);
+        if (node.vals != null) {
+            Type tps;
+            int k = 0;
+            do {
+                check(node.vals[k]);
+                tps = ((ExprNode) node.vals[k]).type;
+                if (!tps.equal_weak(null_type) || k == node.vals.length - 1) {
+                    break;
+                }
+                ++k;
+            } while (!tps.equal_weak(null_type) && k != node.vals.length);
 
-        node.type = tps.clone();
-        ++node.type.dim;
-        node.type.is_lvalue = false;
+            node.type = tps.clone();
+            ++node.type.dim;
+            node.type.is_lvalue = false;
 
-        for (int i = k; i != node.vals.length; ++i) {
-            check(node.vals[i]);
+            for (int i = k + 1; i != node.vals.length; ++i) {
+                check(node.vals[i]);
 
-            if (!((ExprNode) node.vals[i]).type.equal(tps) && !((ExprNode) node.vals[i]).type.equal(null_type)) {
-                throw_semantic(tp_mis, node.pos);
+                if (!((ExprNode) node.vals[i]).type.equal(tps)
+                        && !((ExprNode) node.vals[i]).type.equal_weak(null_type)) {
+                    // System.out.println(((ExprNode) node.vals[i]).type.toString());
+                    // System.out.println(tps.toString());
+                    throw_semantic(tp_mis, node.pos);
+                }
             }
+        } else {
+            node.type = new Type(null_type);
+            node.type.is_lvalue = false;
+            node.type.dim = 1;
         }
     }
 
@@ -847,7 +859,7 @@ public class SemanticChecker {
                     node.type = new Type(string_type);
 
                 } else {
-                    throw_semantic(tp_mis, node.pos);
+                    throw_semantic(inv_tp, node.pos);
                 }
                 break;
 
@@ -878,7 +890,7 @@ public class SemanticChecker {
         for (int i = 0; i != node.exprs.length; ++i) {
             check(node.exprs[i]);
             if (!checkFStringType((ExprNode) node.exprs[i])) {
-                throw_syntax("Invalid FString Expression", node.pos);
+                throw_semantic(inv_tp, node.pos);
             }
         }
         node.type = new Type(string_type);

@@ -33,7 +33,7 @@ def_class:
 class_constructor:
 	className = Identifier LP RP LBrace code = stmt* RBrace;
 
-array: LBrace expr (Comma expr)* RBrace;
+array: LBrace (expr (Comma expr)*)? RBrace;
 
 expr_list: expr (Comma expr)*;
 
