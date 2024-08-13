@@ -674,7 +674,7 @@ public class SemanticChecker {
                 }
 
             } else if (((TypeNode) ((DefFuncNode) tmp).type).type.equal(void_type)) {
-                throw_syntax("Void Function Has Return Value", node.pos);
+                throw_semantic(tp_mis, node.pos);
 
             } else if (!((ExprNode) node.expr).type.equal(((TypeNode) ((DefFuncNode) tmp).type).type)) {
 
