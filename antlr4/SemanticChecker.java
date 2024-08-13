@@ -2,8 +2,6 @@ import java.util.Map;
 import java.util.Set;
 import defNodes.*;
 import defNodes.exprNodes.*;
-import defNodes.exprNodes.BinaryOpNode.BinaryOprand;
-import defNodes.exprNodes.UnaryOpNode.UnaryOprand;
 import defNodes.stmtNodes.*;
 import util.error.*;
 import util.position;
