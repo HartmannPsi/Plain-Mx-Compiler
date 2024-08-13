@@ -1,7 +1,7 @@
 
-// import java.io.FileInputStream;
-// import java.io.FileOutputStream;
-// import java.io.PrintStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.io.InputStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -11,12 +11,13 @@ import defNodes.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        // String filename = "antlr4/testcases/variable.txt";
-        // InputStream input = new FileInputStream(filename);
 
-        // PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
-        // System.setOut(out);
         InputStream input = System.in;
+
+        String filename = "antlr4/testcases/simple.txt";
+        input = new FileInputStream(filename);
+        PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
+        System.setOut(out);
 
         try {
 
@@ -41,7 +42,7 @@ public class Main {
             System.exit(0);
 
         } catch (error err) {
-            System.out.println(err.getMessage());
+            System.out.println(err.toString());
             System.exit(1);
             throw new RuntimeException();
         }

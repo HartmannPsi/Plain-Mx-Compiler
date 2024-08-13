@@ -14,7 +14,8 @@ public class ProgNode extends ScopeNode {
     public void printToString() {
         System.out.println("Prog:");
         for (Node stmt : global_stmt) {
-            stmt.printToString();
+            if (stmt != null)
+                stmt.printToString();
         }
     }
 }

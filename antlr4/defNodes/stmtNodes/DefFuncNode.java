@@ -15,6 +15,7 @@ public class DefFuncNode extends ScopeNode {
     public Node[] stmt = null;
     public Node[] tps = null;
     public Node[] ids = null;
+    public boolean has_ret_stmt = false;
 
     public void printToString() {
         if (type != null) {

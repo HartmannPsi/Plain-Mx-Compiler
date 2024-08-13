@@ -25,6 +25,10 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         throw new semanticError(error, new position(ctx));
     }
 
+    void throw_syntax(String error, ParserRuleContext ctx) {
+        throw new syntaxError(error, new position(ctx));
+    }
+
     @Override
     public Node visitProg(MxParser.ProgContext ctx) {
         root = new ProgNode();
@@ -158,6 +162,12 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
             } else if (ctx.getChild(i).getText().equals("]")) {
             } else {
                 ++ind;
+            }
+        }
+
+        for (int i = 2; i < ind * 3 + 2; i += 3) {
+            if (!(ctx.getChild(i) instanceof MxParser.ExprContext)) {
+                throw_syntax("Invalid Array Initialization", ctx);
             }
         }
 
@@ -1286,7 +1296,7 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
 
         if (ctx.getChildCount() == other_child_count + 1) {
             node.stmts = new Node[1];
-            node.stmts[0] = visit(ctx.stmt(0));
+            node.stmts[0] = visit(ctx.stmt(1));
             node.stmts[0].father = node;
         } else {
             node.stmts = new Node[ctx.getChildCount() - other_child_count - 2];

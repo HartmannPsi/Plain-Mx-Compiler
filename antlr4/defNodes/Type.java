@@ -34,4 +34,12 @@ public class Type {
     public boolean equal_hard(Type other) {
         return this.id.equals(other.id) && this.dim == other.dim && this.is_lvalue == other.is_lvalue;
     }
+
+    public String toString() {
+        String ret = id;
+        for (int i = 0; i < dim; i++) {
+            ret += "[]";
+        }
+        return ret;
+    }
 }
