@@ -12,12 +12,15 @@ import defNodes.*;
 public class Main {
     public static void main(String[] args) throws Exception {
 
-        InputStream input = System.in;
+        boolean DEBUG = false;
 
-        String filename = "antlr4/testcases/simple.txt";
-        input = new FileInputStream(filename);
-        PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
-        System.setOut(out);
+        InputStream input = System.in;
+        if (DEBUG) {
+            String filename = "antlr4/testcases/simple.txt";
+            input = new FileInputStream(filename);
+            PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
+            System.setOut(out);
+        }
 
         try {
 
@@ -42,7 +45,12 @@ public class Main {
             System.exit(0);
 
         } catch (error err) {
-            System.out.println(err.toString());
+
+            if (DEBUG)
+                System.out.println(err.toString());
+            else
+                System.out.println(err.getMessage());
+
             System.exit(1);
             throw new RuntimeException();
         }

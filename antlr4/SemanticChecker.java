@@ -218,6 +218,7 @@ public class SemanticChecker {
             node = node.father;
         }
         if (node == null) {
+            // System.out.print(1);
             throw_semantic(inv_ctrl, pos);
         }
     }
@@ -228,10 +229,12 @@ public class SemanticChecker {
             node = node.father;
         }
         if (node == null) {
+            // System.out.print(2);
             throw_semantic(inv_ctrl, tmp.pos);
         }
 
-        if (((IdNode) tmp.id).id != ((IdNode) ((DefClassNode) node).name).id) {
+        if (!((IdNode) tmp.id).id.equals(((IdNode) ((DefClassNode) node).name).id)) {
+            // System.out.print(3);
             throw_semantic(inv_ctrl, tmp.pos);
         }
     }
@@ -242,6 +245,7 @@ public class SemanticChecker {
             node = node.father;
         }
         if (node == null) {
+            // System.out.print(4);
             throw_semantic(inv_ctrl, pos);
         }
     }
@@ -497,6 +501,8 @@ public class SemanticChecker {
                 } else {
                     has_cons = true;
                 }
+                check(node.stmt[i]);
+
             } else if (node.stmt[i] instanceof DefFuncNode) {
                 check(node.stmt[i]);
             }
@@ -638,12 +644,16 @@ public class SemanticChecker {
 
     void check(ReturnNode node) {
 
+        // node.printToString();
+
         Node tmp = node;
         while (tmp != null && !(tmp instanceof DefFuncNode || tmp instanceof ClsConsNode)) {
             tmp = tmp.father;
         }
 
         if (tmp == null) {
+            // System.out.println("???");
+            // System.out.print(5);
             throw_semantic(inv_ctrl, node.pos);
         }
 
@@ -783,6 +793,12 @@ public class SemanticChecker {
                 if (lhs.type.equal(new Type(null_type))) {
                     if (rhs.type.equal(int_type) || rhs.type.equal(bool_type)
                             || rhs.type.equal(string_type)) {
+                        throw_semantic(tp_mis, node.pos);
+                    }
+
+                } else if (rhs.type.equal(null_type)) {
+                    if (lhs.type.equal(int_type) || lhs.type.equal(bool_type)
+                            || lhs.type.equal(string_type)) {
                         throw_semantic(tp_mis, node.pos);
                     }
 
@@ -979,7 +995,18 @@ public class SemanticChecker {
                                 } else {
                                     for (int j = 0; j != node.paras.length; ++j) {
                                         if (!((ExprNode) node.paras[j]).type.equal(func_tp.paras[j])) {
-                                            throw_semantic(undef_id, node.pos);
+
+                                            if (((ExprNode) node.paras[j]).type.equal(null_type)) {
+
+                                                if (func_tp.paras[j].equal(int_type)
+                                                        || func_tp.paras[j].equal(bool_type)
+                                                        || func_tp.paras[j].equal(string_type)) {
+                                                    throw_semantic(undef_id, node.pos);
+                                                }
+
+                                            } else {
+                                                throw_semantic(undef_id, node.pos);
+                                            }
                                         }
                                     }
                                 }
@@ -994,36 +1021,139 @@ public class SemanticChecker {
 
             }
 
-        } else if (node.id instanceof IdNode) {// call global functions
+        } else if (node.id instanceof IdNode) {// call scope functions
 
+            Node tmp = node;
+            while (tmp != null && !(tmp instanceof ProgNode) && !(tmp instanceof DefClassNode)) {
+                tmp = tmp.father;
+            }
             String id = ((IdNode) node.id).id;
 
-            if (global_func.containsKey(id)) {
-                FuncType func_tp = global_func.get(id);
-                node.type = func_tp.return_type.clone();
+            if (tmp == null) {
 
-                if (node.paras == null) {
-                    if (func_tp.paras != null) {
-                        throw_semantic(undef_id, node.pos);
-                    }
+                throw_syntax("???", node.pos);
 
-                } else if (func_tp.paras == null) {
-                    throw_semantic(undef_id, node.pos);
+            } else if (tmp instanceof ProgNode) {
 
-                } else if (node.paras.length != func_tp.paras.length) {
-                    throw_semantic(undef_id, node.pos);
+                if (global_func.containsKey(id)) {
+                    FuncType func_tp = global_func.get(id);
+                    node.type = func_tp.return_type.clone();
 
-                } else {
-                    for (int j = 0; j != node.paras.length; ++j) {
-                        if (!((ExprNode) node.paras[j]).type.equal(func_tp.paras[j])) {
+                    if (node.paras == null) {
+                        if (func_tp.paras != null) {
                             throw_semantic(undef_id, node.pos);
                         }
+
+                    } else if (func_tp.paras == null) {
+                        throw_semantic(undef_id, node.pos);
+
+                    } else if (node.paras.length != func_tp.paras.length) {
+                        throw_semantic(undef_id, node.pos);
+
+                    } else {
+                        for (int j = 0; j != node.paras.length; ++j) {
+                            if (!((ExprNode) node.paras[j]).type.equal(func_tp.paras[j])) {
+
+                                if (((ExprNode) node.paras[j]).type.equal(null_type)) {
+
+                                    if (func_tp.paras[j].equal(int_type) || func_tp.paras[j].equal(bool_type)
+                                            || func_tp.paras[j].equal(string_type)) {
+                                        throw_semantic(undef_id, node.pos);
+                                    }
+                                } else {
+                                    throw_semantic(undef_id, node.pos);
+                                }
+
+                            }
+                        }
+                    }
+
+                } else {
+                    // System.out.println(14);
+                    throw_semantic(undef_id, node.pos);
+                }
+
+            } else {// defcls
+
+                Map<String, FuncType> scope = ((DefClassNode) tmp).methods;
+
+                if (scope.containsKey(id)) {
+
+                    FuncType func_tp = scope.get(id);
+                    node.type = func_tp.return_type.clone();
+
+                    if (node.paras == null) {
+                        if (func_tp.paras != null) {
+                            throw_semantic(undef_id, node.pos);
+                        }
+
+                    } else if (func_tp.paras == null) {
+                        throw_semantic(undef_id, node.pos);
+
+                    } else if (node.paras.length != func_tp.paras.length) {
+                        throw_semantic(undef_id, node.pos);
+
+                    } else {
+                        for (int j = 0; j != node.paras.length; ++j) {
+                            if (!((ExprNode) node.paras[j]).type.equal(func_tp.paras[j])) {
+
+                                if (((ExprNode) node.paras[j]).type.equal(null_type)) {
+
+                                    if (func_tp.paras[j].equal(int_type) || func_tp.paras[j].equal(bool_type)
+                                            || func_tp.paras[j].equal(string_type)) {
+                                        throw_semantic(undef_id, node.pos);
+                                    }
+
+                                } else {
+
+                                    throw_semantic(undef_id, node.pos);
+                                }
+                            }
+                        }
+                    }
+
+                } else {
+
+                    if (global_func.containsKey(id)) {
+                        FuncType func_tp = global_func.get(id);
+                        node.type = func_tp.return_type.clone();
+
+                        if (node.paras == null) {
+                            if (func_tp.paras != null) {
+                                throw_semantic(undef_id, node.pos);
+                            }
+
+                        } else if (func_tp.paras == null) {
+                            throw_semantic(undef_id, node.pos);
+
+                        } else if (node.paras.length != func_tp.paras.length) {
+                            throw_semantic(undef_id, node.pos);
+
+                        } else {
+                            for (int j = 0; j != node.paras.length; ++j) {
+                                if (!((ExprNode) node.paras[j]).type.equal(func_tp.paras[j])) {
+
+                                    if (((ExprNode) node.paras[j]).type.equal(null_type)) {
+
+                                        if (func_tp.paras[j].equal(int_type) || func_tp.paras[j].equal(bool_type)
+                                                || func_tp.paras[j].equal(string_type)) {
+                                            throw_semantic(undef_id, node.pos);
+                                        }
+
+                                    } else {
+
+                                        throw_semantic(undef_id, node.pos);
+                                    }
+                                }
+                            }
+                        }
+
+                    } else {
+                        // System.out.println(14);
+                        throw_semantic(undef_id, node.pos);
                     }
                 }
 
-            } else {
-                // System.out.println(14);
-                throw_semantic(undef_id, node.pos);
             }
 
         } else {
@@ -1232,11 +1362,33 @@ public class SemanticChecker {
 
         check(node.lhs);
         check(node.rhs);
+
         if (!((ExprNode) (node.lhs)).type.equal(((ExprNode) (node.rhs)).type)) {
-            throw_semantic(tp_mis, node.pos);
+
+            if (((ExprNode) node.lhs).type.equal(null_type)) {
+
+                if (((ExprNode) node.rhs).type.equal(int_type) || ((ExprNode) node.rhs).type.equal(bool_type)
+                        || ((ExprNode) node.rhs).type.equal(string_type)) {
+                    throw_semantic(tp_mis, node.pos);
+                }
+
+            } else if (((ExprNode) node.rhs).type.equal(null_type)) {
+
+                if (((ExprNode) node.lhs).type.equal(int_type) || ((ExprNode) node.lhs).type.equal(bool_type)
+                        || ((ExprNode) node.lhs).type.equal(string_type)) {
+                    throw_semantic(tp_mis, node.pos);
+                }
+
+            } else {
+                throw_semantic(tp_mis, node.pos);
+            }
         }
 
         node.type = ((ExprNode) (node.lhs)).type.clone();
+        if (node.type.equal(null_type)) {
+            node.type = ((ExprNode) (node.rhs)).type.clone();
+        }
+
         node.type.is_lvalue = false;
     }
 
