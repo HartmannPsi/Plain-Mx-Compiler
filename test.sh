@@ -1,0 +1,1 @@
+testcases/sema/scripts/test.bash './run.sh' testcases/sema/array-package-01.in testcases/sema/array-package/array-1.mx

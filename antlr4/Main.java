@@ -1,7 +1,8 @@
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+
+// import java.io.FileInputStream;
+// import java.io.FileOutputStream;
+// import java.io.PrintStream;
 import java.io.InputStream;
-import java.io.PrintStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import util.MxErrorListener;
@@ -10,11 +11,12 @@ import defNodes.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        String filename = "antlr4/testcases/variable.txt";
-        InputStream input = new FileInputStream(filename);
+        // String filename = "antlr4/testcases/variable.txt";
+        // InputStream input = new FileInputStream(filename);
 
-        PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
-        System.setOut(out);
+        // PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
+        // System.setOut(out);
+        InputStream input = System.in;
 
         try {
 
@@ -36,9 +38,11 @@ public class Main {
             checker.check();
 
             System.out.println("Semantic Check Done: No Error.");
+            System.exit(0);
 
         } catch (error err) {
-            System.out.println(err.toString());
+            System.out.println(err.getMessage());
+            System.exit(1);
             throw new RuntimeException();
         }
     }

@@ -145,7 +145,7 @@ public class SemanticChecker {
                         return scope.get(id);
 
                     } else {
-                        System.out.println(0);
+                        // System.out.println(0);
                         throw_semantic(undef_id, _node.pos);
                         return null;
                     }
@@ -155,7 +155,7 @@ public class SemanticChecker {
             }
         }
 
-        System.out.println(1);
+        // System.out.println(1);
         throw_semantic(undef_id, _node.pos);
         return null;
     }
@@ -172,7 +172,7 @@ public class SemanticChecker {
                         return scope.get(id);
 
                     } else {
-                        System.out.println(2);
+                        // System.out.println(2);
                         throw_semantic(undef_id, _node.pos);
                         return null;
                     }
@@ -182,7 +182,7 @@ public class SemanticChecker {
             }
         }
 
-        System.out.println(3);
+        // System.out.println(3);
         throw_semantic(undef_id, _node.pos);
         return null;
     }
@@ -851,12 +851,12 @@ public class SemanticChecker {
             if (cls_tp.dim > 0) {// only has size method
 
                 if (!((IdNode) ((MemAccNode) node.id).member).id.equals("size")) {
-                    System.out.println(4);
+                    // System.out.println(4);
                     throw_semantic(undef_id, node.pos);
                 }
 
                 if (node.paras != null) {
-                    System.out.println(5);
+                    // System.out.println(5);
                     throw_semantic(undef_id, node.pos);
                 }
 
@@ -870,7 +870,7 @@ public class SemanticChecker {
                     case "length":
                         node.type = new Type(int_type);
                         if (node.paras != null) {
-                            System.out.println(6);
+                            // System.out.println(6);
                             throw_semantic(undef_id, node.pos);
                         }
                         break;
@@ -878,12 +878,12 @@ public class SemanticChecker {
                     case "substring":
                         node.type = new Type(string_type);
                         if (node.paras.length != 2) {
-                            System.out.println(7);
+                            // System.out.println(7);
                             throw_semantic(undef_id, node.pos);
                         }
                         ExprNode p0 = (ExprNode) node.paras[0], p1 = (ExprNode) node.paras[1];
                         if (!int_tp.equal(p0.type) || !int_tp.equal(p1.type)) {
-                            System.out.println(8);
+                            // System.out.println(8);
                             throw_semantic(undef_id, node.pos);
                         }
                         break;
@@ -891,7 +891,7 @@ public class SemanticChecker {
                     case "parseInt":
                         node.type = new Type(int_type);
                         if (node.paras != null) {
-                            System.out.println(9);
+                            // System.out.println(9);
                             throw_semantic(undef_id, node.pos);
                         }
                         break;
@@ -899,12 +899,12 @@ public class SemanticChecker {
                     case "ord":
                         node.type = new Type(int_type);
                         if (node.paras.length != 1) {
-                            System.out.println(10);
+                            // System.out.println(10);
                             throw_semantic(undef_id, node.pos);
                         }
                         ExprNode p = (ExprNode) node.paras[0];
                         if (!int_tp.equal(p.type)) {
-                            System.out.println(11);
+                            // System.out.println(11);
                             throw_semantic(undef_id, node.pos);
                         }
                         break;
@@ -949,7 +949,7 @@ public class SemanticChecker {
                                 }
 
                             } else {
-                                System.out.println(13);
+                                // System.out.println(13);
                                 throw_semantic(undef_id, node.pos);
                             }
                         }
@@ -986,7 +986,7 @@ public class SemanticChecker {
                 }
 
             } else {
-                System.out.println(14);
+                // System.out.println(14);
                 throw_semantic(undef_id, node.pos);
             }
 
@@ -1005,10 +1005,16 @@ public class SemanticChecker {
             if (cls_tp.dim > 0) {// only has size method
 
                 if (!node.id.equals("size")) {
-                    System.out.println(15);
+                    // System.out.println(15);
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type = new Type(int_type);
+
+                if (!(node.father.father instanceof FuncCallNode
+                        && ((FuncCallNode) node.father.father).id == node.father)) {
+                    throw_semantic(undef_id, node.pos);
+                }
+
                 node.type.is_lvalue = false;
 
             } else if (cls_tp.id.equals(string_type)) {// built-in methods
@@ -1031,13 +1037,18 @@ public class SemanticChecker {
                         break;
 
                     default:
-                        System.out.println(16);
+                        // System.out.println(16);
                         throw_semantic(undef_id, node.pos);
                         break;
                 }
                 node.type.is_lvalue = false;
+                if (!(node.father.father instanceof FuncCallNode
+                        && ((FuncCallNode) node.father.father).id == node.father)) {
+                    throw_semantic(undef_id, node.pos);
+                }
 
-            } else if (node.father.father instanceof FuncCallNode) {// member method
+            } else if (node.father.father instanceof FuncCallNode
+                    && ((FuncCallNode) node.father.father).id == node.father) {// member method
                 for (int i = 0; i != root.global_stmt.length; ++i) {
 
                     if (root.global_stmt[i] instanceof DefClassNode) {
@@ -1049,7 +1060,7 @@ public class SemanticChecker {
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).return_type.clone();
                             } else {
-                                System.out.println(17);
+                                // System.out.println(17);
                                 throw_semantic(undef_id, node.pos);
                             }
                         }
@@ -1068,7 +1079,7 @@ public class SemanticChecker {
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).clone();
                             } else {
-                                System.out.println(18);
+                                // System.out.println(18);
                                 throw_semantic(undef_id, node.pos);
                             }
                         }
@@ -1082,8 +1093,8 @@ public class SemanticChecker {
                 if (global_func.containsKey(node.id)) {
                     node.type = global_func.get(node.id).return_type.clone();
                 } else {
-                    System.out.println(19);
-                    System.out.println(node.id);
+                    // System.out.println(19);
+                    // System.out.println(node.id);
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type.is_lvalue = false;
@@ -1092,7 +1103,7 @@ public class SemanticChecker {
                 if (checkInVarScopeRecursive(node.id, node)) {
                     node.type = getVarTypeFromScope(node.id, node).clone();
                 } else {
-                    System.out.println(20);
+                    // System.out.println(20);
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type.is_lvalue = true;
@@ -1189,6 +1200,10 @@ public class SemanticChecker {
             case SAddR:
             case SSubL:
             case SSubR:
+                if (!((ExprNode) node.expr).type.is_lvalue) {
+                    throw_semantic(inv_tp, node.pos);
+                }
+
             case BNot:
             case Plus:
             case Minus:
