@@ -1,5 +1,8 @@
 package defNodes;
 
+import util.error.internalError;
+import util.position;
+
 public class Type {
     public String id = null;
     public int dim = 0;
@@ -49,5 +52,29 @@ public class Type {
             ret += "[]";
         }
         return ret;
+    }
+
+    public String getLLVMType() {
+        if (this.equal("int")) {
+
+            return "i32";
+
+        } else if (this.equal("bool")) {
+
+            return "i1";
+
+        } else if (this.equal("void")) {
+
+            throw new internalError("void type is not allowed in this context", new position(114, 514));
+
+        } else if (this.equal("null")) {
+
+            return "ptr";
+
+        } else {
+
+            return "ptr";
+
+        }
     }
 }

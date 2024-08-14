@@ -2,12 +2,14 @@ package IR;
 
 import defNodes.*;
 import defNodes.exprNodes.*;
+import defNodes.exprNodes.BinaryOpNode.BinaryOprand;
 import defNodes.stmtNodes.*;
 import util.error.*;
 import util.*;
 
 public class IRGenerator {
     ProgNode root;
+    int id_serial = 0, label_serial = 0;
 
     public IRGenerator(ProgNode root) {
         this.root = root;
@@ -17,166 +19,462 @@ public class IRGenerator {
         visit(root);
     }
 
-    public void throw_internal(String msg, position pos) {
+    int getIdSerial() {
+        return id_serial++;
+    }
+
+    int getLabelSerial() {
+        return label_serial++;
+    }
+
+    String renameLabel(String label) {
+        return label + "." + getLabelSerial();
+    }
+
+    String renameIdLocal(String id) {
+        return "%" + id + "." + getIdSerial();
+    }
+
+    // String anonIdLocal() {
+    // return "%" + ((Integer) getIdSerial()).toString();
+    // }
+
+    String ptrLocal() {
+        return "%ptr." + getIdSerial();
+    }
+
+    String ptrGlobal() {
+        return "@ptr." + getIdSerial();
+    }
+
+    String renameIdGlobal(String id) {
+        return "@" + id + "." + getIdSerial();
+    }
+
+    // String anonIdGlobal() {
+    // return "@" + ((Integer) getIdSerial()).toString();
+    // }
+
+    void throw_internal(String msg, position pos) {
         throw new internalError(msg, pos);
     }
 
-    void visit(Node node) {
+    String visit(Node node) {
         if (node instanceof ProgNode) {
-            visit((ProgNode) node);
+            return visit((ProgNode) node);
         } else if (node instanceof BraceStmtNode) {
-            visit((BraceStmtNode) node);
+            return visit((BraceStmtNode) node);
         } else if (node instanceof BreakNode) {
-            visit((BreakNode) node);
+            return visit((BreakNode) node);
         } else if (node instanceof ClsConsNode) {
-            visit((ClsConsNode) node);
+            return visit((ClsConsNode) node);
         } else if (node instanceof ContinueNode) {
-            visit((ContinueNode) node);
+            return visit((ContinueNode) node);
         } else if (node instanceof DefClassNode) {
-            visit((DefClassNode) node);
+            return visit((DefClassNode) node);
         } else if (node instanceof DefFuncNode) {
-            visit((DefFuncNode) node);
+            return visit((DefFuncNode) node);
         } else if (node instanceof DefVarNode) {
-            visit((DefVarNode) node);
+            return visit((DefVarNode) node);
         } else if (node instanceof EmptyStmtNode) {
-            visit((EmptyStmtNode) node);
+            return visit((EmptyStmtNode) node);
         } else if (node instanceof ExprStmtNode) {
-            visit((ExprStmtNode) node);
+            return visit((ExprStmtNode) node);
         } else if (node instanceof ForStmtNode) {
-            visit((ForStmtNode) node);
+            return visit((ForStmtNode) node);
         } else if (node instanceof IfStmtNode) {
-            visit((IfStmtNode) node);
+            return visit((IfStmtNode) node);
         } else if (node instanceof ReturnNode) {
-            visit((ReturnNode) node);
+            return visit((ReturnNode) node);
         } else if (node instanceof WhileStmtNode) {
-            visit((WhileStmtNode) node);
+            return visit((WhileStmtNode) node);
         } else if (node instanceof ArrayAccessNode) {
-            visit((ArrayAccessNode) node);
+            return visit((ArrayAccessNode) node);
         } else if (node instanceof ArrayNode) {
-            visit((ArrayNode) node);
+            return visit((ArrayNode) node);
         } else if (node instanceof BinaryOpNode) {
-            visit((BinaryOpNode) node);
+            return visit((BinaryOpNode) node);
         } else if (node instanceof BoolConstNode) {
-            visit((BoolConstNode) node);
+            return visit((BoolConstNode) node);
         } else if (node instanceof FStringNode) {
-            visit((FStringNode) node);
+            return visit((FStringNode) node);
         } else if (node instanceof FuncCallNode) {
-            visit((FuncCallNode) node);
+            return visit((FuncCallNode) node);
         } else if (node instanceof IdNode) {
-            visit((IdNode) node);
+            return visit((IdNode) node);
         } else if (node instanceof MemAccNode) {
-            visit((MemAccNode) node);
+            return visit((MemAccNode) node);
         } else if (node instanceof NewExprNode) {
-            visit((NewExprNode) node);
+            return visit((NewExprNode) node);
         } else if (node instanceof NullNode) {
-            visit((NullNode) node);
+            return visit((NullNode) node);
         } else if (node instanceof NumConstNode) {
-            visit((NumConstNode) node);
+            return visit((NumConstNode) node);
         } else if (node instanceof StringConstNode) {
-            visit((StringConstNode) node);
+            return visit((StringConstNode) node);
         } else if (node instanceof TernaryOpNode) {
-            visit((TernaryOpNode) node);
+            return visit((TernaryOpNode) node);
         } else if (node instanceof ThisNode) {
-            visit((ThisNode) node);
+            return visit((ThisNode) node);
         } else if (node instanceof UnaryOpNode) {
-            visit((UnaryOpNode) node);
+            return visit((UnaryOpNode) node);
         } else if (node instanceof TypeNode) {
-            visit((TypeNode) node);
+            return visit((TypeNode) node);
         } else if (node == null) {
-            return;
+            return null;
         } else {
             throw_internal("Unknown Node Type", node.pos);
         }
+
+        return null;
     }
 
-    void visit(ProgNode node) {
+    ////////////////////////////////////////////////////////////////////////
+
+    String visit(ProgNode node) {
+
+        return null;
     }
 
-    void visit(BraceStmtNode node) {
+    String visit(BraceStmtNode node) {
+
+        return null;
     }
 
-    void visit(BreakNode node) {
+    String visit(BreakNode node) {
+
+        return null;
     }
 
-    void visit(ClsConsNode node) {
+    String visit(ClsConsNode node) {
+
+        return null;
     }
 
-    void visit(ContinueNode node) {
+    String visit(ContinueNode node) {
+
+        return null;
     }
 
-    void visit(DefClassNode node) {
+    String visit(DefClassNode node) {
+
+        return null;
     }
 
-    void visit(DefFuncNode node) {
+    String visit(DefFuncNode node) {
+
+        return null;
     }
 
-    void visit(DefVarNode node) {
+    String visit(DefVarNode node) {
+
+        return null;
     }
 
-    void visit(EmptyStmtNode node) {
+    String visit(EmptyStmtNode node) {
+
+        return null;
     }
 
-    void visit(ExprStmtNode node) {
+    String visit(ExprStmtNode node) {
+
+        return null;
     }
 
-    void visit(ForStmtNode node) {
+    String visit(ForStmtNode node) {
+
+        return null;
     }
 
-    void visit(IfStmtNode node) {
+    String visit(IfStmtNode node) {
+
+        return null;
     }
 
-    void visit(ReturnNode node) {
+    String visit(ReturnNode node) {
+
+        return null;
     }
 
-    void visit(WhileStmtNode node) {
+    String visit(WhileStmtNode node) {
+
+        return null;
     }
 
-    void visit(ArrayAccessNode node) {
+    String visit(ArrayAccessNode node) {
+
+        return null;
     }
 
-    void visit(ArrayNode node) {
+    String visit(ArrayNode node) {
+
+        return null;
     }
 
-    void visit(BinaryOpNode node) {
+    String visit(BinaryOpNode node) {
+        String ret_id = renameIdLocal("BinaryRetVal");
+        String ret_tp = node.type.getLLVMType();
+
+        if (node.oprand == BinaryOpNode.BinaryOprand.Mul) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = mul " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOpNode.BinaryOprand.Div) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = sdiv " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOpNode.BinaryOprand.Mod) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = srem " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Add) {// TODO: Separate String method
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = add " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            }
+
+        } else if (node.oprand == BinaryOprand.Sub) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = sub " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.ShiftL) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = shl " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.ShiftR) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = ashr " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Lt) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+            System.out.println(ret_id + " = icmp slt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Le) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+            System.out.println(ret_id + " = icmp sle " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Gt) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+            System.out.println(ret_id + " = icmp sgt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Ge) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+            System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Eq) {// TODO: Separate String method
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp eq " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
+
+        } else if (node.oprand == BinaryOprand.Ne) {// TODO: Separate String method
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp ne " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
+
+        } else if (node.oprand == BinaryOprand.BAnd) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = and " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.BOr) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = or " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.LAnd) {// short circuit
+            String lhs_label = renameLabel("LAnd.Lhs"), rhs_label = renameLabel("LAnd.Rhs"),
+                    end_label = renameLabel("LAnd.End");
+            // String tmp_ptr = ptrLocal();
+            // System.out.println(tmp_ptr + " = alloca " + ret_tp);
+
+            System.out.println(lhs_label + ":");
+            String lhs_id = visit(node.lhs);
+            // System.out.println("store " + ret_tp + " " + lhs_id + ", ptr " + tmp_ptr);
+            System.out.println("br i1 " + lhs_id + ", label %" + rhs_label + ", label %" + end_label);
+
+            System.out.println(rhs_label + ":");
+            String rhs_id = visit(node.rhs);
+            // System.out.println("store " + ret_tp + " " + rhs_id + ", ptr " + tmp_ptr);
+            System.out.println("br label %" + end_label);
+
+            System.out.println(end_label + ":");
+            // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
+            System.out.println(ret_id + " = phi " + ret_tp + " [ false, %" + lhs_label + " ], [ " + rhs_id + ", %"
+                    + rhs_label + " ]");
+
+        } else if (node.oprand == BinaryOprand.LOr) {// short circuit
+            String lhs_label = renameLabel("LOr.Lhs"), rhs_label = renameLabel("LOr.Rhs"),
+                    end_label = renameLabel("LOr.End");
+            // String tmp_ptr = ptrLocal();
+            // System.out.println(tmp_ptr + " = alloca " + ret_tp);
+
+            System.out.println(lhs_label + ":");
+            String lhs_id = visit(node.lhs);
+            // System.out.println("store " + ret_tp + " " + lhs_id + ", ptr " + tmp_ptr);
+            System.out.println("br i1 " + lhs_id + ", label %" + end_label + ", label %" + rhs_label);
+
+            System.out.println(rhs_label + ":");
+            String rhs_id = visit(node.rhs);
+            // System.out.println("store " + ret_tp + " " + rhs_id + ", ptr " + tmp_ptr);
+            System.out.println("br label %" + end_label);
+
+            System.out.println(end_label + ":");
+            // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
+            System.out.println(ret_id + " = phi " + ret_tp + " [ true, %" + lhs_label + " ], [ " + rhs_id + ", %"
+                    + rhs_label + " ]");
+
+        } else if (node.oprand == BinaryOprand.BXor) {
+            String lhs_id = visit(node.lhs);
+            String rhs_id = visit(node.rhs);
+            System.out.println(ret_id + " = xor " + ret_tp + " " + lhs_id + ", " + rhs_id);
+
+        } else if (node.oprand == BinaryOprand.Assign) {
+
+        } else {
+            throw_internal("Unknown Binary Operator", node.pos);
+
+        }
+
+        return ret_id;
     }
 
-    void visit(BoolConstNode node) {
+    String visit(BoolConstNode node) {
+        return node.val ? "true" : "false";
     }
 
-    void visit(FStringNode node) {
+    String visit(FStringNode node) {
+
+        return null;
     }
 
-    void visit(FuncCallNode node) {
+    String visit(FuncCallNode node) {
+
+        return null;
     }
 
-    void visit(IdNode node) {
+    String visit(IdNode node) {
+
+        return null;
     }
 
-    void visit(MemAccNode node) {
+    String visit(MemAccNode node) {
+
+        return null;
     }
 
-    void visit(NewExprNode node) {
+    String visit(NewExprNode node) {
+
+        return null;
     }
 
-    void visit(NullNode node) {
+    String visit(NullNode node) {
+        return "null";
     }
 
-    void visit(NumConstNode node) {
+    String visit(NumConstNode node) {
+        return ((Integer) node.val).toString();
     }
 
-    void visit(StringConstNode node) {
+    String visit(StringConstNode node) {
+
+        return null;
     }
 
-    void visit(TernaryOpNode node) {
+    String visit(TernaryOpNode node) {
+        String cond_label = renameLabel("Ternary.Cond"), true_label = renameLabel("Ternary.True"),
+                false_label = renameLabel("Ternary.False"), end_label = renameLabel("Ternary.End");
+        String ret_id = renameIdLocal("TernaryRetVal");
+        String ret_tp = node.type.getLLVMType();
+
+        System.out.println(cond_label + ":");
+        // System.out.println(tmp_ptr + " = alloca " + ret_tp);
+        String cond_id = visit(node.cond);
+        System.out.println("br i1 " + cond_id + ", label %" + true_label + ", label %" + false_label);
+
+        System.out.println(true_label + ":");
+        String true_id = visit(node.lhs);
+        // System.out.println("store " + ret_tp + " " + true_id + ", ptr " + tmp_ptr);
+        System.out.println("br label %" + end_label);
+
+        System.out.println(false_label + ":");
+        String false_id = visit(node.rhs);
+        // System.out.println("store " + ret_tp + " " + false_id + ", ptr " + tmp_ptr);
+        System.out.println("br label %" + end_label);
+
+        System.out.println(end_label + ":");
+        // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
+        System.out.println(
+                ret_id + " = phi " + ret_tp + " [ " + true_id + ", %" + true_label + " ], [ " + false_id + ", %"
+                        + false_label + " ]");
+
+        return ret_id;
     }
 
-    void visit(ThisNode node) {
+    String visit(ThisNode node) {
+
+        return null;
     }
 
-    void visit(UnaryOpNode node) {
+    String visit(UnaryOpNode node) {
+        String expr_id = visit(node.expr);
+        String ret_id = renameIdLocal("UnaryRetVal");
+        String ret_tp = node.type.getLLVMType();
+
+        if (node.oprand == UnaryOpNode.UnaryOprand.SAddL) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.SAddR) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubL) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubR) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.Plus) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.Minus) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.LNot) {
+
+        } else if (node.oprand == UnaryOpNode.UnaryOprand.BNot) {
+
+        } else {
+            throw_internal("Unknown Unary Operator", node.pos);
+        }
+
+        return ret_id;
     }
 
-    void visit(TypeNode node) {
+    String visit(TypeNode node) {
+        return null;
     }
 
 }
