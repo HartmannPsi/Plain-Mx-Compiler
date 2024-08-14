@@ -256,28 +256,48 @@ public class IRGenerator {
             System.out.println(ret_id + " = ashr " + ret_tp + " " + lhs_id + ", " + rhs_id);
 
         } else if (node.oprand == BinaryOprand.Lt) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-            System.out.println(ret_id + " = icmp slt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp slt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
 
         } else if (node.oprand == BinaryOprand.Le) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-            System.out.println(ret_id + " = icmp sle " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp sle " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
 
         } else if (node.oprand == BinaryOprand.Gt) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-            System.out.println(ret_id + " = icmp sgt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp sgt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
 
         } else if (node.oprand == BinaryOprand.Ge) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-            System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+            if (node.type.equal("string")) {
+
+            } else {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
+                System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+            }
 
         } else if (node.oprand == BinaryOprand.Eq) {// TODO: Separate String method
 
@@ -459,12 +479,18 @@ public class IRGenerator {
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubR) {
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.Plus) {
+            System.out.println(ret_id + " = add " + ret_tp + " 0, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.Minus) {
+            System.out.println(ret_id + " = sub " + ret_tp + " 0, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.LNot) {
+            System.out.println(ret_id + " = xor " + ret_tp + " true, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.BNot) {
+            String tmp_id = renameIdLocal("BNotTmp");
+            System.out.println(tmp_id + " = sub " + ret_tp + " 0, " + expr_id);
+            System.out.println(ret_id + " = sub " + ret_tp + " " + tmp_id + ", 1");
 
         } else {
             throw_internal("Unknown Unary Operator", node.pos);
