@@ -42,10 +42,13 @@ public class Main {
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
             // System.out.println("Semantic Check Done: No Error.");
-            // ast_root.printToString();
+            if (DEBUG)
+                ast_root.printToString();
 
-            IRGenerator generator = new IRGenerator((ProgNode) ast_root);
-            generator.generateIR();
+            if (!DEBUG) {
+                IRGenerator generator = new IRGenerator((ProgNode) ast_root);
+                generator.generateIR();
+            }
 
             // System.out.println("IR Generation Done.");
 

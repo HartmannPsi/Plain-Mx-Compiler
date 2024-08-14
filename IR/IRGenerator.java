@@ -6,10 +6,13 @@ import defNodes.exprNodes.BinaryOpNode.BinaryOprand;
 import defNodes.stmtNodes.*;
 import util.error.*;
 import util.*;
+import java.util.Map;
+import java.util.HashMap;
 
 public class IRGenerator {
     ProgNode root;
     int id_serial = 0, label_serial = 0;
+    Map<String, Map<String, Integer>> classes = new HashMap<>();
 
     public IRGenerator(ProgNode root) {
         this.root = root;
@@ -132,12 +135,16 @@ public class IRGenerator {
     ////////////////////////////////////////////////////////////////////////
 
     String visit(ProgNode node) {
-
+        for (int i = 0; i != node.global_stmt.length; ++i) {
+            visit(node.global_stmt[i]);
+        }
         return null;
     }
 
     String visit(BraceStmtNode node) {
-
+        for (int i = 0; i != node.stmts.length; ++i) {
+            visit(node.stmts[i]);
+        }
         return null;
     }
 
@@ -172,12 +179,11 @@ public class IRGenerator {
     }
 
     String visit(EmptyStmtNode node) {
-
         return null;
     }
 
     String visit(ExprStmtNode node) {
-
+        visit(node.expr);
         return null;
     }
 
@@ -404,7 +410,15 @@ public class IRGenerator {
 
     String visit(IdNode node) {
 
-        return null;
+        if (node.is_var) {
+
+            String ret_id = renameIdLocal("IdRetVal");
+            System.out.println(ret_id + " = load " + node.type.getLLVMType() + ", ptr " + node.rename_id);
+            return ret_id;
+
+        } else {
+            return null;
+        }
     }
 
     String visit(MemAccNode node) {
@@ -488,9 +502,7 @@ public class IRGenerator {
             System.out.println(ret_id + " = xor " + ret_tp + " true, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.BNot) {
-            String tmp_id = renameIdLocal("BNotTmp");
-            System.out.println(tmp_id + " = sub " + ret_tp + " 0, " + expr_id);
-            System.out.println(ret_id + " = sub " + ret_tp + " " + tmp_id + ", 1");
+            System.out.println(ret_id + " = xor " + ret_tp + " " + ((Integer) (~0)).toString() + ", " + expr_id);
 
         } else {
             throw_internal("Unknown Unary Operator", node.pos);

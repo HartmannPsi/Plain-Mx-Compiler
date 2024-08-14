@@ -39,47 +39,47 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(string_type, 0, false);
         root.func_ids.put("print", pr_tp); // (string) -> void
-        root.rename_funcs.put("print", "print");
+        root.rename_funcs.put("print", "@print");
 
         pr_tp = new FuncType();
         pr_tp.return_type = new Type(void_type, 0, false);
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(string_type, 0, false);
         root.func_ids.put("println", pr_tp);// (string) -> void
-        root.rename_funcs.put("println", "println");
+        root.rename_funcs.put("println", "@println");
 
         pr_tp = new FuncType();
         pr_tp.return_type = new Type(void_type, 0, false);
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(int_type, 0, false);
         root.func_ids.put("printInt", pr_tp);// (int) -> void
-        root.rename_funcs.put("printInt", "printInt");
+        root.rename_funcs.put("printInt", "@printInt");
 
         pr_tp = new FuncType();
         pr_tp.return_type = new Type(void_type, 0, false);
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(int_type, 0, false);
         root.func_ids.put("printlnInt", pr_tp);// (int) -> void
-        root.rename_funcs.put("printlnInt", "printlnInt");
+        root.rename_funcs.put("printlnInt", "@printlnInt");
 
         pr_tp = new FuncType();
         pr_tp.paras = null;
         pr_tp.return_type = new Type(int_type, 0, false);
         root.func_ids.put("getInt", pr_tp);// () -> int
-        root.rename_funcs.put("getInt", "getInt");
+        root.rename_funcs.put("getInt", "@getInt");
 
         pr_tp = new FuncType();
         pr_tp.paras = null;
         pr_tp.return_type = new Type(string_type, 0, false);
         root.func_ids.put("getString", pr_tp);// () -> string
-        root.rename_funcs.put("getString", "getString");
+        root.rename_funcs.put("getString", "@getString");
 
         pr_tp = new FuncType();
         pr_tp.return_type = new Type(string_type, 0, false);
         pr_tp.paras = new Type[1];
         pr_tp.paras[0] = new Type(int_type, 0, true);
         root.func_ids.put("toString", pr_tp);// (int) -> string
-        root.rename_funcs.put("toString", "toString");
+        root.rename_funcs.put("toString", "@toString");
 
         root.global_stmt = new Node[ctx.getChildCount()];
 

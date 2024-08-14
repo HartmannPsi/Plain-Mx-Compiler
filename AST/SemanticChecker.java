@@ -533,6 +533,7 @@ public class SemanticChecker {
 
     void check(DefClassNode node) {
         boolean has_cons = false;
+        ((IdNode) node.name).is_var = false;
         // check(node.name);
         for (int i = 0; i != node.stmt.length; ++i) {
 
@@ -557,6 +558,7 @@ public class SemanticChecker {
         Type ret_tp = ((TypeNode) node.type).type;
         // boolean has_ret_stmt = false;
         String id = ((IdNode) node.name).id;
+        ((IdNode) node.name).is_var = false;
 
         // Node father = node.father;
         // Map<String, FuncType> scope;
@@ -646,6 +648,7 @@ public class SemanticChecker {
 
             addToVarScope(((IdNode) node.ids[i]).id, tp, node);
             ((IdNode) node.ids[i]).rename_id = getVarRenameFromScope(((IdNode) node.ids[i]).id, node);
+            ((IdNode) node.ids[i]).is_var = true;
 
         }
 
@@ -1231,7 +1234,8 @@ public class SemanticChecker {
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type = new Type(int_type);
-                node.rename_id = "@Array.size";
+                node.rename_id = "@array.size";
+                node.is_var = false;
 
                 if (!(node.father.father instanceof FuncCallNode
                         && ((FuncCallNode) node.father.father).id == node.father)) {
@@ -1241,26 +1245,27 @@ public class SemanticChecker {
                 node.type.is_lvalue = false;
 
             } else if (cls_tp.id.equals(string_type)) {// built-in methods
+                node.is_var = false;
 
                 switch (node.id) {
                     case "length":
                         node.type = new Type(int_type);
-                        node.rename_id = "@String.length";
+                        node.rename_id = "@string.length";
                         break;
 
                     case "substring":
                         node.type = new Type(string_type);
-                        node.rename_id = "@String.substring";
+                        node.rename_id = "@string.substring";
                         break;
 
                     case "parseInt":
                         node.type = new Type(int_type);
-                        node.rename_id = "@String.parseInt";
+                        node.rename_id = "@string.parseInt";
                         break;
 
                     case "ord":
                         node.type = new Type(int_type);
-                        node.rename_id = "@String.ord";
+                        node.rename_id = "@string.ord";
                         break;
 
                     default:
@@ -1276,6 +1281,8 @@ public class SemanticChecker {
 
             } else if (node.father.father instanceof FuncCallNode
                     && ((FuncCallNode) node.father.father).id == node.father) {// member method
+                node.is_var = false;
+
                 for (int i = 0; i != root.global_stmt.length; ++i) {
 
                     if (root.global_stmt[i] instanceof DefClassNode) {
@@ -1298,6 +1305,7 @@ public class SemanticChecker {
                 node.type.is_lvalue = false;
 
             } else {// member variable
+                node.is_var = true;
                 for (int i = 0; i != root.global_stmt.length; ++i) {
 
                     if (root.global_stmt[i] instanceof DefClassNode) {
@@ -1321,6 +1329,7 @@ public class SemanticChecker {
 
         } else {// find in scope
             if (node.father instanceof FuncCallNode && ((FuncCallNode) node.father).id == node) {// function
+                node.is_var = false;
 
                 Node tmp = node;
                 while (tmp != null && !(tmp instanceof ProgNode) && !(tmp instanceof DefClassNode)) {
@@ -1359,6 +1368,7 @@ public class SemanticChecker {
                 node.type.is_lvalue = false;
 
             } else {// variable
+                node.is_var = true;
                 if (checkInVarScopeRecursive(node.id, node)) {
                     node.type = getVarTypeFromScope(node.id, node).clone();
                     node.rename_id = getVarRenameFromScope(node.id, node);
