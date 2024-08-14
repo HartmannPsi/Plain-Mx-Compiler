@@ -9,6 +9,7 @@ import util.MxErrorListener;
 import util.error.error;
 import util.error.syntaxError;
 import defNodes.*;
+import IR.IRGenerator;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -41,8 +42,13 @@ public class Main {
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-
             System.out.println("Semantic Check Done: No Error.");
+
+            IRGenerator generator = new IRGenerator((ProgNode) ast_root);
+            generator.generateIR();
+
+            System.out.println("IR Generation Done.");
+
             System.exit(0);
 
         } catch (error err) {
