@@ -10,6 +10,7 @@ public class DefClassNode extends ScopeNode {
     public Node name = null;
     public Node[] stmt = null;
     public Map<String, FuncType> methods = new HashMap<>();
+    public Map<String, String> rename_methods = new HashMap<>();
 
     public void printToString() {
         System.out.print("class ");

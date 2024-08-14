@@ -15,6 +15,7 @@ public class SemanticChecker {
     Map<String, FuncType> global_func = null;
     Map<String, Type> global_var = null;
     public ProgNode root = null;
+    int rename_symbol = 0;
 
     public SemanticChecker(ProgNode root) {
         this.root = root;
@@ -28,6 +29,15 @@ public class SemanticChecker {
             throw new semanticError(error, pos);
         else
             throw new semanticError(error, new position(114, 514));
+    }
+
+    String rename(String id, boolean local) {
+
+        if (id.equals("main")) {
+            return "@main";
+        }
+
+        return (local ? "%" : "@") + id + ".." + rename_symbol++;
     }
 
     void throw_syntax(String error, position pos) {
@@ -50,8 +60,12 @@ public class SemanticChecker {
                 throw_semantic(mul_def, node.pos);
             }
             global_func.put(id, type);
+            root.rename_funcs.put(id, rename(id, false));
+
         } else if (node.father instanceof DefClassNode) {// method func
             Map<String, FuncType> methods = ((DefClassNode) node.father).methods;
+            Map<String, String> rename_methods = ((DefClassNode) node.father).rename_methods;
+
             if (methods.containsKey(id)) {
                 throw_semantic(mul_def, node.pos);
             }
@@ -59,6 +73,7 @@ public class SemanticChecker {
                 throw_semantic(mul_def, node.pos);
             }
             methods.put(id, type);
+            rename_methods.put(id, rename(id, false));
         }
     }
 
@@ -77,13 +92,13 @@ public class SemanticChecker {
         global_class.add(id);
     }
 
-    FuncType getFuncTypeFromGlb(String id) {
-        if (global_func.containsKey(id)) {
-            return global_func.get(id);
-        } else {
-            return null;
-        }
-    }
+    // FuncType getFuncTypeFromGlb(String id) {
+    // if (global_func.containsKey(id)) {
+    // return global_func.get(id);
+    // } else {
+    // return null;
+    // }
+    // }
 
     boolean existsCls(String id) {
         return global_class.contains(id);
@@ -95,6 +110,7 @@ public class SemanticChecker {
             node = node.father;
         }
         Map<String, Type> scope = ((ScopeNode) node).vars;
+        Map<String, String> rename_scope = ((ScopeNode) node).rename_vars;
 
         if (node instanceof ProgNode) {
             if (global_func.containsKey(id)) {
@@ -110,6 +126,8 @@ public class SemanticChecker {
             throw_semantic(mul_def, pos);
         } else {
             scope.put(id, type);
+            boolean local = !(node instanceof ProgNode);
+            rename_scope.put(id, rename(id, local));
         }
     }
 
@@ -156,59 +174,81 @@ public class SemanticChecker {
         return null;
     }
 
-    Type getVarTypeFromCls(String cls, String id, Node _node) {
-        for (int i = 0; i != root.global_stmt.length; ++i) {
-            if (root.global_stmt[i] instanceof DefClassNode) {
+    String getVarRenameFromScope(String id, Node node) {
+        while (node != null) {
 
-                DefClassNode node = (DefClassNode) root.global_stmt[i];
-                if (((IdNode) node.name).id.equals(cls)) {
-
-                    Map<String, Type> scope = node.vars;
-                    if (scope.containsKey(id)) {
-                        return scope.get(id);
-
-                    } else {
-                        // System.out.println(0);
-                        throw_semantic(undef_id, _node.pos);
-                        return null;
-                    }
-                } else {
-                    continue;
-                }
+            while (node != null && !(node instanceof ScopeNode)) {
+                node = node.father;
             }
+
+            if (node == null) {
+                throw_syntax("WTF?", null);
+                return null;
+            }
+
+            Map<String, String> scope = ((ScopeNode) node).rename_vars;
+            if (scope.containsKey(id)) {
+                return scope.get(id);
+            }
+            node = node.father;
         }
 
-        // System.out.println(1);
-        throw_semantic(undef_id, _node.pos);
         return null;
     }
 
-    FuncType getFuncTypeFromCls(String cls, String id, Node _node) {
-        for (int i = 0; i != root.global_stmt.length; ++i) {
-            if (root.global_stmt[i] instanceof DefClassNode) {
+    // Type getVarTypeFromCls(String cls, String id, Node _node) {
+    // for (int i = 0; i != root.global_stmt.length; ++i) {
+    // if (root.global_stmt[i] instanceof DefClassNode) {
 
-                DefClassNode node = (DefClassNode) root.global_stmt[i];
-                if (((IdNode) node.name).id.equals(cls)) {
+    // DefClassNode node = (DefClassNode) root.global_stmt[i];
+    // if (((IdNode) node.name).id.equals(cls)) {
 
-                    Map<String, FuncType> scope = node.methods;
-                    if (scope.containsKey(id)) {
-                        return scope.get(id);
+    // Map<String, Type> scope = node.vars;
+    // if (scope.containsKey(id)) {
+    // return scope.get(id);
 
-                    } else {
-                        // System.out.println(2);
-                        throw_semantic(undef_id, _node.pos);
-                        return null;
-                    }
-                } else {
-                    continue;
-                }
-            }
-        }
+    // } else {
+    // // System.out.println(0);
+    // throw_semantic(undef_id, _node.pos);
+    // return null;
+    // }
+    // } else {
+    // continue;
+    // }
+    // }
+    // }
 
-        // System.out.println(3);
-        throw_semantic(undef_id, _node.pos);
-        return null;
-    }
+    // // System.out.println(1);
+    // throw_semantic(undef_id, _node.pos);
+    // return null;
+    // }
+
+    // FuncType getFuncTypeFromCls(String cls, String id, Node _node) {
+    // for (int i = 0; i != root.global_stmt.length; ++i) {
+    // if (root.global_stmt[i] instanceof DefClassNode) {
+
+    // DefClassNode node = (DefClassNode) root.global_stmt[i];
+    // if (((IdNode) node.name).id.equals(cls)) {
+
+    // Map<String, FuncType> scope = node.methods;
+    // if (scope.containsKey(id)) {
+    // return scope.get(id);
+
+    // } else {
+    // // System.out.println(2);
+    // throw_semantic(undef_id, _node.pos);
+    // return null;
+    // }
+    // } else {
+    // continue;
+    // }
+    // }
+    // }
+
+    // // System.out.println(3);
+    // throw_semantic(undef_id, _node.pos);
+    // return null;
+    // }
 
     void checkControlFlow(Node node) {
         position pos = node.pos;
@@ -237,16 +277,16 @@ public class SemanticChecker {
         }
     }
 
-    void checkInFuncDef(Node node) {
-        position pos = node.pos;
-        while (node != null && !(node instanceof DefFuncNode)) {
-            node = node.father;
-        }
-        if (node == null) {
-            // System.out.print(4);
-            throw_semantic(inv_ctrl, pos);
-        }
-    }
+    // void checkInFuncDef(Node node) {
+    // position pos = node.pos;
+    // while (node != null && !(node instanceof DefFuncNode)) {
+    // node = node.father;
+    // }
+    // if (node == null) {
+    // // System.out.print(4);
+    // throw_semantic(inv_ctrl, pos);
+    // }
+    // }
 
     // void checkReturn(Node node) {
     // position pos = node.pos;
@@ -367,6 +407,7 @@ public class SemanticChecker {
             DefClassNode node = def_cls_stmt[i];
             // check(node.name);
             addToCls(((IdNode) node.name).id, node);
+            ((IdNode) node.name).rename_id = "%class." + ((IdNode) node.name).id;
         }
 
         // collect func decl
@@ -387,6 +428,7 @@ public class SemanticChecker {
                 }
             }
             addToFuncs(((IdNode) node.name).id, func_tp, node);
+            ((IdNode) node.name).rename_id = root.rename_funcs.get(((IdNode) node.name).id);
         }
 
         // collect cls member decl
@@ -422,6 +464,7 @@ public class SemanticChecker {
                         }
                     }
                     addToFuncs(((IdNode) func_node.name).id, func_tp, func_node);
+                    ((IdNode) func_node.name).rename_id = node.rename_methods.get(((IdNode) func_node.name).id);
                 }
             }
         }
@@ -547,6 +590,8 @@ public class SemanticChecker {
                     throw_semantic(mul_def, node.pos);
                 } else {
                     node.vars.put(_id, tp);
+                    ((IdNode) node.ids[i]).rename_id = rename(_id, true);
+                    node.rename_vars.put(_id, ((IdNode) node.ids[i]).rename_id);
                 }
             }
         }
@@ -600,6 +645,7 @@ public class SemanticChecker {
             tp.is_lvalue = true;
 
             addToVarScope(((IdNode) node.ids[i]).id, tp, node);
+            ((IdNode) node.ids[i]).rename_id = getVarRenameFromScope(((IdNode) node.ids[i]).id, node);
 
         }
 
@@ -1185,6 +1231,7 @@ public class SemanticChecker {
                     throw_semantic(undef_id, node.pos);
                 }
                 node.type = new Type(int_type);
+                node.rename_id = "@Array.size";
 
                 if (!(node.father.father instanceof FuncCallNode
                         && ((FuncCallNode) node.father.father).id == node.father)) {
@@ -1198,18 +1245,22 @@ public class SemanticChecker {
                 switch (node.id) {
                     case "length":
                         node.type = new Type(int_type);
+                        node.rename_id = "@String.length";
                         break;
 
                     case "substring":
                         node.type = new Type(string_type);
+                        node.rename_id = "@String.substring";
                         break;
 
                     case "parseInt":
                         node.type = new Type(int_type);
+                        node.rename_id = "@String.parseInt";
                         break;
 
                     case "ord":
                         node.type = new Type(int_type);
+                        node.rename_id = "@String.ord";
                         break;
 
                     default:
@@ -1233,8 +1284,10 @@ public class SemanticChecker {
                         if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
 
                             Map<String, FuncType> scope = def_cls.methods;
+                            Map<String, String> rename_scope = def_cls.rename_methods;
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).return_type.clone();
+                                node.rename_id = rename_scope.get(node.id);
                             } else {
                                 // System.out.println(17);
                                 throw_semantic(undef_id, node.pos);
@@ -1252,8 +1305,10 @@ public class SemanticChecker {
 
                         if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
                             Map<String, Type> scope = def_cls.vars;
+                            Map<String, String> rename_scope = def_cls.rename_vars;
                             if (scope.containsKey(node.id)) {
                                 node.type = scope.get(node.id).clone();
+                                node.rename_id = rename_scope.get(node.id);
                             } else {
                                 // System.out.println(18);
                                 throw_semantic(undef_id, node.pos);
@@ -1280,6 +1335,7 @@ public class SemanticChecker {
 
                     if (global_func.containsKey(node.id)) {
                         node.type = global_func.get(node.id).return_type.clone();
+                        node.rename_id = root.rename_funcs.get(node.id);
                     } else {
                         throw_semantic(undef_id, node.pos);
                     }
@@ -1289,9 +1345,11 @@ public class SemanticChecker {
                     DefClassNode def_cls = (DefClassNode) tmp;
                     if (def_cls.methods.containsKey(node.id)) {
                         node.type = def_cls.methods.get(node.id).return_type.clone();
+                        node.rename_id = def_cls.rename_methods.get(node.id);
                     } else {
                         if (global_func.containsKey(node.id)) {
                             node.type = global_func.get(node.id).return_type.clone();
+                            node.rename_id = root.rename_funcs.get(node.id);
                         } else {
                             throw_semantic(undef_id, node.pos);
                         }
@@ -1303,6 +1361,7 @@ public class SemanticChecker {
             } else {// variable
                 if (checkInVarScopeRecursive(node.id, node)) {
                     node.type = getVarTypeFromScope(node.id, node).clone();
+                    node.rename_id = getVarRenameFromScope(node.id, node);
                 } else {
                     // System.out.println(20);
                     throw_semantic(undef_id, node.pos);

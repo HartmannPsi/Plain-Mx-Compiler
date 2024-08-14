@@ -18,7 +18,7 @@ public class Main {
 
         InputStream input = System.in;
         if (DEBUG) {
-            String filename = "antlr4/testcases/simple.txt";
+            String filename = "AST/testcases/simple.txt";
             input = new FileInputStream(filename);
             PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
             System.setOut(out);
@@ -38,16 +38,16 @@ public class Main {
             ast_root = (ProgNode) constructor.visit(parsetree_root);
 
             // System.out.println("AST Done.");
-            // ast_root.printToString();
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-            System.out.println("Semantic Check Done: No Error.");
+            // System.out.println("Semantic Check Done: No Error.");
+            // ast_root.printToString();
 
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
 
-            System.out.println("IR Generation Done.");
+            // System.out.println("IR Generation Done.");
 
             System.exit(0);
 
