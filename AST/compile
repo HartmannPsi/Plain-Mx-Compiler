@@ -1,3 +1,0 @@
-#!/bin/sh
-rm -r .antlr
-find -name '*.java' | xargs javac -d bin -cp antlr-4.13.2-complete.jar

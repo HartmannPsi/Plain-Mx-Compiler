@@ -1,2 +1,0 @@
-#!/bin/sh
-./antlr -no-listener -visitor MxParser.g4

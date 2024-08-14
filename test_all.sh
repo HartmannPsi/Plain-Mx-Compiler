@@ -1,1 +1,0 @@
-testcases/sema/scripts/test_all.bash './run.sh' testcases/sema
