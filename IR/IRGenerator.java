@@ -13,6 +13,7 @@ public class IRGenerator {
     ProgNode root;
     int id_serial = 0, label_serial = 0;
     Map<String, Map<String, Integer>> classes = new HashMap<>();
+    String global_var_init = "@Global.Var.Init";
 
     public IRGenerator(ProgNode root) {
         this.root = root;
@@ -135,9 +136,43 @@ public class IRGenerator {
     ////////////////////////////////////////////////////////////////////////
 
     String visit(ProgNode node) {
+
+        GlobalVarInit();
+
         for (int i = 0; i != node.global_stmt.length; ++i) {
             visit(node.global_stmt[i]);
         }
+        return null;
+    }
+
+    String GlobalVarInit() {
+        // "@Global.Var.Init"
+        System.out.println("define void " + global_var_init + "() {");
+        for (Node _node : root.global_stmt) {
+            if (_node instanceof DefVarNode) {
+
+                DefVarNode node = (DefVarNode) _node;
+                Type tp = ((TypeNode) node.type).type;
+                String rename_tp;
+                if (tp.dim > 0) {
+                    rename_tp = "ptr";
+                } else if (root.rename_cls.containsKey(tp.id)) {
+                    rename_tp = root.rename_cls.get(tp.id);
+                } else {
+                    rename_tp = tp.getLLVMType();
+                }
+
+                for (int i = 0; i != node.ids.length; ++i) {
+                    if (node.inits[i] != null) {
+                        String init_id = visit(node.inits[i]);
+                        String dest_id = ((IdNode) node.ids[i]).rename_id;
+                        System.out.println("store " + rename_tp + " " + init_id + ", ptr " + dest_id);
+                    }
+                }
+            }
+        }
+        System.out.println("}");
+
         return null;
     }
 
@@ -165,8 +200,10 @@ public class IRGenerator {
         return null;
     }
 
-    String visit(ClsConsNode node) {// TODO:
-
+    String visit(ClsConsNode node) {
+        for (Node _node : node.stmt) {
+            visit(_node);
+        }
         return null;
     }
 
@@ -187,17 +224,203 @@ public class IRGenerator {
         return null;
     }
 
-    String visit(DefClassNode node) {// TODO:
+    String visit(DefClassNode node) {
+
+        String cls_rename = ((IdNode) node.name).rename_id;
+        classes.put(cls_rename, new HashMap<>());
+        int location = 0;
+        Map<String, Integer> scope = classes.get(cls_rename);
+        boolean first = true;
+        ClsConsNode cons_node = null;
+
+        System.out.print(cls_rename + " = type { ");
+
+        if (node.stmt != null) {
+
+            for (int i = 0; i != node.stmt.length; ++i) {// def vars
+                if (node.stmt[i] instanceof DefVarNode) {
+
+                    DefVarNode var_node = (DefVarNode) node.stmt[i];
+                    Type tp = ((TypeNode) var_node.type).type;
+                    String rename_tp;
+                    if (tp.equal("int") || tp.equal("bool") || tp.equal("string")) {
+                        rename_tp = tp.getLLVMType();
+                    } else if (tp.dim == 0) {
+                        rename_tp = root.rename_cls.get(tp.id);
+                    } else {
+                        rename_tp = "ptr";
+                    }
+
+                    if (first) {
+                        first = false;
+                    } else {
+                        System.out.print(", ");
+                    }
+
+                    for (int j = 0; j != var_node.ids.length; ++j) {
+                        System.out.print(rename_tp);
+                        if (j != var_node.ids.length - 1) {
+                            System.out.print(", ");
+                        }
+                        scope.put(((IdNode) var_node.ids[j]).rename_id, location++);
+
+                    }
+
+                } else if (node.stmt[i] instanceof ClsConsNode) {
+                    cons_node = (ClsConsNode) node.stmt[i];
+                }
+            }
+            System.out.println(" }");
+
+            // constructor
+            System.out.println("define void " + node.getConsRename() + "(" + cls_rename + " %this) {");
+
+            for (Node _node : node.stmt) {// init member vars
+                if (_node instanceof DefVarNode) {
+                    DefVarNode var_node = (DefVarNode) _node;
+                    Type tp = ((TypeNode) var_node.type).type;
+                    String rename_tp;
+                    if (tp.equal("int") || tp.equal("bool") || tp.equal("string")) {
+                        rename_tp = tp.getLLVMType();
+                    } else if (tp.dim == 0) {
+                        rename_tp = root.rename_cls.get(tp.id);
+                    } else {
+                        rename_tp = "ptr";
+                    }
+
+                    for (int i = 0; i != var_node.inits.length; ++i) {
+                        if (var_node.inits[i] != null) {
+                            String init_id = visit(var_node.inits[i]);
+                            int dest_serial = scope.get(((IdNode) var_node.ids[i]).rename_id);
+                            String tmp_ptr = ptrLocal();
+                            System.out.println(tmp_ptr + " = getelementptr " + cls_rename + ", ptr %this, i32 0, i32 "
+                                    + dest_serial);
+                            System.out.println("store " + rename_tp + " " + init_id + ", ptr " + tmp_ptr);
+                        }
+                    }
+                }
+            }
+
+            if (cons_node != null) {// visit constructor
+                visit(cons_node);
+            }
+            System.out.println("}");
+
+            for (Node _node : node.stmt) {// process funcs
+                if (_node instanceof DefFuncNode) {
+                    // TODO:
+                }
+            }
+
+        } else {
+            System.out.println(" }");
+            return null;
+        }
 
         return null;
     }
 
-    String visit(DefFuncNode node) {// TODO:
+    String visit(DefFuncNode node) {
 
+        Type ret_tp = ((TypeNode) node.type).type;
+        String rename_ret_tp;
+        String rename_id = ((IdNode) node.name).rename_id;
+
+        if (ret_tp.dim > 0) {
+            rename_ret_tp = "ptr";
+
+        } else if (root.rename_cls.containsKey(ret_tp.id)) {
+            rename_ret_tp = root.rename_cls.get(ret_tp.id);
+
+        } else {
+            rename_ret_tp = ret_tp.getLLVMType();
+
+        }
+
+        System.out.print("define " + rename_ret_tp + " " + rename_id + "(");
+
+        if (node.father instanceof DefClassNode) {// add "this" pointer
+            String cls_tp = ((IdNode) ((DefClassNode) node.father).name).rename_id;
+            System.out.print(cls_tp + " %this");
+
+            if (node.ids != null) {
+                System.out.print(", ");
+            }
+        }
+
+        if (node.ids != null) {
+            for (int i = 0; i != node.ids.length; ++i) {
+                Type tp = ((TypeNode) node.tps[i]).type;
+                String rename_tp;
+                if (tp.dim > 0) {
+                    rename_tp = "ptr";
+
+                } else if (root.rename_cls.containsKey(tp.id)) {
+                    rename_tp = root.rename_cls.get(tp.id);
+
+                } else {
+                    rename_tp = tp.getLLVMType();
+
+                }
+                System.out.print(rename_tp + " " + ((IdNode) node.ids[i]).rename_id);
+                if (i != node.ids.length - 1) {
+                    System.out.print(", ");
+                }
+            }
+        }
+
+        System.out.println(") {");
+
+        if (((IdNode) node.name).id.equals("main")) {
+            System.out.println("call void " + global_var_init + "()");
+        }
+
+        if (node.stmt != null) {
+            for (Node subnode : node.stmt) {
+                visit(subnode);
+            }
+        }
+
+        System.out.println("}");
         return null;
     }
 
-    String visit(DefVarNode node) {// TODO:
+    String visit(DefVarNode node) {
+
+        Type tp = ((TypeNode) node.type).type;
+        String rename_tp;
+
+        if (tp.dim > 0) {
+            rename_tp = "ptr";
+
+        } else if (root.rename_cls.containsKey(tp.id)) {
+            rename_tp = root.rename_cls.get(tp.id);
+
+        } else {
+            rename_tp = tp.getLLVMType();
+
+        }
+
+        if (node.father instanceof ProgNode) {// global vars
+
+            for (int i = 0; i != node.ids.length; ++i) {
+                IdNode _id = (IdNode) node.ids[i];
+                System.out.println(_id.rename_id + " = global " + rename_tp + " 0");
+            }
+
+        } else {// local vars
+
+            for (int i = 0; i != node.ids.length; ++i) {
+                IdNode _id = (IdNode) node.ids[i];
+                System.out.println(_id.rename_id + " = alloca " + rename_tp);
+
+                if (node.inits[i] != null) {
+                    String init_id = visit(node.inits[i]);
+                    System.out.println("store " + rename_tp + " " + init_id + ", ptr " + _id);
+                }
+            }
+
+        }
 
         return null;
     }
@@ -660,9 +883,8 @@ public class IRGenerator {
         return ret_id;
     }
 
-    String visit(ThisNode node) {// TODO:
-
-        return null;
+    String visit(ThisNode node) {
+        return "%this";
     }
 
     String visit(UnaryOpNode node) {
@@ -670,7 +892,7 @@ public class IRGenerator {
         String ret_id = renameIdLocal("UnaryRetVal");
         String ret_tp = node.type.getLLVMType();
 
-        if (node.oprand == UnaryOpNode.UnaryOprand.SAddL) {
+        if (node.oprand == UnaryOpNode.UnaryOprand.SAddL) {// TODO:
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SAddR) {
 

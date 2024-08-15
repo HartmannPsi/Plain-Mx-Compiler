@@ -71,6 +71,10 @@ public class Type {
 
             return "ptr";
 
+        } else if (this.equal("string")) {
+
+            return "i8*";
+
         } else {
 
             return "ptr";

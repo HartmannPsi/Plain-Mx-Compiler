@@ -407,7 +407,8 @@ public class SemanticChecker {
             DefClassNode node = def_cls_stmt[i];
             // check(node.name);
             addToCls(((IdNode) node.name).id, node);
-            ((IdNode) node.name).rename_id = "%class." + ((IdNode) node.name).id;
+            ((IdNode) node.name).rename_id = "%.class." + ((IdNode) node.name).id;
+            root.rename_cls.put(((IdNode) node.name).id, ((IdNode) node.name).rename_id);
         }
 
         // collect func decl

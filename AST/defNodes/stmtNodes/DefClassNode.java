@@ -5,6 +5,7 @@ import java.util.HashMap;
 import defNodes.FuncType;
 import defNodes.Node;
 import defNodes.ScopeNode;
+import defNodes.exprNodes.IdNode;
 
 public class DefClassNode extends ScopeNode {
     public Node name = null;
@@ -21,5 +22,10 @@ public class DefClassNode extends ScopeNode {
             s.printToString();
         }
         System.out.println("};");
+    }
+
+    public String getConsRename() {
+        String cls_rename = ((IdNode) name).rename_id;
+        return cls_rename + ".Cons";
     }
 }
