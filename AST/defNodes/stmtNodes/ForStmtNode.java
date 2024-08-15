@@ -5,6 +5,7 @@ import defNodes.*;
 public class ForStmtNode extends ScopeNode {
     public Node init = null, cond = null, step = null;
     public Node[] stmts = null;
+    public String step_label = null, end_label = null;
 
     public void printToString() {
         System.out.print("for (");

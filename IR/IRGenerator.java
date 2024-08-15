@@ -31,7 +31,7 @@ public class IRGenerator {
     }
 
     String renameLabel(String label) {
-        return label + "." + getLabelSerial();
+        return label + ".Label." + getLabelSerial();
     }
 
     String renameIdLocal(String id) {
@@ -43,11 +43,11 @@ public class IRGenerator {
     // }
 
     String ptrLocal() {
-        return "%ptr." + getIdSerial();
+        return "%ptr.Pointer." + getIdSerial();
     }
 
     String ptrGlobal() {
-        return "@ptr." + getIdSerial();
+        return "@ptr.Pointer." + getIdSerial();
     }
 
     String renameIdGlobal(String id) {
@@ -149,31 +149,55 @@ public class IRGenerator {
     }
 
     String visit(BreakNode node) {
+        Node scope = node;
+        while (scope != null && !(scope instanceof ForStmtNode || scope instanceof WhileStmtNode)) {
+            scope = scope.father;
+        }
+
+        if (scope == null) {
+            throw_internal("Break statement not in loop", node.pos);
+        } else if (scope instanceof ForStmtNode) {
+            System.out.println("br label %" + ((ForStmtNode) scope).end_label);
+        } else {
+            System.out.println("br label %" + ((WhileStmtNode) scope).end_label);
+        }
 
         return null;
     }
 
-    String visit(ClsConsNode node) {
+    String visit(ClsConsNode node) {// TODO:
 
         return null;
     }
 
     String visit(ContinueNode node) {
+        Node scope = node;
+        while (scope != null && !(scope instanceof ForStmtNode || scope instanceof WhileStmtNode)) {
+            scope = scope.father;
+        }
+
+        if (scope == null) {
+            throw_internal("Continue statement not in loop", node.pos);
+        } else if (scope instanceof ForStmtNode) {
+            System.out.println("br label %" + ((ForStmtNode) scope).step_label);
+        } else {
+            System.out.println("br label %" + ((WhileStmtNode) scope).cond_label);
+        }
 
         return null;
     }
 
-    String visit(DefClassNode node) {
+    String visit(DefClassNode node) {// TODO:
 
         return null;
     }
 
-    String visit(DefFuncNode node) {
+    String visit(DefFuncNode node) {// TODO:
 
         return null;
     }
 
-    String visit(DefVarNode node) {
+    String visit(DefVarNode node) {// TODO:
 
         return null;
     }
@@ -187,32 +211,101 @@ public class IRGenerator {
         return null;
     }
 
-    String visit(ForStmtNode node) {
+    String visit(ForStmtNode node) {// TODO: break & continue
+        String init_label = renameLabel("For.Init"), cond_label = renameLabel("For.Cond"),
+                body_label = renameLabel("For.Body"), step_label = renameLabel("For.Step"),
+                end_label = renameLabel("For.End");
+        node.end_label = end_label;
+        node.step_label = step_label;
 
+        System.out.println(init_label + ":");
+        visit(node.init);
+        System.out.println("br label %" + cond_label);
+
+        System.out.println(cond_label + ":");
+        if (node.cond != null) {
+            String cond_id = visit(node.cond);
+            System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label %" + end_label);
+        } else {
+            System.out.println("br label %" + body_label);
+        }
+
+        System.out.println(body_label + ":");
+        if (node.stmts != null) {
+            for (int i = 0; i != node.stmts.length; ++i) {
+                visit(node.stmts[i]);
+            }
+        }
+        System.out.println("br label %" + step_label);
+
+        System.out.println(step_label + ":");
+        visit(node.step);
+        System.out.println("br label %" + cond_label);
+
+        System.out.println(end_label + ":");
         return null;
     }
 
     String visit(IfStmtNode node) {
 
+        String cond_label = renameLabel("If.Cond"), then_label = renameLabel("If.Then"),
+                else_label = renameLabel("If.Else"),
+                end_label = renameLabel("If.End");
+
+        System.out.println(cond_label + ":");
+        String cond_id = visit(node.cond);
+        System.out.println("br i1 " + cond_id + ", label %" + then_label + ", label %" + else_label);
+
+        System.out.println(then_label + ":");
+        visit(node.then_stmt);
+        System.out.println("br label %" + end_label);
+
+        System.out.println(else_label + ":");
+        visit(node.else_stmt);
+        System.out.println("br label %" + end_label);
+
+        System.out.println(end_label + ":");
         return null;
     }
 
     String visit(ReturnNode node) {
+        if (node.expr == null) {
+            System.out.println("ret void");
+        } else {
+            String ret_id = visit(node.expr);
+            System.out.println("ret " + ((ExprNode) node.expr).type.getLLVMType() + " " + ret_id);
+        }
+        return null;
+    }
+
+    String visit(WhileStmtNode node) {// TODO: break & continue
+        String cond_label = renameLabel("While.Cond"), body_label = renameLabel("While.Body"),
+                end_label = renameLabel("While.End");
+        node.end_label = end_label;
+        node.cond_label = cond_label;
+
+        System.out.println(cond_label + ":");
+        String cond_id = visit(node.cond);
+        System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label %" + end_label);
+
+        System.out.println(body_label + ":");
+        if (node.stmts != null) {
+            for (int i = 0; i != node.stmts.length; ++i) {
+                visit(node.stmts[i]);
+            }
+        }
+        System.out.println("br label %" + cond_label);
+
+        System.out.println(end_label + ":");
+        return null;
+    }
+
+    String visit(ArrayAccessNode node) {// TODO:
 
         return null;
     }
 
-    String visit(WhileStmtNode node) {
-
-        return null;
-    }
-
-    String visit(ArrayAccessNode node) {
-
-        return null;
-    }
-
-    String visit(ArrayNode node) {
+    String visit(ArrayNode node) {// TODO:
 
         return null;
     }
@@ -398,12 +491,12 @@ public class IRGenerator {
         return node.val ? "true" : "false";
     }
 
-    String visit(FStringNode node) {
+    String visit(FStringNode node) {// TODO:
 
         return null;
     }
 
-    String visit(FuncCallNode node) {
+    String visit(FuncCallNode node) {// TODO:
 
         return null;
     }
@@ -421,12 +514,12 @@ public class IRGenerator {
         }
     }
 
-    String visit(MemAccNode node) {
+    String visit(MemAccNode node) {// TODO:
 
         return null;
     }
 
-    String visit(NewExprNode node) {
+    String visit(NewExprNode node) {// TODO:
 
         return null;
     }
@@ -439,7 +532,7 @@ public class IRGenerator {
         return ((Integer) node.val).toString();
     }
 
-    String visit(StringConstNode node) {
+    String visit(StringConstNode node) {// TODO:
 
         return null;
     }
@@ -474,7 +567,7 @@ public class IRGenerator {
         return ret_id;
     }
 
-    String visit(ThisNode node) {
+    String visit(ThisNode node) {// TODO:
 
         return null;
     }
