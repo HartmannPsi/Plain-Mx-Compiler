@@ -40,6 +40,8 @@ const char *toString(int n) {
   return str;
 }
 
+const char *boolToString(bool b) { return b ? "true" : "false"; }
+
 int string_length(const char *str) { return strlen(str); }
 
 const char *string_substring(const char *str, int left, int right) {

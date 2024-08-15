@@ -211,7 +211,7 @@ public class IRGenerator {
         return null;
     }
 
-    String visit(ForStmtNode node) {// TODO: break & continue
+    String visit(ForStmtNode node) {
         String init_label = renameLabel("For.Init"), cond_label = renameLabel("For.Cond"),
                 body_label = renameLabel("For.Body"), step_label = renameLabel("For.Step"),
                 end_label = renameLabel("For.End");
@@ -278,7 +278,7 @@ public class IRGenerator {
         return null;
     }
 
-    String visit(WhileStmtNode node) {// TODO: break & continue
+    String visit(WhileStmtNode node) {
         String cond_label = renameLabel("While.Cond"), body_label = renameLabel("While.Body"),
                 end_label = renameLabel("While.End");
         node.end_label = end_label;
@@ -329,9 +329,13 @@ public class IRGenerator {
             String rhs_id = visit(node.rhs);
             System.out.println(ret_id + " = srem " + ret_tp + " " + lhs_id + ", " + rhs_id);
 
-        } else if (node.oprand == BinaryOprand.Add) {// TODO: Separate String method
+        } else if (node.oprand == BinaryOprand.Add) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(
+                        ret_id + " = call i8* @string.add(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -357,6 +361,9 @@ public class IRGenerator {
         } else if (node.oprand == BinaryOprand.Lt) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.lt(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -368,6 +375,9 @@ public class IRGenerator {
         } else if (node.oprand == BinaryOprand.Le) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.le(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -379,6 +389,9 @@ public class IRGenerator {
         } else if (node.oprand == BinaryOprand.Gt) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.gt(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -390,6 +403,9 @@ public class IRGenerator {
         } else if (node.oprand == BinaryOprand.Ge) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.ge(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -398,9 +414,12 @@ public class IRGenerator {
                 System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " + rhs_id);
             }
 
-        } else if (node.oprand == BinaryOprand.Eq) {// TODO: Separate String method
+        } else if (node.oprand == BinaryOprand.Eq) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.eq(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -409,9 +428,12 @@ public class IRGenerator {
                 System.out.println(ret_id + " = icmp eq " + cmp_tp + " " + lhs_id + ", " + rhs_id);
             }
 
-        } else if (node.oprand == BinaryOprand.Ne) {// TODO: Separate String method
+        } else if (node.oprand == BinaryOprand.Ne) {
 
             if (node.type.equal("string")) {
+                String lhs_id = visit(node.lhs);
+                String rhs_id = visit(node.rhs);
+                System.out.println(ret_id + " = call i1 @string.ne(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
                 String lhs_id = visit(node.lhs);
@@ -491,9 +513,75 @@ public class IRGenerator {
         return node.val ? "true" : "false";
     }
 
-    String visit(FStringNode node) {// TODO:
+    String visit(FStringNode node) {
 
-        return null;
+        if (node.exprs == null) {
+
+            String ret_id = renameIdLocal("FStringRetVal");
+            System.out.print(ret_id + " = constant [");
+            System.out.print(node.getLength(0) + 1);
+            System.out.print(" x i8] c\"");
+            System.out.print(node.toString(0));
+            System.out.println("\\00\"");
+            return ret_id;
+
+        } else {
+
+            String[] expr_ids = new String[node.exprs.length];
+            String[] str_ids = new String[node.exprs.length];
+            for (int i = 0; i != node.exprs.length; ++i) {
+                expr_ids[i] = visit(node.exprs[i]);
+
+                if (((ExprNode) node.exprs[i]).type.equal("string")) {
+
+                    str_ids[i] = expr_ids[i];
+
+                } else if (((ExprNode) node.exprs[i]).type.equal("int")) {
+
+                    str_ids[i] = renameIdLocal("FString.Int");
+                    System.out.println(str_ids[i] + " = call i8* @toString(i32 " + expr_ids[i] + ")");
+                    // System.out.println(str_ids[i] + " = call i8* @intToStr(i32 " + expr_ids[i] +
+                    // ")");
+
+                } else if (((ExprNode) node.exprs[i]).type.equal("bool")) {
+
+                    str_ids[i] = renameIdLocal("FString.Bool");
+                    System.out.println(str_ids[i] + " = call i8* @boolToString(i1 " + expr_ids[i] + ")");
+                    // System.out.println(str_ids[i] + " = call i8* @boolToStr(i1 " + expr_ids[i] +
+                    // ")");
+
+                } else {
+                    throw_internal("Invalid Type in FString", node.pos);
+                }
+            }
+
+            String[] tmp_ids = new String[node.literals.length];
+            System.out.print(tmp_ids[0] + " = constant [");
+            System.out.print(node.getLength(0) + 1);
+            System.out.print(" x i8] c\"");
+            System.out.print(node.toString(0));
+            System.out.println("\\00\"");
+
+            for (int i = 1; i != node.literals.length; ++i) {
+                tmp_ids[i] = renameIdLocal("FStringTmp");
+                String inter_id = renameIdLocal("FStringInter");
+                String literal_id = renameIdLocal("FStringLiteral");
+                System.out.println(
+                        inter_id + " = call i8* @string.add(i8* " + tmp_ids[i - 1] + ", i8* " + str_ids[i - 1] + ")");
+
+                System.out.print(literal_id + " = constant [");
+                System.out.print(node.getLength(i) + 1);
+                System.out.print(" x i8] c\"");
+                System.out.print(node.toString(i));
+                System.out.println("\\00\"");
+
+                System.out.println(
+                        tmp_ids[i] + " = call i8* @string.add(i8* " + inter_id + ", i8* " + literal_id + ")");
+            }
+
+            String ret_id = tmp_ids[tmp_ids.length - 1];
+            return ret_id;
+        }
     }
 
     String visit(FuncCallNode node) {// TODO:
@@ -532,9 +620,14 @@ public class IRGenerator {
         return ((Integer) node.val).toString();
     }
 
-    String visit(StringConstNode node) {// TODO:
-
-        return null;
+    String visit(StringConstNode node) {
+        String ret_id = renameIdLocal("StringConst");
+        System.out.print(ret_id + " = constant [");
+        System.out.print(node.getLength() + 1);
+        System.out.print(" x i8] c\"");
+        System.out.print(node.toString());
+        System.out.println("\\00\"");
+        return ret_id;
     }
 
     String visit(TernaryOpNode node) {

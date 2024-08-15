@@ -17,4 +17,48 @@ public class FStringNode extends ExprNode {
         }
         System.out.print(literals[literals.length - 1] + "\"");
     }
+
+    public String toString(int n) {
+        String ret = "";
+
+        for (int i = 0; i != literals[n].length(); ++i) {
+            if (literals[n].charAt(i) == '\\') {
+                ++i;
+                switch (literals[n].charAt(i)) {
+                    case 'n':
+                        ret += "\\0A";
+                        break;
+                    case '\"':
+                        ret += "\\22";
+                        break;
+                    case '\\':
+                        ret += "\\\\";
+                        break;
+                    default:
+                        ret += literals[n].charAt(i);
+                        break;
+                }
+            } else if (literals[n].charAt(i) == '$') {
+                ret += "$";
+                ++i;
+            } else {
+                ret += literals[n].charAt(i);
+            }
+        }
+
+        return ret;
+    }
+
+    public int getLength(int n) {
+        int ret = 0;
+        for (int i = 0; i != literals[n].length(); ++i) {
+            if (literals[n].charAt(i) == '\\' || literals[n].charAt(i) == '$') {
+                ++i;
+
+            }
+            ++ret;
+        }
+
+        return ret;
+    }
 }
