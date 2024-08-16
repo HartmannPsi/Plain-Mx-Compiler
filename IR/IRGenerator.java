@@ -141,7 +141,6 @@ public class IRGenerator {
 
     ////////////////////////////////////////////////////////////////////////
 
-    // TODO: change return type
     IRRetType visit(ProgNode node) {
 
         IRRetType tmp = GlobalVarInit();
@@ -396,7 +395,9 @@ public class IRGenerator {
 
             for (Node _node : node.stmt) {// process funcs
                 if (_node instanceof DefFuncNode) {
-                    // TODO:
+                    IRRetType now = visit(_node);
+                    tail.next = now.head;
+                    tail = now.tail;
                 }
             }
 
@@ -773,9 +774,32 @@ public class IRGenerator {
         return new IRRetType(head, tail, null);
     }
 
-    IRRetType visit(ArrayAccessNode node) {// TODO:
+    IRRetType visit(ArrayAccessNode node) {
+        IRNode head, tail;
+        IRRetType arr_id = visit(node.array), ser_id = visit(node.serial);
+        head = arr_id.head;
+        arr_id.tail.next = ser_id.head;
+        tail = ser_id.tail;
+        String ret_id = node.type.getLLVMType(), lvalue_ptr = ptrLocal();
+        String ret_tp = node.type.getLLVMType();
 
-        return null;
+        IRGetEleNode ele_node = new IRGetEleNode();
+        ele_node.result = lvalue_ptr;
+        ele_node.tp = ((ExprNode) node.array).type.getLLVMType();
+        ele_node.ptr = arr_id.ret_id;
+        ele_node.tps = new String[] { "i32", "i32" };
+        ele_node.idxs = new String[] { "0", ser_id.ret_id };
+        tail.next = ele_node;
+        tail = ele_node;
+
+        IRLoadNode load_node = new IRLoadNode();
+        load_node.result = ret_id;
+        load_node.tp = ret_tp;
+        load_node.ptr = lvalue_ptr;
+        tail.next = load_node;
+        tail = load_node;
+
+        return new IRRetType(head, tail, ret_id, lvalue_ptr);
     }
 
     IRRetType visit(ArrayNode node) {// TODO:
@@ -1316,7 +1340,20 @@ public class IRGenerator {
             // System.out.println(ret_id + " = xor " + ret_tp + " " + lhs_id + ", " +
             // rhs_id);
 
-        } else if (node.oprand == BinaryOprand.Assign) {// TODO:
+        } else if (node.oprand == BinaryOprand.Assign) {
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRStoreNode store_node = new IRStoreNode();
+            store_node.tp = ret_tp;
+            store_node.value = rhs_id.ret_id;
+            store_node.ptr = lhs_id.lvalue_ptr;
+            tail.next = store_node;
+            tail = store_node;
+
+            return new IRRetType(head, tail, rhs_id.ret_id);
 
         } else {
             throw_internal("Unknown Binary Operator", node.pos);
@@ -1462,9 +1499,176 @@ public class IRGenerator {
         }
     }
 
-    IRRetType visit(FuncCallNode node) {// TODO:
+    IRRetType visit(FuncCallNode node) {
 
-        return null;
+        IRNode head = new IRNode(), tail = head;
+
+        if (node.id instanceof MemAccNode) {// member
+            String rename_id = ((IdNode) ((MemAccNode) node.id).member).rename_id;
+            String rename_tp = ((IdNode) ((MemAccNode) node.id).member).type.getLLVMType();
+            String ret_id = renameIdLocal("FuncCallRetVal");
+
+            IRCallNode call_node = new IRCallNode();
+
+            IRRetType obj_id = visit(((MemAccNode) node.id).object);
+            head = obj_id.head;
+            tail = obj_id.tail;
+
+            if (node.paras != null) {
+                call_node.args = new String[node.paras.length + 1];
+                call_node.tps = new String[node.paras.length + 1];
+            } else {
+                call_node.args = new String[1];
+                call_node.tps = new String[1];
+            }
+
+            call_node.args[0] = obj_id.ret_id;
+            call_node.tps[0] = ((ExprNode) ((MemAccNode) node.id).object).type.getLLVMType();
+
+            if (node.paras != null) {
+                for (int i = 0; i != node.paras.length; ++i) {
+                    IRRetType para_id = visit(node.paras[i]);
+                    tail.next = para_id.head;
+                    tail = para_id.tail;
+                    call_node.args[i + 1] = para_id.ret_id;
+                    call_node.tps[i + 1] = ((ExprNode) node.paras[i]).type.getLLVMType();
+                }
+            }
+
+            call_node.func_name = rename_id;
+            call_node.res_tp = rename_tp;
+            if (!rename_tp.equals("void")) {
+                call_node.result = ret_id;
+            } else {
+                ret_id = null;
+            }
+            tail.next = call_node;
+            tail = call_node;
+
+            return new IRRetType(head, tail, ret_id);
+
+        } else {
+
+            Node tmp = node;
+            while (tmp != null && !(tmp instanceof DefClassNode)) {
+                tmp = tmp.father;
+            }
+
+            if (tmp == null) {// global
+                String rename_id = ((IdNode) node.id).rename_id;
+                String rename_tp = ((IdNode) node.id).type.getLLVMType();
+                String ret_id = renameIdLocal("FuncCallRetVal");
+
+                IRCallNode call_node = new IRCallNode();
+
+                if (node.paras != null) {
+                    call_node.args = new String[node.paras.length];
+                    call_node.tps = new String[node.paras.length];
+
+                    for (int i = 0; i != node.paras.length; ++i) {
+                        IRRetType para_id = visit(node.paras[i]);
+                        tail.next = para_id.head;
+                        tail = para_id.tail;
+                        call_node.args[i] = para_id.ret_id;
+                        call_node.tps[i] = ((ExprNode) node.paras[i]).type.getLLVMType();
+                    }
+                }
+
+                call_node.func_name = rename_id;
+                call_node.res_tp = rename_tp;
+                if (!rename_tp.equals("void")) {
+                    call_node.result = ret_id;
+                } else {
+                    ret_id = null;
+                }
+                tail.next = call_node;
+                tail = call_node;
+
+                return new IRRetType(head, tail, ret_id);
+
+            } else {// classified discussion
+                DefClassNode def_node = (DefClassNode) tmp;
+                Map<String, String> methods = def_node.rename_methods;
+
+                if (methods.containsKey(((IdNode) node.id).id)) {// member
+
+                    String rename_id = ((IdNode) (node.id)).rename_id;
+                    String rename_tp = ((IdNode) (node.id)).type.getLLVMType();
+                    String ret_id = renameIdLocal("FuncCallRetVal");
+
+                    IRCallNode call_node = new IRCallNode();
+
+                    String obj_id = "%this";
+                    // head = obj_id.head;
+                    // tail = obj_id.tail;
+
+                    if (node.paras != null) {
+                        call_node.args = new String[node.paras.length + 1];
+                        call_node.tps = new String[node.paras.length + 1];
+                    } else {
+                        call_node.args = new String[1];
+                        call_node.tps = new String[1];
+                    }
+
+                    call_node.args[0] = obj_id;
+                    call_node.tps[0] = ((IdNode) def_node.name).rename_id;
+
+                    if (node.paras != null) {
+                        for (int i = 0; i != node.paras.length; ++i) {
+                            IRRetType para_id = visit(node.paras[i]);
+                            tail.next = para_id.head;
+                            tail = para_id.tail;
+                            call_node.args[i + 1] = para_id.ret_id;
+                            call_node.tps[i + 1] = ((ExprNode) node.paras[i]).type.getLLVMType();
+                        }
+                    }
+
+                    call_node.func_name = rename_id;
+                    call_node.res_tp = rename_tp;
+                    if (!rename_tp.equals("void")) {
+                        call_node.result = ret_id;
+                    } else {
+                        ret_id = null;
+                    }
+                    tail.next = call_node;
+                    tail = call_node;
+
+                    return new IRRetType(head, tail, ret_id);
+
+                } else {// global
+                    String rename_id = ((IdNode) node.id).rename_id;
+                    String rename_tp = ((IdNode) node.id).type.getLLVMType();
+                    String ret_id = renameIdLocal("FuncCallRetVal");
+
+                    IRCallNode call_node = new IRCallNode();
+
+                    if (node.paras != null) {
+                        call_node.args = new String[node.paras.length];
+                        call_node.tps = new String[node.paras.length];
+
+                        for (int i = 0; i != node.paras.length; ++i) {
+                            IRRetType para_id = visit(node.paras[i]);
+                            tail.next = para_id.head;
+                            tail = para_id.tail;
+                            call_node.args[i] = para_id.ret_id;
+                            call_node.tps[i] = ((ExprNode) node.paras[i]).type.getLLVMType();
+                        }
+                    }
+
+                    call_node.func_name = rename_id;
+                    call_node.res_tp = rename_tp;
+                    if (!rename_tp.equals("void")) {
+                        call_node.result = ret_id;
+                    } else {
+                        ret_id = null;
+                    }
+                    tail.next = call_node;
+                    tail = call_node;
+
+                    return new IRRetType(head, tail, ret_id);
+                }
+            }
+        }
     }
 
     IRRetType visit(IdNode node) {
@@ -1473,22 +1677,103 @@ public class IRGenerator {
 
         if (node.is_var) {
 
-            String ret_id = renameIdLocal("IdRetVal");
-            IRLoadNode load_node = new IRLoadNode();
-            load_node.tp = node.type.getLLVMType();
-            load_node.result = ret_id;
-            load_node.ptr = node.rename_id;
-            System.out.println(ret_id + " = load " + node.type.getLLVMType() + ", ptr " + node.rename_id);
-            return new IRRetType(load_node, load_node, ret_id);
+            Node tmp = node;
+            while (tmp != null && !(tmp instanceof DefClassNode)) {
+                tmp = tmp.father;
+            }
+
+            if (tmp == null) {
+                String ret_id = renameIdLocal("IdRetVal");
+                IRLoadNode load_node = new IRLoadNode();
+                load_node.tp = node.type.getLLVMType();
+                load_node.result = ret_id;
+                load_node.ptr = node.rename_id;
+                // System.out.println(ret_id + " = load " + node.type.getLLVMType() + ", ptr " +
+                // node.rename_id);
+                return new IRRetType(load_node, load_node, ret_id, node.rename_id);
+
+            } else {// classified discussion
+                DefClassNode def_node = (DefClassNode) tmp;
+                String cls_rename = ((IdNode) def_node.name).rename_id;
+                Map<String, Integer> scope = classes.get(cls_rename);
+
+                if (scope.containsKey(node.rename_id)) {// member
+                    String ret_id = renameIdLocal("IdRetVal"), lvalue_ptr = ptrLocal();
+                    IRGetEleNode ele_node = new IRGetEleNode();
+                    IRNode head, tail;
+                    head = tail = ele_node;
+                    int offset = scope.get(node.rename_id);
+
+                    ele_node.result = lvalue_ptr;
+                    ele_node.tp = cls_rename;
+                    ele_node.ptr = "%this";
+                    ele_node.tps = new String[] { "i32", "i32" };
+                    ele_node.idxs = new String[] { "0", Integer.toString(offset) };
+
+                    IRLoadNode load_node = new IRLoadNode();
+                    load_node.result = ret_id;
+                    load_node.tp = node.type.getLLVMType();
+                    load_node.ptr = lvalue_ptr;
+                    tail.next = load_node;
+                    tail = load_node;
+                    return new IRRetType(head, tail, ret_id, lvalue_ptr);
+
+                } else {// global
+
+                    String ret_id = renameIdLocal("IdRetVal");
+                    IRLoadNode load_node = new IRLoadNode();
+                    load_node.tp = node.type.getLLVMType();
+                    load_node.result = ret_id;
+                    load_node.ptr = node.rename_id;
+                    // System.out.println(ret_id + " = load " + node.type.getLLVMType() + ", ptr " +
+                    // node.rename_id);
+                    return new IRRetType(load_node, load_node, ret_id, node.rename_id);
+                }
+            }
 
         } else {
-            return new IRRetType(empty_node, empty_node, node.rename_id);
+            return new IRRetType(empty_node, empty_node);
         }
     }
 
-    IRRetType visit(MemAccNode node) {// TODO:
+    IRRetType visit(MemAccNode node) {
+        if (node.father instanceof FuncCallNode) {// call function
+            IRNode empty_node = new IRNode();
+            return new IRRetType(empty_node, empty_node);
 
-        return null;
+        } else {// member variable
+
+            IRNode head, tail;
+            IRRetType obj_id = visit(node.object);
+            head = obj_id.head;
+            tail = obj_id.tail;
+
+            Type obj_tp = ((ExprNode) node.object).type;
+            String obj_rename_tp = root.rename_cls.get(obj_tp.id);
+            Map<String, Integer> scope = classes.get(obj_rename_tp);
+            String member_id = ((IdNode) node.member).rename_id;
+            String ret_tp = node.type.getLLVMType();
+            String ret_id = renameIdLocal("MemAccRetVal"), lvalue_ptr = ptrLocal();
+            int offset = scope.get(member_id);
+
+            IRGetEleNode ele_node = new IRGetEleNode();
+            ele_node.result = lvalue_ptr;
+            ele_node.tp = obj_rename_tp;
+            ele_node.ptr = obj_id.ret_id;
+            ele_node.tps = new String[] { "i32", "i32" };
+            ele_node.idxs = new String[] { "0", Integer.toString(offset) };
+            tail.next = ele_node;
+            tail = ele_node;
+
+            IRLoadNode load_node = new IRLoadNode();
+            load_node.result = ret_id;
+            load_node.tp = ret_tp;
+            load_node.ptr = lvalue_ptr;
+            tail.next = load_node;
+            tail = load_node;
+
+            return new IRRetType(head, tail, ret_id, lvalue_ptr);
+        }
     }
 
     IRRetType visit(NewExprNode node) {// TODO:
@@ -1604,13 +1889,85 @@ public class IRGenerator {
         String ret_id = renameIdLocal("UnaryRetVal");
         String ret_tp = node.type.getLLVMType();
 
-        if (node.oprand == UnaryOpNode.UnaryOprand.SAddL) {// TODO:
+        if (node.oprand == UnaryOpNode.UnaryOprand.SAddL) {
+            // String tmp_id = renameIdLocal("UnaryTmp");
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "add";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = expr_id.ret_id;
+            bin_node.op2 = "1";
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+
+            IRStoreNode store_node = new IRStoreNode();
+            store_node.tp = ret_tp;
+            store_node.ptr = expr_id.lvalue_ptr;
+            store_node.value = ret_id;
+            tail.next = store_node;
+            tail = store_node;
+
+            return new IRRetType(head, tail, ret_id, expr_id.lvalue_ptr);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SAddR) {
 
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "add";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = expr_id.ret_id;
+            bin_node.op2 = "1";
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+
+            IRStoreNode store_node = new IRStoreNode();
+            store_node.tp = ret_tp;
+            store_node.ptr = expr_id.lvalue_ptr;
+            store_node.value = ret_id;
+            tail.next = store_node;
+            tail = store_node;
+
+            return new IRRetType(head, tail, expr_id.ret_id);
+
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubL) {
 
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "sub";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = expr_id.ret_id;
+            bin_node.op2 = "1";
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+
+            IRStoreNode store_node = new IRStoreNode();
+            store_node.tp = ret_tp;
+            store_node.ptr = expr_id.lvalue_ptr;
+            store_node.value = ret_id;
+            tail.next = store_node;
+            tail = store_node;
+
+            return new IRRetType(head, tail, ret_id, expr_id.lvalue_ptr);
+
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubR) {
+
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "sub";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = expr_id.ret_id;
+            bin_node.op2 = "1";
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+
+            IRStoreNode store_node = new IRStoreNode();
+            store_node.tp = ret_tp;
+            store_node.ptr = expr_id.lvalue_ptr;
+            store_node.value = ret_id;
+            tail.next = store_node;
+            tail = store_node;
+
+            return new IRRetType(head, tail, expr_id.ret_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.Plus) {
             IRBinaryNode bin_node = new IRBinaryNode();
@@ -1665,7 +2022,8 @@ public class IRGenerator {
     }
 
     IRRetType visit(TypeNode node) {
-        return null;
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node);
     }
 
 }
