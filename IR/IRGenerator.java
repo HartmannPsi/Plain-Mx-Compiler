@@ -7,6 +7,7 @@ import defNodes.stmtNodes.*;
 import util.error.*;
 import util.*;
 import java.util.Map;
+import IR.IRNodes.*;
 import java.util.HashMap;
 
 public class IRGenerator {
@@ -14,6 +15,7 @@ public class IRGenerator {
     int id_serial = 0, label_serial = 0;
     Map<String, Map<String, Integer>> classes = new HashMap<>();
     String global_var_init = "@Global.Var.Init";
+    public IRNode beg = null;
 
     public IRGenerator(ProgNode root) {
         this.root = root;
@@ -21,6 +23,10 @@ public class IRGenerator {
 
     public void generateIR() {
         visit(root);
+    }
+
+    public void printIR() {
+        beg.printToString();
     }
 
     int getIdSerial() {
@@ -63,7 +69,7 @@ public class IRGenerator {
         throw new internalError(msg, pos);
     }
 
-    String visit(Node node) {
+    IRRetType visit(Node node) {
         if (node instanceof ProgNode) {
             return visit((ProgNode) node);
         } else if (node instanceof BraceStmtNode) {
@@ -135,19 +141,29 @@ public class IRGenerator {
 
     ////////////////////////////////////////////////////////////////////////
 
-    String visit(ProgNode node) {
+    // TODO: change return type
+    IRRetType visit(ProgNode node) {
 
-        GlobalVarInit();
+        IRRetType tmp = GlobalVarInit();
+        beg = tmp.head;
+        IRNode tail = tmp.tail;
 
         for (int i = 0; i != node.global_stmt.length; ++i) {
-            visit(node.global_stmt[i]);
+            IRRetType now = visit(node.global_stmt[i]);
+            tail.next = now.head;
+            tail = now.tail;
         }
-        return null;
+        return new IRRetType(beg, tail, null);
     }
 
-    String GlobalVarInit() {
+    IRRetType GlobalVarInit() {
         // "@Global.Var.Init"
-        System.out.println("define void " + global_var_init + "() {");
+        IRDefFuncNode def_node = new IRDefFuncNode();
+        def_node.func_name = global_var_init;
+        def_node.result_tp = "void";
+        // System.out.println("define void " + global_var_init + "() {");
+        def_node.stmt = new IRNode();
+        IRNode tail = def_node.stmt;
         for (Node _node : root.global_stmt) {
             if (_node instanceof DefVarNode) {
 
@@ -164,78 +180,114 @@ public class IRGenerator {
 
                 for (int i = 0; i != node.ids.length; ++i) {
                     if (node.inits[i] != null) {
-                        String init_id = visit(node.inits[i]);
+                        IRRetType init_id = visit(node.inits[i]);
+                        tail.next = init_id.head;
                         String dest_id = ((IdNode) node.ids[i]).rename_id;
-                        System.out.println("store " + rename_tp + " " + init_id + ", ptr " + dest_id);
+                        IRStoreNode st_node = new IRStoreNode();
+                        st_node.tp = rename_tp;
+                        st_node.value = init_id.ret_id;
+                        st_node.ptr = dest_id;
+                        init_id.tail.next = st_node;
+                        tail = st_node;
+                        // System.out.println("store " + rename_tp + " " + init_id + ", ptr " +
+                        // dest_id);
                     }
                 }
             }
         }
-        System.out.println("}");
+        // System.out.println("}");
 
-        return null;
+        return new IRRetType(def_node, def_node, null);
     }
 
-    String visit(BraceStmtNode node) {
+    IRRetType visit(BraceStmtNode node) {
+        IRNode head = new IRNode(), tail = head;
         for (int i = 0; i != node.stmts.length; ++i) {
-            visit(node.stmts[i]);
+            IRRetType now = visit(node.stmts[i]);
+            tail.next = now.head;
+            tail = now.tail;
         }
-        return null;
+        return new IRRetType(head, tail, null);
     }
 
-    String visit(BreakNode node) {
+    IRRetType visit(BreakNode node) {
         Node scope = node;
         while (scope != null && !(scope instanceof ForStmtNode || scope instanceof WhileStmtNode)) {
             scope = scope.father;
         }
+
+        IRBrNode br_node = new IRBrNode();
 
         if (scope == null) {
             throw_internal("Break statement not in loop", node.pos);
         } else if (scope instanceof ForStmtNode) {
-            System.out.println("br label %" + ((ForStmtNode) scope).end_label);
+            // System.out.println("br label %" + ((ForStmtNode) scope).end_label);
+            br_node.label_true = ((ForStmtNode) scope).end_label;
         } else {
-            System.out.println("br label %" + ((WhileStmtNode) scope).end_label);
+            // System.out.println("br label %" + ((WhileStmtNode) scope).end_label);
+            br_node.label_true = ((WhileStmtNode) scope).end_label;
         }
 
-        return null;
+        return new IRRetType(br_node, br_node, null);
     }
 
-    String visit(ClsConsNode node) {
+    IRRetType visit(ClsConsNode node) {
+
+        IRNode head = new IRNode(), tail = head;
         for (Node _node : node.stmt) {
-            visit(_node);
+            IRRetType now = visit(_node);
+            tail.next = now.head;
+            tail = now.tail;
         }
-        return null;
+        return new IRRetType(head, tail, null);
     }
 
-    String visit(ContinueNode node) {
+    IRRetType visit(ContinueNode node) {
         Node scope = node;
         while (scope != null && !(scope instanceof ForStmtNode || scope instanceof WhileStmtNode)) {
             scope = scope.father;
         }
 
+        IRBrNode br_node = new IRBrNode();
+
         if (scope == null) {
             throw_internal("Continue statement not in loop", node.pos);
         } else if (scope instanceof ForStmtNode) {
-            System.out.println("br label %" + ((ForStmtNode) scope).step_label);
+            // System.out.println("br label %" + ((ForStmtNode) scope).step_label);
+            br_node.label_true = ((ForStmtNode) scope).step_label;
         } else {
-            System.out.println("br label %" + ((WhileStmtNode) scope).cond_label);
+            // System.out.println("br label %" + ((WhileStmtNode) scope).cond_label);
+            br_node.label_true = ((WhileStmtNode) scope).cond_label;
         }
 
-        return null;
+        return new IRRetType(br_node, br_node, null);
     }
 
-    String visit(DefClassNode node) {
+    IRRetType visit(DefClassNode node) {
 
         String cls_rename = ((IdNode) node.name).rename_id;
         classes.put(cls_rename, new HashMap<>());
         int location = 0;
         Map<String, Integer> scope = classes.get(cls_rename);
-        boolean first = true;
+        // boolean first = true;
         ClsConsNode cons_node = null;
 
-        System.out.print(cls_rename + " = type { ");
+        IRDefClsNode def_node = new IRDefClsNode();
+        def_node.cls_name = cls_rename;
+        int member_cnt = 0;
+        // System.out.print(cls_rename + " = type { ");
 
         if (node.stmt != null) {
+
+            for (Node _node : node.stmt) {
+                if (_node instanceof DefVarNode) {
+                    DefVarNode var_node = (DefVarNode) _node;
+                    member_cnt += var_node.ids.length;
+                }
+            }
+
+            def_node.tps = new String[member_cnt];
+            member_cnt = 0;
 
             for (int i = 0; i != node.stmt.length; ++i) {// def vars
                 if (node.stmt[i] instanceof DefVarNode) {
@@ -251,17 +303,18 @@ public class IRGenerator {
                         rename_tp = "ptr";
                     }
 
-                    if (first) {
-                        first = false;
-                    } else {
-                        System.out.print(", ");
-                    }
+                    // if (first) {
+                    // first = false;
+                    // } else {
+                    // System.out.print(", ");
+                    // }
 
                     for (int j = 0; j != var_node.ids.length; ++j) {
-                        System.out.print(rename_tp);
-                        if (j != var_node.ids.length - 1) {
-                            System.out.print(", ");
-                        }
+                        // System.out.print(rename_tp);
+                        // if (j != var_node.ids.length - 1) {
+                        // System.out.print(", ");
+                        // }
+                        def_node.tps[member_cnt++] = rename_tp;
                         scope.put(((IdNode) var_node.ids[j]).rename_id, location++);
 
                     }
@@ -270,10 +323,21 @@ public class IRGenerator {
                     cons_node = (ClsConsNode) node.stmt[i];
                 }
             }
-            System.out.println(" }");
+            // System.out.println(" }");
 
             // constructor
-            System.out.println("define void " + node.getConsRename() + "(" + cls_rename + " %this) {");
+            IRDefFuncNode cons_def_node = new IRDefFuncNode();
+            def_node.next = cons_def_node;
+            cons_def_node.func_name = node.getConsRename();
+            cons_def_node.result_tp = "void";
+            cons_def_node.ids = new String[1];
+            cons_def_node.tps = new String[1];
+            cons_def_node.ids[0] = "%this";
+            cons_def_node.tps[0] = cls_rename;
+            cons_def_node.stmt = new IRNode();
+            IRNode tail = cons_def_node.stmt;
+            // System.out.println("define void " + node.getConsRename() + "(" + cls_rename +
+            // " %this) {");
 
             for (Node _node : node.stmt) {// init member vars
                 if (_node instanceof DefVarNode) {
@@ -290,21 +354,45 @@ public class IRGenerator {
 
                     for (int i = 0; i != var_node.inits.length; ++i) {
                         if (var_node.inits[i] != null) {
-                            String init_id = visit(var_node.inits[i]);
+                            IRRetType init_id = visit(var_node.inits[i]);
+                            tail.next = init_id.head;
                             int dest_serial = scope.get(((IdNode) var_node.ids[i]).rename_id);
                             String tmp_ptr = ptrLocal();
-                            System.out.println(tmp_ptr + " = getelementptr " + cls_rename + ", ptr %this, i32 0, i32 "
-                                    + dest_serial);
-                            System.out.println("store " + rename_tp + " " + init_id + ", ptr " + tmp_ptr);
+
+                            IRGetEleNode ele_node = new IRGetEleNode();
+                            IRStoreNode st_node = new IRStoreNode();
+
+                            init_id.tail.next = ele_node;
+                            ele_node.next = st_node;
+                            tail = st_node;
+
+                            ele_node.result = tmp_ptr;
+                            ele_node.tp = cls_rename;
+                            ele_node.ptr = "%this";
+                            ele_node.tps = new String[] { "i32", "i32" };
+                            ele_node.idxs = new String[] { "0", Integer.toString(dest_serial) };
+
+                            st_node.tp = rename_tp;
+                            st_node.value = init_id.ret_id;
+                            st_node.ptr = tmp_ptr;
+
+                            // System.out.println(tmp_ptr + " = getelementptr " + cls_rename + ", ptr %this,
+                            // i32 0, i32 "
+                            // + dest_serial);
+                            // System.out.println("store " + rename_tp + " " + init_id + ", ptr " +
+                            // tmp_ptr);
                         }
                     }
                 }
             }
 
             if (cons_node != null) {// visit constructor
-                visit(cons_node);
+                IRRetType cons = visit(cons_node);
+                tail.next = cons.head;
+                tail = cons.tail;
             }
-            System.out.println("}");
+            // System.out.println("}");
+            tail = cons_def_node;
 
             for (Node _node : node.stmt) {// process funcs
                 if (_node instanceof DefFuncNode) {
@@ -312,19 +400,22 @@ public class IRGenerator {
                 }
             }
 
+            return new IRRetType(def_node, tail, null);
         } else {
-            System.out.println(" }");
-            return null;
+            // System.out.println(" }");
+            return new IRRetType(def_node, def_node, null);
         }
 
-        return null;
+        // return null;
     }
 
-    String visit(DefFuncNode node) {
+    IRRetType visit(DefFuncNode node) {
 
         Type ret_tp = ((TypeNode) node.type).type;
         String rename_ret_tp;
         String rename_id = ((IdNode) node.name).rename_id;
+
+        IRDefFuncNode def_node = new IRDefFuncNode();
 
         if (ret_tp.dim > 0) {
             rename_ret_tp = "ptr";
@@ -337,15 +428,26 @@ public class IRGenerator {
 
         }
 
-        System.out.print("define " + rename_ret_tp + " " + rename_id + "(");
+        // System.out.print("define " + rename_ret_tp + " " + rename_id + "(");
+        def_node.func_name = rename_id;
+        def_node.result_tp = rename_ret_tp;
+        int arg_cnt = node.ids == null ? 0 : node.ids.length;
+        if (node.father instanceof DefClassNode) {
+            ++arg_cnt;
+        }
+        def_node.ids = new String[arg_cnt];
+        def_node.tps = new String[arg_cnt];
+        arg_cnt = 0;
 
         if (node.father instanceof DefClassNode) {// add "this" pointer
             String cls_tp = ((IdNode) ((DefClassNode) node.father).name).rename_id;
-            System.out.print(cls_tp + " %this");
+            def_node.ids[arg_cnt] = "%this";
+            def_node.tps[arg_cnt++] = cls_tp;
+            // System.out.print(cls_tp + " %this");
 
-            if (node.ids != null) {
-                System.out.print(", ");
-            }
+            // if (node.ids != null) {
+            // System.out.print(", ");
+            // }
         }
 
         if (node.ids != null) {
@@ -362,33 +464,47 @@ public class IRGenerator {
                     rename_tp = tp.getLLVMType();
 
                 }
-                System.out.print(rename_tp + " " + ((IdNode) node.ids[i]).rename_id);
-                if (i != node.ids.length - 1) {
-                    System.out.print(", ");
-                }
+                def_node.ids[arg_cnt] = ((IdNode) node.ids[i]).rename_id;
+                def_node.tps[arg_cnt++] = rename_tp;
+                // System.out.print(rename_tp + " " + ((IdNode) node.ids[i]).rename_id);
+                // if (i != node.ids.length - 1) {
+                // System.out.print(", ");
+                // }
             }
         }
 
-        System.out.println(") {");
+        // System.out.println(") {");
 
         if (((IdNode) node.name).id.equals("main")) {
-            System.out.println("call void " + global_var_init + "()");
+            IRCallNode call_node = new IRCallNode();
+            call_node.func_name = global_var_init;
+            call_node.res_tp = "void";
+            def_node.stmt = call_node;
+            // System.out.println("call void " + global_var_init + "()");
+        } else {
+            def_node.stmt = new IRNode();
         }
+
+        IRNode tail = def_node.stmt;
 
         if (node.stmt != null) {
             for (Node subnode : node.stmt) {
-                visit(subnode);
+                IRRetType now = visit(subnode);
+                tail.next = now.head;
+                tail = now.tail;
             }
         }
 
-        System.out.println("}");
-        return null;
+        // System.out.println("}");
+        return new IRRetType(def_node, def_node, null);
     }
 
-    String visit(DefVarNode node) {
+    IRRetType visit(DefVarNode node) {
 
         Type tp = ((TypeNode) node.type).type;
         String rename_tp;
+
+        IRNode head = new IRNode(), tail = head;
 
         if (tp.dim > 0) {
             rename_tp = "ptr";
@@ -405,371 +521,878 @@ public class IRGenerator {
 
             for (int i = 0; i != node.ids.length; ++i) {
                 IdNode _id = (IdNode) node.ids[i];
-                System.out.println(_id.rename_id + " = global " + rename_tp + " 0");
+                IRGlbInitNode init_node = new IRGlbInitNode();
+                init_node.result = _id.rename_id;
+                init_node.tp = rename_tp;
+                tail.next = init_node;
+                tail = init_node;
+                // System.out.println(_id.rename_id + " = global " + rename_tp + " 0");
             }
 
         } else {// local vars
 
             for (int i = 0; i != node.ids.length; ++i) {
                 IdNode _id = (IdNode) node.ids[i];
-                System.out.println(_id.rename_id + " = alloca " + rename_tp);
+                IRAllocaNode alloca_node = new IRAllocaNode();
+                alloca_node.result = _id.rename_id;
+                alloca_node.tp = rename_tp;
+                tail.next = alloca_node;
+                tail = alloca_node;
+                // System.out.println(_id.rename_id + " = alloca " + rename_tp);
 
                 if (node.inits[i] != null) {
-                    String init_id = visit(node.inits[i]);
-                    System.out.println("store " + rename_tp + " " + init_id + ", ptr " + _id);
+                    IRRetType init_id = visit(node.inits[i]);
+                    tail.next = init_id.head;
+                    IRStoreNode st_node = new IRStoreNode();
+                    st_node.tp = rename_tp;
+                    st_node.value = init_id.ret_id;
+                    st_node.ptr = _id.rename_id;
+                    init_id.tail.next = st_node;
+                    tail = st_node;
+                    // System.out.println("store " + rename_tp + " " + init_id + ", ptr " + _id);
                 }
             }
 
         }
 
-        return null;
+        return new IRRetType(head, tail, null);
     }
 
-    String visit(EmptyStmtNode node) {
-        return null;
+    IRRetType visit(EmptyStmtNode node) {
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node, null);
     }
 
-    String visit(ExprStmtNode node) {
-        visit(node.expr);
-        return null;
+    IRRetType visit(ExprStmtNode node) {
+        IRRetType _node = visit(node.expr);
+        return new IRRetType(_node.head, _node.tail, null);
     }
 
-    String visit(ForStmtNode node) {
+    IRRetType visit(ForStmtNode node) {
         String init_label = renameLabel("For.Init"), cond_label = renameLabel("For.Cond"),
                 body_label = renameLabel("For.Body"), step_label = renameLabel("For.Step"),
                 end_label = renameLabel("For.End");
         node.end_label = end_label;
         node.step_label = step_label;
 
-        System.out.println(init_label + ":");
-        visit(node.init);
-        System.out.println("br label %" + cond_label);
+        IRNode head, tail;
+        IRLabelNode init_node = new IRLabelNode(), cond_node = new IRLabelNode(), body_node = new IRLabelNode(),
+                step_node = new IRLabelNode(), end_node = new IRLabelNode();
+        head = tail = init_node;
+        init_node.label = init_label;
 
-        System.out.println(cond_label + ":");
+        // System.out.println(init_label + ":");
+        IRRetType inits = visit(node.init);
+        tail.next = inits.head;
+        tail = inits.tail;
+        IRBrNode br1_node = new IRBrNode();
+        br1_node.label_true = cond_label;
+        tail.next = br1_node;
+        tail = br1_node;
+        // System.out.println("br label %" + cond_label);
+
+        cond_node.label = cond_label;
+        tail.next = cond_node;
+        tail = cond_node;
+        // System.out.println(cond_label + ":");
         if (node.cond != null) {
-            String cond_id = visit(node.cond);
-            System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label %" + end_label);
+            IRRetType cond_id = visit(node.cond);
+            tail.next = cond_id.head;
+            tail = cond_id.tail;
+            IRBrNode br2_node = new IRBrNode();
+            br2_node.label_true = body_label;
+            br2_node.label_false = end_label;
+            br2_node.cond = cond_id.ret_id;
+            tail.next = br2_node;
+            tail = br2_node;
+            // System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label
+            // %" + end_label);
         } else {
-            System.out.println("br label %" + body_label);
+            IRBrNode br2_node = new IRBrNode();
+            br2_node.label_true = body_label;
+            tail.next = br2_node;
+            tail = br2_node;
+            // System.out.println("br label %" + body_label);
         }
 
-        System.out.println(body_label + ":");
+        body_node.label = body_label;
+        tail.next = body_node;
+        tail = body_node;
+        // System.out.println(body_label + ":");
+
         if (node.stmts != null) {
             for (int i = 0; i != node.stmts.length; ++i) {
-                visit(node.stmts[i]);
+                IRRetType now = visit(node.stmts[i]);
+                tail.next = now.head;
+                tail = now.tail;
             }
         }
-        System.out.println("br label %" + step_label);
+        IRBrNode br3_node = new IRBrNode();
+        br3_node.label_true = step_label;
+        tail.next = br3_node;
+        tail = br3_node;
+        // System.out.println("br label %" + step_label);
 
-        System.out.println(step_label + ":");
-        visit(node.step);
-        System.out.println("br label %" + cond_label);
+        step_node.label = step_label;
+        tail.next = step_node;
+        tail = step_node;
+        // System.out.println(step_label + ":");
+        IRRetType steps = visit(node.step);
+        tail.next = steps.head;
+        tail = steps.tail;
+        IRBrNode br4_node = new IRBrNode();
+        br4_node.label_true = cond_label;
+        tail.next = br4_node;
+        tail = br4_node;
+        // System.out.println("br label %" + cond_label);
 
-        System.out.println(end_label + ":");
-        return null;
+        end_node.label = end_label;
+        tail.next = end_node;
+        tail = end_node;
+        // System.out.println(end_label + ":");
+        return new IRRetType(head, tail, null);
     }
 
-    String visit(IfStmtNode node) {
+    IRRetType visit(IfStmtNode node) {
 
         String cond_label = renameLabel("If.Cond"), then_label = renameLabel("If.Then"),
                 else_label = renameLabel("If.Else"),
                 end_label = renameLabel("If.End");
+        IRLabelNode cond_node = new IRLabelNode(), then_node = new IRLabelNode(), else_node = new IRLabelNode(),
+                end_node = new IRLabelNode();
+        IRNode head, tail;
+        head = tail = cond_node;
 
-        System.out.println(cond_label + ":");
-        String cond_id = visit(node.cond);
-        System.out.println("br i1 " + cond_id + ", label %" + then_label + ", label %" + else_label);
+        cond_node.label = cond_label;
+        // System.out.println(cond_label + ":");
+        IRRetType cond_id = visit(node.cond);
+        tail.next = cond_id.head;
+        tail = cond_id.tail;
+        IRBrNode br1_node = new IRBrNode();
+        br1_node.label_true = then_label;
+        br1_node.label_false = else_label;
+        br1_node.cond = cond_id.ret_id;
+        tail.next = br1_node;
+        tail = br1_node;
+        // System.out.println("br i1 " + cond_id + ", label %" + then_label + ", label
+        // %" + else_label);
 
-        System.out.println(then_label + ":");
-        visit(node.then_stmt);
-        System.out.println("br label %" + end_label);
+        then_node.label = then_label;
+        tail.next = then_node;
+        tail = then_node;
+        // System.out.println(then_label + ":");
+        IRRetType thens = visit(node.then_stmt);
+        tail.next = thens.head;
+        tail = thens.tail;
+        IRBrNode br2_node = new IRBrNode();
+        br2_node.label_true = end_label;
+        tail.next = br2_node;
+        tail = br2_node;
+        // System.out.println("br label %" + end_label);
 
-        System.out.println(else_label + ":");
-        visit(node.else_stmt);
-        System.out.println("br label %" + end_label);
+        else_node.label = else_label;
+        tail.next = else_node;
+        tail = else_node;
+        // System.out.println(else_label + ":");
+        IRRetType elses = visit(node.else_stmt);
+        tail.next = elses.head;
+        tail = elses.tail;
+        IRBrNode br3_node = new IRBrNode();
+        br3_node.label_true = end_label;
+        tail.next = br3_node;
+        tail = br3_node;
+        // System.out.println("br label %" + end_label);
 
-        System.out.println(end_label + ":");
-        return null;
+        end_node.label = end_label;
+        tail.next = end_node;
+        tail = end_node;
+        // System.out.println(end_label + ":");
+        return new IRRetType(head, tail, null);
     }
 
-    String visit(ReturnNode node) {
+    IRRetType visit(ReturnNode node) {
+        IRRetNode ret_node = new IRRetNode();
         if (node.expr == null) {
-            System.out.println("ret void");
+            // System.out.println("ret void");
+            ret_node.tp = "void";
         } else {
-            String ret_id = visit(node.expr);
-            System.out.println("ret " + ((ExprNode) node.expr).type.getLLVMType() + " " + ret_id);
+            IRRetType ret_id = visit(node.expr);
+            ret_node.tp = ((ExprNode) node.expr).type.getLLVMType();
+            ret_node.val = ret_id.ret_id;
+            // System.out.println("ret " + ((ExprNode) node.expr).type.getLLVMType() + " " +
+            // ret_id);
         }
-        return null;
+        return new IRRetType(ret_node, ret_node, null);
     }
 
-    String visit(WhileStmtNode node) {
+    IRRetType visit(WhileStmtNode node) {
         String cond_label = renameLabel("While.Cond"), body_label = renameLabel("While.Body"),
                 end_label = renameLabel("While.End");
         node.end_label = end_label;
         node.cond_label = cond_label;
 
-        System.out.println(cond_label + ":");
-        String cond_id = visit(node.cond);
-        System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label %" + end_label);
+        IRNode head, tail;
+        IRLabelNode cond_node = new IRLabelNode(), body_node = new IRLabelNode(), end_node = new IRLabelNode();
+        head = tail = cond_node;
 
-        System.out.println(body_label + ":");
+        cond_node.label = cond_label;
+        // System.out.println(cond_label + ":");
+        IRRetType cond_id = visit(node.cond);
+        tail.next = cond_id.head;
+        tail = cond_id.tail;
+        IRBrNode br1_node = new IRBrNode();
+        br1_node.label_true = body_label;
+        br1_node.label_false = end_label;
+        br1_node.cond = cond_id.ret_id;
+        tail.next = br1_node;
+        tail = br1_node;
+        // System.out.println("br i1 " + cond_id + ", label %" + body_label + ", label
+        // %" + end_label);
+
+        body_node.label = body_label;
+        tail.next = body_node;
+        tail = body_node;
+        // System.out.println(body_label + ":");
         if (node.stmts != null) {
             for (int i = 0; i != node.stmts.length; ++i) {
-                visit(node.stmts[i]);
+                IRRetType now = visit(node.stmts[i]);
+                tail.next = now.head;
+                tail = now.tail;
             }
         }
-        System.out.println("br label %" + cond_label);
+        IRBrNode br2_node = new IRBrNode();
+        br2_node.label_true = cond_label;
+        tail.next = br2_node;
+        tail = br2_node;
+        // System.out.println("br label %" + cond_label);
 
-        System.out.println(end_label + ":");
+        end_node.label = end_label;
+        tail.next = end_node;
+        tail = end_node;
+        // System.out.println(end_label + ":");
+        return new IRRetType(head, tail, null);
+    }
+
+    IRRetType visit(ArrayAccessNode node) {// TODO:
+
         return null;
     }
 
-    String visit(ArrayAccessNode node) {// TODO:
+    IRRetType visit(ArrayNode node) {// TODO:
 
         return null;
     }
 
-    String visit(ArrayNode node) {// TODO:
-
-        return null;
-    }
-
-    String visit(BinaryOpNode node) {
+    IRRetType visit(BinaryOpNode node) {
         String ret_id = renameIdLocal("BinaryRetVal");
         String ret_tp = node.type.getLLVMType();
+        IRNode head = null, tail = null;
+
+        // String operator = null;
 
         if (node.oprand == BinaryOpNode.BinaryOprand.Mul) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = mul " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "mul";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = mul " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOpNode.BinaryOprand.Div) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = sdiv " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "sdiv";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = sdiv " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOpNode.BinaryOprand.Mod) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = srem " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "srem";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = srem " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.Add) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(
-                        ret_id + " = call i8* @string.add(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.add";
+                call_node.res_tp = "i8*";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(
+                // ret_id + " = call i8* @string.add(i8* " + lhs_id + ", i8* " + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = add " + ret_tp + " " + lhs_id + ", " + rhs_id);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRBinaryNode bin_node = new IRBinaryNode();
+                bin_node.operator = "add";
+                bin_node.tp = ret_tp;
+                bin_node.op1 = lhs_id.ret_id;
+                bin_node.op2 = rhs_id.ret_id;
+                bin_node.result = ret_id;
+                tail.next = bin_node;
+                tail = bin_node;
+                // System.out.println(ret_id + " = add " + ret_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Sub) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = sub " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "sub";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = sub " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.ShiftL) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = shl " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "shl";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = shl " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.ShiftR) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = ashr " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "ashr";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = ashr " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.Lt) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.lt(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.lt";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.lt(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRIcmpNode cmp_node = new IRIcmpNode();
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp slt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+
+                cmp_node.cond = "slt";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+
+                // System.out.println(ret_id + " = icmp slt " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Le) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.le(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.le";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.le(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp sle " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+                IRIcmpNode cmp_node = new IRIcmpNode();
+                cmp_node.cond = "sle";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+                // System.out.println(ret_id + " = icmp sle " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Gt) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.gt(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.gt";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.gt(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp sgt " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+                IRIcmpNode cmp_node = new IRIcmpNode();
+                cmp_node.cond = "sgt";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+                // System.out.println(ret_id + " = icmp sgt " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Ge) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.ge(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.ge";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.ge(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+                IRIcmpNode cmp_node = new IRIcmpNode();
+                cmp_node.cond = "sge";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+                // System.out.println(ret_id + " = icmp sge " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Eq) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.eq(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.eq";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.eq(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp eq " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+                IRIcmpNode cmp_node = new IRIcmpNode();
+                cmp_node.cond = "eq";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+                // System.out.println(ret_id + " = icmp eq " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.Ne) {
 
             if (node.type.equal("string")) {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
-                System.out.println(ret_id + " = call i1 @string.ne(i8* " + lhs_id + ", i8* " + rhs_id + ")");
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.ne";
+                call_node.res_tp = "i1";
+                call_node.result = ret_id;
+                call_node.args = new String[] { lhs_id.ret_id, rhs_id.ret_id };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(ret_id + " = call i1 @string.ne(i8* " + lhs_id + ", i8* "
+                // + rhs_id + ")");
 
             } else {
-                String lhs_id = visit(node.lhs);
-                String rhs_id = visit(node.rhs);
+                IRRetType lhs_id = visit(node.lhs);
+                IRRetType rhs_id = visit(node.rhs);
+                head = lhs_id.head;
+                lhs_id.tail.next = rhs_id.head;
+                tail = rhs_id.tail;
                 String cmp_tp = ((ExprNode) node.lhs).type.getLLVMType();
-                System.out.println(ret_id + " = icmp ne " + cmp_tp + " " + lhs_id + ", " + rhs_id);
+                IRIcmpNode cmp_node = new IRIcmpNode();
+                cmp_node.cond = "ne";
+                cmp_node.tp = cmp_tp;
+                cmp_node.op1 = lhs_id.ret_id;
+                cmp_node.op2 = rhs_id.ret_id;
+                cmp_node.result = ret_id;
+                tail.next = cmp_node;
+                tail = cmp_node;
+                // System.out.println(ret_id + " = icmp ne " + cmp_tp + " " + lhs_id + ", " +
+                // rhs_id);
             }
 
         } else if (node.oprand == BinaryOprand.BAnd) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = and " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "and";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = and " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.BOr) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = or " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "or";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = or " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
         } else if (node.oprand == BinaryOprand.LAnd) {// short circuit
             String lhs_label = renameLabel("LAnd.Lhs"), rhs_label = renameLabel("LAnd.Rhs"),
                     end_label = renameLabel("LAnd.End");
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
+            IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
 
-            System.out.println(lhs_label + ":");
-            String lhs_id = visit(node.lhs);
+            head = tail = lhs_node;
+            lhs_node.label = lhs_label;
+            // System.out.println(lhs_label + ":");
+            IRRetType lhs_id = visit(node.lhs);
+            tail.next = lhs_id.head;
+            tail = lhs_id.tail;
+            IRBrNode br1_node = new IRBrNode();
+            br1_node.label_true = rhs_label;
+            br1_node.label_false = end_label;
+            br1_node.cond = lhs_id.ret_id;
+            tail.next = br1_node;
+            tail = br1_node;
             // System.out.println("store " + ret_tp + " " + lhs_id + ", ptr " + tmp_ptr);
-            System.out.println("br i1 " + lhs_id + ", label %" + rhs_label + ", label %" + end_label);
+            // System.out.println("br i1 " + lhs_id + ", label %" + rhs_label + ", label %"
+            // + end_label);
 
-            System.out.println(rhs_label + ":");
-            String rhs_id = visit(node.rhs);
+            rhs_node.label = rhs_label;
+            tail.next = rhs_node;
+            tail = rhs_node;
+            // System.out.println(rhs_label + ":");
+            IRRetType rhs_id = visit(node.rhs);
+            tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBrNode br2_node = new IRBrNode();
+            br2_node.label_true = end_label;
+            tail.next = br2_node;
+            tail = br2_node;
             // System.out.println("store " + ret_tp + " " + rhs_id + ", ptr " + tmp_ptr);
-            System.out.println("br label %" + end_label);
+            // System.out.println("br label %" + end_label);
 
-            System.out.println(end_label + ":");
+            end_node.label = end_label;
+            tail.next = end_node;
+            tail = end_node;
+            // System.out.println(end_label + ":");
             // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-            System.out.println(ret_id + " = phi " + ret_tp + " [ false, %" + lhs_label + " ], [ " + rhs_id + ", %"
-                    + rhs_label + " ]");
+            IRPhiNode phi_node = new IRPhiNode();
+            phi_node.tp = ret_tp;
+            phi_node.result = ret_id;
+            phi_node.vals = new String[] { "false", rhs_id.ret_id };
+            phi_node.labels = new String[] { lhs_label, rhs_label };
+            tail.next = phi_node;
+            tail = phi_node;
+            // System.out.println(ret_id + " = phi " + ret_tp + " [ false, %" + lhs_label +
+            // " ], [ " + rhs_id + ", %"
+            // + rhs_label + " ]");
 
         } else if (node.oprand == BinaryOprand.LOr) {// short circuit
             String lhs_label = renameLabel("LOr.Lhs"), rhs_label = renameLabel("LOr.Rhs"),
                     end_label = renameLabel("LOr.End");
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
+            IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
 
-            System.out.println(lhs_label + ":");
-            String lhs_id = visit(node.lhs);
+            head = tail = lhs_node;
+            lhs_node.label = lhs_label;
+            // System.out.println(lhs_label + ":");
+            IRRetType lhs_id = visit(node.lhs);
+            tail.next = lhs_id.head;
+            tail = lhs_id.tail;
+            IRBrNode br1_node = new IRBrNode();
+            br1_node.label_true = end_label;
+            br1_node.label_false = rhs_label;
+            br1_node.cond = lhs_id.ret_id;
+            tail.next = br1_node;
+            tail = br1_node;
             // System.out.println("store " + ret_tp + " " + lhs_id + ", ptr " + tmp_ptr);
-            System.out.println("br i1 " + lhs_id + ", label %" + end_label + ", label %" + rhs_label);
+            // System.out.println("br i1 " + lhs_id + ", label %" + end_label + ", label %"
+            // + rhs_label);
 
-            System.out.println(rhs_label + ":");
-            String rhs_id = visit(node.rhs);
+            rhs_node.label = rhs_label;
+            tail.next = rhs_node;
+            tail = rhs_node;
+            // System.out.println(rhs_label + ":");
+            IRRetType rhs_id = visit(node.rhs);
+            tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBrNode br2_node = new IRBrNode();
+            br2_node.label_true = end_label;
+            tail.next = br2_node;
+            tail = br2_node;
             // System.out.println("store " + ret_tp + " " + rhs_id + ", ptr " + tmp_ptr);
-            System.out.println("br label %" + end_label);
+            // System.out.println("br label %" + end_label);
 
-            System.out.println(end_label + ":");
+            end_node.label = end_label;
+            tail.next = end_node;
+            tail = end_node;
+            // System.out.println(end_label + ":");
             // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-            System.out.println(ret_id + " = phi " + ret_tp + " [ true, %" + lhs_label + " ], [ " + rhs_id + ", %"
-                    + rhs_label + " ]");
+            IRPhiNode phi_node = new IRPhiNode();
+            phi_node.tp = ret_tp;
+            phi_node.result = ret_id;
+            phi_node.vals = new String[] { "true", rhs_id.ret_id };
+            phi_node.labels = new String[] { lhs_label, rhs_label };
+            tail.next = phi_node;
+            tail = phi_node;
+            // System.out.println(ret_id + " = phi " + ret_tp + " [ true, %" + lhs_label + "
+            // ], [ " + rhs_id + ", %"
+            // + rhs_label + " ]");
 
         } else if (node.oprand == BinaryOprand.BXor) {
-            String lhs_id = visit(node.lhs);
-            String rhs_id = visit(node.rhs);
-            System.out.println(ret_id + " = xor " + ret_tp + " " + lhs_id + ", " + rhs_id);
+            IRRetType lhs_id = visit(node.lhs);
+            IRRetType rhs_id = visit(node.rhs);
+            head = lhs_id.head;
+            lhs_id.tail.next = rhs_id.head;
+            tail = rhs_id.tail;
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "xor";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = lhs_id.ret_id;
+            bin_node.op2 = rhs_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = xor " + ret_tp + " " + lhs_id + ", " +
+            // rhs_id);
 
-        } else if (node.oprand == BinaryOprand.Assign) {
+        } else if (node.oprand == BinaryOprand.Assign) {// TODO:
 
         } else {
             throw_internal("Unknown Binary Operator", node.pos);
 
         }
 
-        return ret_id;
+        return new IRRetType(head, tail, ret_id);
     }
 
-    String visit(BoolConstNode node) {
-        return node.val ? "true" : "false";
+    IRRetType visit(BoolConstNode node) {
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node, node.val ? "true" : "false");
     }
 
-    String visit(FStringNode node) {
+    IRRetType visit(FStringNode node) {
+
+        IRNode head = new IRNode(), tail = head;
 
         if (node.exprs == null) {
 
             String ret_id = renameIdLocal("FStringRetVal");
-            System.out.print(ret_id + " = constant [");
-            System.out.print(node.getLength(0) + 1);
-            System.out.print(" x i8] c\"");
-            System.out.print(node.toString(0));
-            System.out.println("\\00\"");
-            return ret_id;
+            IRConstStrNode const_node = new IRConstStrNode();
+            const_node.result = ret_id;
+            const_node.literal = node.toString(0);
+            const_node.length = node.getLength(0) + 1;
+            tail.next = const_node;
+            tail = const_node;
+            // System.out.print(ret_id + " = constant [");
+            // System.out.print(node.getLength(0) + 1);
+            // System.out.print(" x i8] c\"");
+            // System.out.print(node.toString(0));
+            // System.out.println("\\00\"");
+            return new IRRetType(head, tail, ret_id);
 
         } else {
 
-            String[] expr_ids = new String[node.exprs.length];
+            IRRetType[] expr_ids = new IRRetType[node.exprs.length];
             String[] str_ids = new String[node.exprs.length];
             for (int i = 0; i != node.exprs.length; ++i) {
                 expr_ids[i] = visit(node.exprs[i]);
+                tail.next = expr_ids[i].head;
+                tail = expr_ids[i].tail;
 
                 if (((ExprNode) node.exprs[i]).type.equal("string")) {
 
-                    str_ids[i] = expr_ids[i];
+                    str_ids[i] = expr_ids[i].ret_id;
 
                 } else if (((ExprNode) node.exprs[i]).type.equal("int")) {
 
                     str_ids[i] = renameIdLocal("FString.Int");
-                    System.out.println(str_ids[i] + " = call i8* @toString(i32 " + expr_ids[i] + ")");
+                    IRCallNode call_node = new IRCallNode();
+                    call_node.func_name = "@toString";
+                    call_node.res_tp = "i8*";
+                    call_node.result = str_ids[i];
+                    call_node.args = new String[] { expr_ids[i].ret_id };
+                    call_node.tps = new String[] { "i32" };
+                    tail.next = call_node;
+                    tail = call_node;
+                    // System.out.println(str_ids[i] + " = call i8* @toString(i32 " + expr_ids[i] +
+                    // ")");
                     // System.out.println(str_ids[i] + " = call i8* @intToStr(i32 " + expr_ids[i] +
                     // ")");
 
                 } else if (((ExprNode) node.exprs[i]).type.equal("bool")) {
 
                     str_ids[i] = renameIdLocal("FString.Bool");
-                    System.out.println(str_ids[i] + " = call i8* @boolToString(i1 " + expr_ids[i] + ")");
+                    IRCallNode call_node = new IRCallNode();
+                    call_node.func_name = "@boolToString";
+                    call_node.res_tp = "i8*";
+                    call_node.result = str_ids[i];
+                    call_node.args = new String[] { expr_ids[i].ret_id };
+                    call_node.tps = new String[] { "i1" };
+                    tail.next = call_node;
+                    tail = call_node;
+                    // System.out.println(str_ids[i] + " = call i8* @boolToString(i1 " + expr_ids[i]
+                    // + ")");
                     // System.out.println(str_ids[i] + " = call i8* @boolToStr(i1 " + expr_ids[i] +
                     // ")");
 
@@ -779,116 +1402,205 @@ public class IRGenerator {
             }
 
             String[] tmp_ids = new String[node.literals.length];
-            System.out.print(tmp_ids[0] + " = constant [");
-            System.out.print(node.getLength(0) + 1);
-            System.out.print(" x i8] c\"");
-            System.out.print(node.toString(0));
-            System.out.println("\\00\"");
+            tmp_ids[0] = renameIdLocal("FStringTmp");
+            IRConstStrNode const_node = new IRConstStrNode();
+            const_node.result = tmp_ids[0];
+            const_node.literal = node.toString(0);
+            const_node.length = node.getLength(0) + 1;
+            tail.next = const_node;
+            tail = const_node;
+            // System.out.print(tmp_ids[0] + " = constant [");
+            // System.out.print(node.getLength(0) + 1);
+            // System.out.print(" x i8] c\"");
+            // System.out.print(node.toString(0));
+            // System.out.println("\\00\"");
 
             for (int i = 1; i != node.literals.length; ++i) {
                 tmp_ids[i] = renameIdLocal("FStringTmp");
                 String inter_id = renameIdLocal("FStringInter");
                 String literal_id = renameIdLocal("FStringLiteral");
-                System.out.println(
-                        inter_id + " = call i8* @string.add(i8* " + tmp_ids[i - 1] + ", i8* " + str_ids[i - 1] + ")");
 
-                System.out.print(literal_id + " = constant [");
-                System.out.print(node.getLength(i) + 1);
-                System.out.print(" x i8] c\"");
-                System.out.print(node.toString(i));
-                System.out.println("\\00\"");
+                IRCallNode call_node = new IRCallNode();
+                call_node.func_name = "@string.add";
+                call_node.res_tp = "i8*";
+                call_node.result = inter_id;
+                call_node.args = new String[] { tmp_ids[i - 1], str_ids[i - 1] };
+                call_node.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node;
+                tail = call_node;
+                // System.out.println(
+                // inter_id + " = call i8* @string.add(i8* " + tmp_ids[i - 1] + ", i8* " +
+                // str_ids[i - 1] + ")");
 
-                System.out.println(
-                        tmp_ids[i] + " = call i8* @string.add(i8* " + inter_id + ", i8* " + literal_id + ")");
+                IRConstStrNode const_node2 = new IRConstStrNode();
+                const_node2.result = literal_id;
+                const_node2.literal = node.toString(i);
+                const_node2.length = node.getLength(i) + 1;
+                tail.next = const_node2;
+                tail = const_node2;
+                // System.out.print(literal_id + " = constant [");
+                // System.out.print(node.getLength(i) + 1);
+                // System.out.print(" x i8] c\"");
+                // System.out.print(node.toString(i));
+                // System.out.println("\\00\"");
+
+                IRCallNode call_node2 = new IRCallNode();
+                call_node2.func_name = "@string.add";
+                call_node2.res_tp = "i8*";
+                call_node2.result = tmp_ids[i];
+                call_node2.args = new String[] { inter_id, literal_id };
+                call_node2.tps = new String[] { "i8*", "i8*" };
+                tail.next = call_node2;
+                tail = call_node2;
+                // System.out.println(
+                // tmp_ids[i] + " = call i8* @string.add(i8* " + inter_id + ", i8* " +
+                // literal_id + ")");
             }
 
             String ret_id = tmp_ids[tmp_ids.length - 1];
-            return ret_id;
+            return new IRRetType(head, tail, ret_id);
         }
     }
 
-    String visit(FuncCallNode node) {// TODO:
+    IRRetType visit(FuncCallNode node) {// TODO:
 
         return null;
     }
 
-    String visit(IdNode node) {
+    IRRetType visit(IdNode node) {
+
+        IRNode empty_node = new IRNode();
 
         if (node.is_var) {
 
             String ret_id = renameIdLocal("IdRetVal");
+            IRLoadNode load_node = new IRLoadNode();
+            load_node.tp = node.type.getLLVMType();
+            load_node.result = ret_id;
+            load_node.ptr = node.rename_id;
             System.out.println(ret_id + " = load " + node.type.getLLVMType() + ", ptr " + node.rename_id);
-            return ret_id;
+            return new IRRetType(load_node, load_node, ret_id);
 
         } else {
-            return null;
+            return new IRRetType(empty_node, empty_node, node.rename_id);
         }
     }
 
-    String visit(MemAccNode node) {// TODO:
+    IRRetType visit(MemAccNode node) {// TODO:
 
         return null;
     }
 
-    String visit(NewExprNode node) {// TODO:
+    IRRetType visit(NewExprNode node) {// TODO:
 
         return null;
     }
 
-    String visit(NullNode node) {
-        return "null";
+    IRRetType visit(NullNode node) {
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node, "null");
     }
 
-    String visit(NumConstNode node) {
-        return ((Integer) node.val).toString();
+    IRRetType visit(NumConstNode node) {
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node, ((Integer) node.val).toString());
     }
 
-    String visit(StringConstNode node) {
+    IRRetType visit(StringConstNode node) {
         String ret_id = renameIdLocal("StringConst");
-        System.out.print(ret_id + " = constant [");
-        System.out.print(node.getLength() + 1);
-        System.out.print(" x i8] c\"");
-        System.out.print(node.toString());
-        System.out.println("\\00\"");
-        return ret_id;
+        IRConstStrNode const_node = new IRConstStrNode();
+        const_node.result = ret_id;
+        const_node.literal = node.toString();
+        const_node.length = node.getLength() + 1;
+        // System.out.print(ret_id + " = constant [");
+        // System.out.print(node.getLength() + 1);
+        // System.out.print(" x i8] c\"");
+        // System.out.print(node.toString());
+        // System.out.println("\\00\"");
+        return new IRRetType(const_node, const_node, ret_id);
     }
 
-    String visit(TernaryOpNode node) {
+    IRRetType visit(TernaryOpNode node) {
         String cond_label = renameLabel("Ternary.Cond"), true_label = renameLabel("Ternary.True"),
                 false_label = renameLabel("Ternary.False"), end_label = renameLabel("Ternary.End");
         String ret_id = renameIdLocal("TernaryRetVal");
         String ret_tp = node.type.getLLVMType();
 
-        System.out.println(cond_label + ":");
+        IRLabelNode cond_node = new IRLabelNode(), true_node = new IRLabelNode(), false_node = new IRLabelNode(),
+                end_node = new IRLabelNode();
+        IRNode head = cond_node, tail = head;
+
+        cond_node.label = cond_label;
+        // System.out.println(cond_label + ":");
         // System.out.println(tmp_ptr + " = alloca " + ret_tp);
-        String cond_id = visit(node.cond);
-        System.out.println("br i1 " + cond_id + ", label %" + true_label + ", label %" + false_label);
+        IRRetType cond_id = visit(node.cond);
+        tail.next = cond_id.head;
+        tail = cond_id.tail;
+        IRBrNode br1_node = new IRBrNode();
+        br1_node.label_true = true_label;
+        br1_node.label_false = false_label;
+        br1_node.cond = cond_id.ret_id;
+        tail.next = br1_node;
+        tail = br1_node;
+        // System.out.println("br i1 " + cond_id + ", label %" + true_label + ", label
+        // %" + false_label);
 
-        System.out.println(true_label + ":");
-        String true_id = visit(node.lhs);
+        true_node.label = true_label;
+        tail.next = true_node;
+        tail = true_node;
+        // System.out.println(true_label + ":");
+        IRRetType true_id = visit(node.lhs);
+        tail.next = true_id.head;
+        tail = true_id.tail;
         // System.out.println("store " + ret_tp + " " + true_id + ", ptr " + tmp_ptr);
-        System.out.println("br label %" + end_label);
+        IRBrNode br2_node = new IRBrNode();
+        br2_node.label_true = end_label;
+        tail.next = br2_node;
+        tail = br2_node;
+        // System.out.println("br label %" + end_label);
 
-        System.out.println(false_label + ":");
-        String false_id = visit(node.rhs);
+        false_node.label = false_label;
+        tail.next = false_node;
+        tail = false_node;
+        // System.out.println(false_label + ":");
+        IRRetType false_id = visit(node.rhs);
+        tail.next = false_id.head;
+        tail = false_id.tail;
         // System.out.println("store " + ret_tp + " " + false_id + ", ptr " + tmp_ptr);
-        System.out.println("br label %" + end_label);
+        IRBrNode br3_node = new IRBrNode();
+        br3_node.label_true = end_label;
+        tail.next = br3_node;
+        tail = br3_node;
+        // System.out.println("br label %" + end_label);
 
-        System.out.println(end_label + ":");
+        end_node.label = end_label;
+        tail.next = end_node;
+        tail = end_node;
+        // System.out.println(end_label + ":");
         // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-        System.out.println(
-                ret_id + " = phi " + ret_tp + " [ " + true_id + ", %" + true_label + " ], [ " + false_id + ", %"
-                        + false_label + " ]");
+        IRPhiNode phi_node = new IRPhiNode();
+        phi_node.tp = ret_tp;
+        phi_node.result = ret_id;
+        phi_node.vals = new String[] { true_id.ret_id, false_id.ret_id };
+        phi_node.labels = new String[] { true_label, false_label };
+        tail.next = phi_node;
+        tail = phi_node;
+        // System.out.println(
+        // ret_id + " = phi " + ret_tp + " [ " + true_id + ", %" + true_label + " ], [ "
+        // + false_id + ", %"
+        // + false_label + " ]");
 
-        return ret_id;
+        return new IRRetType(head, tail, ret_id);
     }
 
-    String visit(ThisNode node) {
-        return "%this";
+    IRRetType visit(ThisNode node) {
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node, "%this");
     }
 
-    String visit(UnaryOpNode node) {
-        String expr_id = visit(node.expr);
+    IRRetType visit(UnaryOpNode node) {
+        IRRetType expr_id = visit(node.expr);
+        IRNode head = expr_id.head, tail = expr_id.tail;
         String ret_id = renameIdLocal("UnaryRetVal");
         String ret_tp = node.type.getLLVMType();
 
@@ -901,25 +1613,58 @@ public class IRGenerator {
         } else if (node.oprand == UnaryOpNode.UnaryOprand.SSubR) {
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.Plus) {
-            System.out.println(ret_id + " = add " + ret_tp + " 0, " + expr_id);
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "add";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = "0";
+            bin_node.op2 = expr_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = add " + ret_tp + " 0, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.Minus) {
-            System.out.println(ret_id + " = sub " + ret_tp + " 0, " + expr_id);
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "sub";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = "0";
+            bin_node.op2 = expr_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = sub " + ret_tp + " 0, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.LNot) {
-            System.out.println(ret_id + " = xor " + ret_tp + " true, " + expr_id);
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "xor";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = "true";
+            bin_node.op2 = expr_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = xor " + ret_tp + " true, " + expr_id);
 
         } else if (node.oprand == UnaryOpNode.UnaryOprand.BNot) {
-            System.out.println(ret_id + " = xor " + ret_tp + " " + ((Integer) (~0)).toString() + ", " + expr_id);
+            IRBinaryNode bin_node = new IRBinaryNode();
+            bin_node.operator = "xor";
+            bin_node.tp = ret_tp;
+            bin_node.op1 = ((Integer) (~0)).toString();
+            bin_node.op2 = expr_id.ret_id;
+            bin_node.result = ret_id;
+            tail.next = bin_node;
+            tail = bin_node;
+            // System.out.println(ret_id + " = xor " + ret_tp + " " + ((Integer)
+            // (~0)).toString() + ", " + expr_id);
 
         } else {
             throw_internal("Unknown Unary Operator", node.pos);
         }
 
-        return ret_id;
+        return new IRRetType(head, tail, ret_id);
     }
 
-    String visit(TypeNode node) {
+    IRRetType visit(TypeNode node) {
         return null;
     }
 
