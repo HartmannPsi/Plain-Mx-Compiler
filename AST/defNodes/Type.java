@@ -1,7 +1,7 @@
 package defNodes;
 
-import util.error.internalError;
-import util.position;
+// import util.error.internalError;
+// import util.position;
 
 public class Type {
     public String id = null;
@@ -65,7 +65,9 @@ public class Type {
 
         } else if (this.equal("void")) {
 
-            throw new internalError("void type is not allowed in this context", new position(114, 514));
+            // throw new internalError("TypeNode Error: void type is not allowed in this
+            // context", new position(114, 514));
+            return "void";
 
         } else if (this.equal("null")) {
 
@@ -73,7 +75,7 @@ public class Type {
 
         } else if (this.equal("string")) {
 
-            return "i8*";
+            return "ptr";
 
         } else {
 

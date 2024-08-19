@@ -21,6 +21,7 @@ public class IRDefFuncNode extends IRNode {
         if (stmt != null)
             stmt.printToString();
         System.out.println("}");
+        System.out.println();
 
         printNext();
     }

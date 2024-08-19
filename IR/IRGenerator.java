@@ -131,12 +131,14 @@ public class IRGenerator {
         } else if (node instanceof TypeNode) {
             return visit((TypeNode) node);
         } else if (node == null) {
-            return null;
+            IRNode empty_node = new IRNode();
+            return new IRRetType(empty_node, empty_node);
         } else {
             throw_internal("Unknown Node Type", node.pos);
         }
 
-        return null;
+        IRNode empty_node = new IRNode();
+        return new IRRetType(empty_node, empty_node);
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -526,8 +528,8 @@ public class IRGenerator {
         if (tp.dim > 0) {
             rename_tp = "ptr";
 
-        } else if (root.rename_cls.containsKey(tp.id)) {
-            rename_tp = root.rename_cls.get(tp.id);
+            // } else if (root.rename_cls.containsKey(tp.id)) {
+            // rename_tp = root.rename_cls.get(tp.id);
 
         } else {
             rename_tp = tp.getLLVMType();
@@ -732,14 +734,17 @@ public class IRGenerator {
         if (node.expr == null) {
             // System.out.println("ret void");
             ret_node.tp = "void";
+            return new IRRetType(ret_node, ret_node, null);
         } else {
             IRRetType ret_id = visit(node.expr);
             ret_node.tp = ((ExprNode) node.expr).type.getLLVMType();
             ret_node.val = ret_id.ret_id;
+            ret_id.tail.next = ret_node;
             // System.out.println("ret " + ((ExprNode) node.expr).type.getLLVMType() + " " +
             // ret_id);
+            return new IRRetType(ret_id.head, ret_node, null);
         }
-        return new IRRetType(ret_node, ret_node, null);
+
     }
 
     IRRetType visit(WhileStmtNode node) {
@@ -1997,7 +2002,7 @@ public class IRGenerator {
             load_node.ptr = size_ptr;
 
             IRCallNode call_node = new IRCallNode();
-            call_node.func_name = "@array.malloc";
+            call_node.func_name = "@malloc";
             call_node.res_tp = ret_tp;
             call_node.result = ret_id;
             call_node.args = new String[] { size_id };

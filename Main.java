@@ -14,13 +14,13 @@ import IR.IRGenerator;
 public class Main {
     public static void main(String[] args) throws Exception {
 
-        boolean DEBUG = false;
+        boolean DEBUG = true;
 
         InputStream input = System.in;
         if (DEBUG) {
-            String filename = "AST/testcases/simple.txt";
+            String filename = "test.mx";
             input = new FileInputStream(filename);
-            PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
+            PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
             System.setOut(out);
         }
 
@@ -41,15 +41,14 @@ public class Main {
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-            // System.out.println("Semantic Check Done: No Error.");
-            if (DEBUG)
-                ast_root.printToString();
+            System.out.println("; Semantic Check Done: No Error.\n\n");
+            // if (DEBUG)
+            // ast_root.printToString();
 
-            if (!DEBUG) {
-                IRGenerator generator = new IRGenerator((ProgNode) ast_root);
-                generator.generateIR();
-            }
-
+            IRGenerator generator = new IRGenerator((ProgNode) ast_root);
+            generator.generateIR();
+            System.out.println("; IR Generation Done.\n\n");
+            generator.beg.printToString();
             // System.out.println("IR Generation Done.");
 
             System.exit(0);

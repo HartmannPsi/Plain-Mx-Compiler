@@ -12,6 +12,8 @@ public class IRGetEleNode extends IRNode {
                 System.out.print(", ");
             }
         }
+        System.out.println();
+
         printNext();
     }
 }

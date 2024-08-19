@@ -15,6 +15,8 @@ public class IRDefClsNode extends IRNode {
             }
         }
         System.out.println(" }");
+        System.out.println();
+
         printNext();
     }
 }
