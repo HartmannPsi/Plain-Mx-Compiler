@@ -1901,6 +1901,13 @@ public class IRGenerator {
         tail.next = alloca_node;
         tail = alloca_node;
 
+        IRStoreNode st_node = new IRStoreNode();
+        st_node.tp = "i32";
+        st_node.value = "0";
+        st_node.ptr = step_var;
+        tail.next = st_node;
+        tail = st_node;
+
         String cond_label = renameLabel("NewExpr.Cond"), body_label = renameLabel("NewExpr.Body"),
                 end_label = renameLabel("NewExpr.End");
 

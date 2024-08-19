@@ -41,7 +41,7 @@ public class Main {
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-            System.out.println("; Semantic Check Done: No Error.\n\n");
+            System.out.println("; Semantic Check Done: No Error.");
             // if (DEBUG)
             // ast_root.printToString();
 
