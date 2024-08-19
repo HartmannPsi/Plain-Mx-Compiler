@@ -26,6 +26,6 @@ public class DefClassNode extends ScopeNode {
 
     public String getConsRename() {
         String cls_rename = ((IdNode) name).rename_id;
-        return cls_rename + ".Cons";
+        return "@Cons." + cls_rename.substring(1, cls_rename.length());
     }
 }

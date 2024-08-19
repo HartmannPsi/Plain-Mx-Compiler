@@ -401,10 +401,26 @@ public class IRGenerator {
                 }
             }
 
+            IRGlbInitNode init_node = new IRGlbInitNode();
+            String cls_size = "@size." + cls_rename.substring(1, cls_rename.length());
+            init_node.result = cls_size;
+            init_node.tp = "i32";
+            init_node.val = Integer.toString(location);
+            tail.next = init_node;
+            tail = init_node;
+
             return new IRRetType(def_node, tail, null);
         } else {
             // System.out.println(" }");
-            return new IRRetType(def_node, def_node, null);
+
+            IRGlbInitNode init_node = new IRGlbInitNode();
+            String cls_size = "@size." + cls_rename.substring(1, cls_rename.length());
+            init_node.result = cls_size;
+            init_node.tp = "i32";
+            init_node.val = Integer.toString(0);
+            def_node.next = init_node;
+
+            return new IRRetType(def_node, init_node, null);
         }
 
         // return null;
@@ -802,9 +818,47 @@ public class IRGenerator {
         return new IRRetType(head, tail, ret_id, lvalue_ptr);
     }
 
-    IRRetType visit(ArrayNode node) {// TODO:
+    IRRetType visit(ArrayNode node) {
+        String ret_id = ptrLocal();
+        String ret_tp = node.type.getLLVMType();
+        Type _tp = node.type.clone();
+        --_tp.dim;
+        String ele_tp = _tp.getLLVMType();
+        int size = node.vals.length;
+        IRNode head, tail;
+        IRCallNode call_node = new IRCallNode();
+        head = tail = call_node;
+        call_node.func_name = "@array.malloc";
+        call_node.res_tp = ret_tp;
+        call_node.result = ret_id;
+        call_node.args = new String[] { Integer.toString(size) };
+        call_node.tps = new String[] { "i32" };
 
-        return null;
+        for (int i = 0; i != node.vals.length; ++i) {
+            ExprNode _node = (ExprNode) node.vals[i];
+            IRRetType now = visit(_node);
+            tail.next = now.head;
+            tail = now.tail;
+
+            String tmp_ptr = ptrLocal();
+            IRGetEleNode ele_node = new IRGetEleNode();
+            ele_node.result = tmp_ptr;
+            ele_node.tp = ret_tp;
+            ele_node.ptr = ret_id;
+            ele_node.tps = new String[] { "i32" };
+            ele_node.idxs = new String[] { Integer.toString(i) };
+            tail.next = ele_node;
+            tail = ele_node;
+
+            IRStoreNode st_node = new IRStoreNode();
+            st_node.tp = ele_tp;
+            st_node.value = now.ret_id;
+            st_node.ptr = tmp_ptr;
+            tail.next = st_node;
+            tail = st_node;
+        }
+
+        return new IRRetType(head, tail, ret_id);
     }
 
     IRRetType visit(BinaryOpNode node) {
@@ -1776,9 +1830,191 @@ public class IRGenerator {
         }
     }
 
-    IRRetType visit(NewExprNode node) {// TODO:
+    IRRetType newExprRecursive(int layer, String[] ids) {
+        if (layer == ids.length) {
+            IRNode empty_node = new IRNode();
+            return new IRRetType(empty_node, empty_node, "null");
+        }
+        IRNode head = new IRNode(), tail = head;
+        String size = ids[layer];
+        String step_var = renameIdLocal("NewExprStep");
+        String ret_id = renameIdLocal("NewExprRetVal");
 
-        return null;
+        // ret_id = call array.malloc(size)
+        IRCallNode call_node = new IRCallNode();
+        call_node.func_name = "@array.malloc";
+        call_node.res_tp = "ptr";
+        call_node.result = ret_id;
+        call_node.args = new String[] { ids[layer] };
+        call_node.tps = new String[] { "i32" };
+        tail.next = call_node;
+        tail = call_node;
+
+        // i = alloca i32 0
+        IRAllocaNode alloca_node = new IRAllocaNode();
+        alloca_node.result = step_var;
+        alloca_node.tp = "i32";
+        tail.next = alloca_node;
+        tail = alloca_node;
+
+        String cond_label = renameLabel("NewExpr.Cond"), body_label = renameLabel("NewExpr.Body"),
+                end_label = renameLabel("NewExpr.End");
+
+        IRLabelNode cond_node = new IRLabelNode(), body_node = new IRLabelNode(), end_node = new IRLabelNode();
+
+        cond_node.label = cond_label;
+        tail.next = cond_node;
+        tail = cond_node;
+
+        // tmp = load i32 i
+        IRLoadNode load_node = new IRLoadNode();
+        String tmp_var = renameIdLocal("NewExprTmp");
+        load_node.result = tmp_var;
+        load_node.tp = "i32";
+        load_node.ptr = step_var;
+        tail.next = load_node;
+        tail = load_node;
+
+        // cmp = icmp slt i32 tmp, size
+        IRIcmpNode icmp_node = new IRIcmpNode();
+        icmp_node.cond = "slt";
+        icmp_node.tp = "i1";
+        icmp_node.op1 = tmp_var;
+        icmp_node.op2 = size;
+        String cmp = renameIdLocal("NewExprCmp");
+        icmp_node.result = cmp;
+        tail.next = icmp_node;
+        tail = icmp_node;
+
+        // br i1 cmp, label %body, label %end
+        IRBrNode br_node = new IRBrNode();
+        br_node.label_true = body_label;
+        br_node.label_false = end_label;
+        br_node.cond = cmp;
+        tail.next = br_node;
+        tail = br_node;
+
+        body_node.label = body_label;
+        tail.next = body_node;
+        tail = body_node;
+        // nxt = call NewExprRecursive(layer + 1, ids)
+        IRRetType next_id = newExprRecursive(layer + 1, ids);
+        tail.next = next_id.head;
+        tail = next_id.tail;
+
+        // tmp2 = load i32 i
+        IRLoadNode load_node2 = new IRLoadNode();
+        String tmp_var2 = renameIdLocal("NewExprTmp");
+        load_node2.result = tmp_var2;
+        load_node2.tp = "i32";
+        load_node2.ptr = step_var;
+        tail.next = load_node2;
+        tail = load_node2;
+
+        // ele_ptr = getelementptr ptr ret_id, i32 tmp
+        IRGetEleNode ele_node = new IRGetEleNode();
+        String ele_ptr = ptrLocal();
+        ele_node.result = ele_ptr;
+        ele_node.tp = "ptr*";
+        ele_node.ptr = ret_id;
+        ele_node.tps = new String[] { "i32" };
+        ele_node.idxs = new String[] { tmp_var2 };
+        tail.next = ele_node;
+        tail = ele_node;
+
+        // store ptr nxt, ele_ptr
+        IRStoreNode store_node = new IRStoreNode();
+        store_node.tp = "ptr";
+        store_node.value = next_id.ret_id;
+        store_node.ptr = ele_ptr;
+        tail.next = store_node;
+        tail = store_node;
+
+        // tmp3 = add i32 tmp2, 1
+        IRBinaryNode add_node = new IRBinaryNode();
+        String tmp_var3 = renameIdLocal("NewExprTmp");
+        add_node.operator = "add";
+        add_node.tp = "i32";
+        add_node.op1 = tmp_var2;
+        add_node.op2 = "1";
+        add_node.result = tmp_var3;
+        tail.next = add_node;
+        tail = add_node;
+
+        // store i32 tmp3, i
+        IRStoreNode store_node2 = new IRStoreNode();
+        store_node2.tp = "i32";
+        store_node2.value = tmp_var3;
+        store_node2.ptr = step_var;
+        tail.next = store_node2;
+        tail = store_node2;
+
+        end_node.label = end_label;
+        tail.next = end_node;
+        tail = end_node;
+
+        return new IRRetType(head, tail, ret_id);
+    }
+
+    IRRetType visit(NewExprNode node) {
+        if (node.init_array != null) {
+            IRRetType arr_id = visit(node.init_array);
+            return arr_id;
+        }
+
+        IRNode head = new IRNode(), tail = head;
+
+        if (node.type.dim > 0) {
+            // String ret_id = renameIdLocal("NewExprRetVal");
+            // String ret_tp = node.type.getLLVMType();
+            // Type _tp = node.type.clone();
+
+            String[] len_ids = new String[node.lengths.length];
+            for (int i = 0; i != node.lengths.length; ++i) {
+                IRRetType len_id = visit(node.lengths[i]);
+                tail.next = len_id.head;
+                tail = len_id.tail;
+                len_ids[i] = len_id.ret_id;
+            }
+
+            IRRetType arr_id = newExprRecursive(0, len_ids);
+            tail.next = arr_id.head;
+            tail = arr_id.tail;
+
+            return new IRRetType(head, tail, arr_id.ret_id);
+
+        } else {
+            String ret_id = renameIdLocal("NewExprRetVal");
+            String size_id = renameIdLocal("NewExprSize");
+            String ret_tp = node.type.getLLVMType();
+            String rename_tp = root.rename_cls.get(node.type.id);
+            String size_ptr = "@size." + rename_tp.substring(1, rename_tp.length());
+
+            IRLoadNode load_node = new IRLoadNode();
+            head = tail = load_node;
+            load_node.result = size_id;
+            load_node.tp = "i32";
+            load_node.ptr = size_ptr;
+
+            IRCallNode call_node = new IRCallNode();
+            call_node.func_name = "@array.malloc";
+            call_node.res_tp = ret_tp;
+            call_node.result = ret_id;
+            call_node.args = new String[] { size_id };
+            call_node.tps = new String[] { "i32" };
+            tail.next = call_node;
+            tail = call_node;
+
+            IRCallNode call_node2 = new IRCallNode();
+            call_node2.func_name = "@Cons." + rename_tp.substring(1, rename_tp.length());
+            call_node2.res_tp = "void";
+            call_node2.args = new String[] { ret_id };
+            call_node2.tps = new String[] { ret_tp };
+            tail.next = call_node2;
+            tail = call_node2;
+
+            return new IRRetType(head, tail, ret_id);
+        }
     }
 
     IRRetType visit(NullNode node) {
