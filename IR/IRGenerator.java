@@ -470,20 +470,25 @@ public class IRGenerator {
         }
 
         if (node.ids != null) {
+            // String[] args = new String[node.ids.length + 1];
+            // for (String arg : args) {
+            // arg = renameIdLocal("Func.Arg");
+            // }
+
             for (int i = 0; i != node.ids.length; ++i) {
                 Type tp = ((TypeNode) node.tps[i]).type;
                 String rename_tp;
                 if (tp.dim > 0) {
                     rename_tp = "ptr";
 
-                } else if (root.rename_cls.containsKey(tp.id)) {
-                    rename_tp = root.rename_cls.get(tp.id);
+                    // } else if (root.rename_cls.containsKey(tp.id)) {
+                    // rename_tp = root.rename_cls.get(tp.id);
 
                 } else {
                     rename_tp = tp.getLLVMType();
 
                 }
-                def_node.ids[arg_cnt] = ((IdNode) node.ids[i]).rename_id;
+                def_node.ids[arg_cnt] = renameIdLocal("Func.Arg");
                 def_node.tps[arg_cnt++] = rename_tp;
                 // System.out.print(rename_tp + " " + ((IdNode) node.ids[i]).rename_id);
                 // if (i != node.ids.length - 1) {
@@ -506,12 +511,46 @@ public class IRGenerator {
 
         IRNode tail = def_node.stmt;
 
+        if (node.ids != null) {
+            int offset;
+            if (node.father instanceof DefClassNode) {
+                offset = 1;
+            } else {
+                offset = 0;
+            }
+            for (int i = 0; i != node.ids.length; ++i) {
+                IRAllocaNode alloca_node = new IRAllocaNode();
+                alloca_node.result = ((IdNode) node.ids[i]).rename_id;
+                alloca_node.tp = def_node.tps[i + offset];
+                tail.next = alloca_node;
+                tail = alloca_node;
+
+                IRStoreNode st_node = new IRStoreNode();
+                st_node.tp = def_node.tps[i + offset];
+                st_node.value = def_node.ids[i + offset];
+                st_node.ptr = ((IdNode) node.ids[i]).rename_id;
+                tail.next = st_node;
+                tail = st_node;
+                // System.out.println(def_node.ids[i + offset] + " = alloca " + def_node.tps[i +
+                // offset]);
+            }
+        }
+
         if (node.stmt != null) {
             for (Node subnode : node.stmt) {
                 IRRetType now = visit(subnode);
                 tail.next = now.head;
                 tail = now.tail;
             }
+        }
+
+        if (((IdNode) node.name).id.equals("main")) {
+            IRRetNode ret_node = new IRRetNode();
+            ret_node.tp = "i32";
+            ret_node.val = "0";
+            tail.next = ret_node;
+            tail = ret_node;
+            // System.out.println("call void " + global_var_init + "()");
         }
 
         // System.out.println("}");
