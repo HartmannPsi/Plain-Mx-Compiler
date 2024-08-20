@@ -10,6 +10,9 @@ import java.util.Map;
 import IR.IRNodes.*;
 import java.util.HashMap;
 
+// refactor "%this"
+//TODO: refactor "ptr"
+
 public class IRGenerator {
     ProgNode root;
     int id_serial = 0, label_serial = 0;
@@ -171,13 +174,13 @@ public class IRGenerator {
                 DefVarNode node = (DefVarNode) _node;
                 Type tp = ((TypeNode) node.type).type;
                 String rename_tp;
-                if (tp.dim > 0) {
-                    rename_tp = "ptr";
-                } else if (root.rename_cls.containsKey(tp.id)) {
-                    rename_tp = root.rename_cls.get(tp.id);
-                } else {
-                    rename_tp = tp.getLLVMType();
-                }
+                // if (tp.dim > 0) {
+                // rename_tp = "ptr";
+                // } else if (root.rename_cls.containsKey(tp.id)) {
+                // rename_tp = root.rename_cls.get(tp.id);
+                // } else {
+                rename_tp = tp.getLLVMType();
+                // }
 
                 for (int i = 0; i != node.ids.length; ++i) {
                     if (node.inits[i] != null) {
@@ -295,14 +298,14 @@ public class IRGenerator {
 
                     DefVarNode var_node = (DefVarNode) node.stmt[i];
                     Type tp = ((TypeNode) var_node.type).type;
-                    String rename_tp;
-                    if (tp.equal("int") || tp.equal("bool") || tp.equal("string")) {
-                        rename_tp = tp.getLLVMType();
-                    } else if (tp.dim == 0) {
-                        rename_tp = root.rename_cls.get(tp.id);
-                    } else {
-                        rename_tp = "ptr";
-                    }
+                    String rename_tp = tp.getLLVMType();
+                    // if (tp.equal("int") || tp.equal("bool") || tp.equal("string")) {
+                    // rename_tp = tp.getLLVMType();
+                    // } else if (tp.dim == 0) {
+                    // rename_tp = root.rename_cls.get(tp.id);
+                    // } else {
+                    // rename_tp = "ptr";
+                    // }
 
                     // if (first) {
                     // first = false;
@@ -436,16 +439,16 @@ public class IRGenerator {
 
         IRDefFuncNode def_node = new IRDefFuncNode();
 
-        if (ret_tp.dim > 0) {
-            rename_ret_tp = "ptr";
+        // if (ret_tp.dim > 0) {
+        // rename_ret_tp = "ptr";
 
-        } else if (root.rename_cls.containsKey(ret_tp.id)) {
-            rename_ret_tp = root.rename_cls.get(ret_tp.id);
+        // } else if (root.rename_cls.containsKey(ret_tp.id)) {
+        // rename_ret_tp = root.rename_cls.get(ret_tp.id);
 
-        } else {
-            rename_ret_tp = ret_tp.getLLVMType();
+        // } else {
+        rename_ret_tp = ret_tp.getLLVMType();
 
-        }
+        // }
 
         // System.out.print("define " + rename_ret_tp + " " + rename_id + "(");
         def_node.func_name = rename_id;
@@ -563,17 +566,7 @@ public class IRGenerator {
         String rename_tp;
 
         IRNode head = new IRNode(), tail = head;
-
-        if (tp.dim > 0) {
-            rename_tp = "ptr";
-
-            // } else if (root.rename_cls.containsKey(tp.id)) {
-            // rename_tp = root.rename_cls.get(tp.id);
-
-        } else {
-            rename_tp = tp.getLLVMType();
-
-        }
+        rename_tp = tp.getLLVMType();
 
         if (node.father instanceof ProgNode) {// global vars
 
@@ -840,12 +833,13 @@ public class IRGenerator {
         head = arr_id.head;
         arr_id.tail.next = ser_id.head;
         tail = ser_id.tail;
-        String ret_id = node.type.getLLVMType(), lvalue_ptr = ptrLocal();
+        String ret_id = renameIdLocal("ArrayAccessRetVal");
+        String lvalue_ptr = ptrLocal();
         String ret_tp = node.type.getLLVMType();
 
         IRGetEleNode ele_node = new IRGetEleNode();
         ele_node.result = lvalue_ptr;
-        ele_node.tp = ((ExprNode) node.array).type.getLLVMType();
+        ele_node.tp = node.type.getLLVMType();
         ele_node.ptr = arr_id.ret_id;
         ele_node.tps = new String[] { "i32", "i32" };
         ele_node.idxs = new String[] { "0", ser_id.ret_id };
@@ -1612,6 +1606,13 @@ public class IRGenerator {
             head = obj_id.head;
             tail = obj_id.tail;
 
+            IRLoadNode load_node = new IRLoadNode();
+            load_node.tp = root.rename_cls.get(((ExprNode) ((MemAccNode) node.id).object).type.id);
+            load_node.ptr = obj_id.ret_id;
+            load_node.result = renameIdLocal("FuncCallObj");
+            tail.next = load_node;
+            tail = load_node;
+
             if (node.paras != null) {
                 call_node.args = new String[node.paras.length + 1];
                 call_node.tps = new String[node.paras.length + 1];
@@ -1620,8 +1621,8 @@ public class IRGenerator {
                 call_node.tps = new String[1];
             }
 
-            call_node.args[0] = obj_id.ret_id;
-            call_node.tps[0] = ((ExprNode) ((MemAccNode) node.id).object).type.getLLVMType();
+            call_node.args[0] = load_node.result;
+            call_node.tps[0] = root.rename_cls.get(((ExprNode) ((MemAccNode) node.id).object).type.id);
 
             if (node.paras != null) {
                 for (int i = 0; i != node.paras.length; ++i) {

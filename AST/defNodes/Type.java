@@ -55,32 +55,39 @@ public class Type {
     }
 
     public String getLLVMType() {
-        if (this.equal("int")) {
+        String res;
+        if (this.id.equals("int")) {
 
-            return "i32";
+            res = "i32";
 
-        } else if (this.equal("bool")) {
+        } else if (this.id.equals("bool")) {
 
-            return "i1";
+            res = "i1";
 
-        } else if (this.equal("void")) {
+        } else if (this.id.equals("void")) {
 
             // throw new internalError("TypeNode Error: void type is not allowed in this
             // context", new position(114, 514));
-            return "void";
+            res = "void";
 
-        } else if (this.equal("null")) {
+        } else if (this.id.equals("null")) {
 
-            return "ptr";
+            res = "ptr";
 
-        } else if (this.equal("string")) {
+        } else if (this.id.equals("string")) {
 
-            return "ptr";
+            res = "i8*";
 
         } else {
 
-            return "ptr";
+            res = "%.class." + this.id + "*";
 
         }
+
+        for (int i = 0; i != this.dim; ++i) {
+            res += "*";
+        }
+
+        return res;
     }
 }
