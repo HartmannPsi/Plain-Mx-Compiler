@@ -5,6 +5,12 @@ public class IRPhiNode extends IRNode {
     public String[] vals = null, labels = null;
 
     public void printToString() {
+
+        if (shadow) {
+            printNext();
+            return;
+        }
+
         System.out.print(result + " = phi " + tp + " ");
         for (int i = 0; i != vals.length; ++i) {
             System.out.print("[ " + vals[i] + ", " + labels[i] + " ]");

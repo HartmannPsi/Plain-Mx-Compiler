@@ -501,18 +501,24 @@ public class IRGenerator {
         }
 
         // System.out.println(") {");
+        IRNode tail;
 
         if (((IdNode) node.name).id.equals("main")) {
             IRCallNode call_node = new IRCallNode();
             call_node.func_name = global_var_init;
             call_node.res_tp = "void";
-            def_node.stmt = call_node;
+            IRLabelNode label_node = new IRLabelNode();
+            label_node.label = renameLabel("Func.Entry");
+            def_node.stmt = label_node;
+            label_node.next = call_node;
+            tail = call_node;
             // System.out.println("call void " + global_var_init + "()");
         } else {
-            def_node.stmt = new IRNode();
+            IRLabelNode label_node = new IRLabelNode();
+            label_node.label = renameLabel("Func.Entry");
+            def_node.stmt = label_node;
+            tail = label_node;
         }
-
-        IRNode tail = def_node.stmt;
 
         if (node.ids != null) {
             int offset;

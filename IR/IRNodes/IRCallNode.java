@@ -5,6 +5,12 @@ public class IRCallNode extends IRNode {
     public String[] args = null, tps = null;
 
     public void printToString() {
+
+        if (shadow) {
+            printNext();
+            return;
+        }
+
         if (res_tp.equals("void")) {
             System.out.print("call void " + func_name + "(");
         } else {

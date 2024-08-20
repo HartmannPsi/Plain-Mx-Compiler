@@ -6,6 +6,14 @@ public class IRDefFuncNode extends IRNode {
     public IRNode stmt = null;
 
     public void printToString() {
+
+        shadow = false;
+
+        if (shadow) {
+            printNext();
+            return;
+        }
+
         System.out.print("define " + result_tp + " " + func_name + "(");
 
         if (tps != null) {
