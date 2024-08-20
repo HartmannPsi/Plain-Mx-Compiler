@@ -1,6 +1,4 @@
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.InputStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -14,14 +12,17 @@ import IR.IRGenerator;
 public class Main {
     public static void main(String[] args) throws Exception {
 
-        boolean DEBUG = true;
+        ArgumentParser arg_parser = new ArgumentParser(args);
+        InputStream input = arg_parser.getInputStream();
+        PrintStream output = arg_parser.getOutputStream();
+        boolean DEBUG = arg_parser.isDebug();
 
-        InputStream input = System.in;
+        // InputStream input = System.in;
         if (DEBUG) {
-            String filename = "test.mx";
-            input = new FileInputStream(filename);
-            PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
-            System.setOut(out);
+            // String filename = "test.mx";
+            // input = new FileInputStream(filename);
+            // PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
+            System.setOut(output);
         }
 
         try {
