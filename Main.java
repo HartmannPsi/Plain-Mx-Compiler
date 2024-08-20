@@ -1,4 +1,3 @@
-
 import java.io.PrintStream;
 import java.io.InputStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -16,12 +15,14 @@ public class Main {
         InputStream input = arg_parser.getInputStream();
         PrintStream output = arg_parser.getOutputStream();
         boolean DEBUG = arg_parser.isDebug();
+        // System.out.println("; " + DEBUG);
 
         // InputStream input = System.in;
         if (DEBUG) {
             // String filename = "test.mx";
             // input = new FileInputStream(filename);
             // PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
+            // System.out.println("Debug Mode");
             System.setOut(output);
         }
 
@@ -51,6 +52,7 @@ public class Main {
             System.out.println("; IR Generation Done.\n");
 
             generator.printIR();
+            // System.out.println("fuck");
             // System.out.println("IR Generation Done.");
 
             System.exit(0);

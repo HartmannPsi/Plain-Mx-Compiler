@@ -1499,8 +1499,12 @@ public class IRGenerator {
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
             IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
+            IRBrNode br_node = new IRBrNode();
+            br_node.label_true = lhs_label;
+            head = tail = br_node;
 
-            head = tail = lhs_node;
+            tail.next = lhs_node;
+            tail = lhs_node;
             lhs_node.label = lhs_label;
             // System.out.println(lhs_label + ":");
             IRRetType lhs_id = visit(node.lhs);
@@ -1552,8 +1556,12 @@ public class IRGenerator {
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
             IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
+            IRBrNode br_node = new IRBrNode();
+            br_node.label_true = lhs_label;
+            head = tail = br_node;
 
-            head = tail = lhs_node;
+            tail.next = lhs_node;
+            tail = lhs_node;
             lhs_node.label = lhs_label;
             // System.out.println(lhs_label + ":");
             IRRetType lhs_id = visit(node.lhs);
