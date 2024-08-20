@@ -6,12 +6,14 @@ public class IRConstStrNode extends IRNode {
 
     public void printToString() {
 
+        shadow = false;
+
         if (shadow) {
             printNext();
             return;
         }
 
-        System.out.println(result + " = constant [" + length + " x i8] c\"" + literal + "\\00\"");
+        System.out.println(result + " = private unnamed_addr constant [" + length + " x i8] c\"" + literal + "\\00\"");
         printNext();
     }
 

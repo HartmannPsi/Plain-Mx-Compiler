@@ -12,6 +12,7 @@ public class IRLabelNode extends IRNode {
             return;
         }
 
+        System.out.println();
         System.out.println(label + ":");
         printNext();
     }

@@ -47,8 +47,9 @@ public class Main {
 
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
-            System.out.println("; IR Generation Done.\n\n");
-            generator.beg.printToString();
+            System.out.println("; IR Generation Done.\n");
+
+            generator.printIR();
             // System.out.println("IR Generation Done.");
 
             System.exit(0);
