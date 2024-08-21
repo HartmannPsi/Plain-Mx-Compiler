@@ -24,6 +24,7 @@ public class Main {
             // PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
             // System.out.println("Debug Mode");
             System.setOut(output);
+            System.setErr(arg_parser.getErrorStream());
         }
 
         try {
