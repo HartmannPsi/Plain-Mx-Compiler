@@ -5,14 +5,14 @@ int printf(const char *pattern, ...);
 int scanf(const char *format, ...);
 int sprintf(char *buffer, const char *format, ...);
 int sscanf(const char *buffer, const char *format, ...);
-unsigned long strlen(const char *str);
+unsigned int strlen(const char *str);
 char *strcat(char *dest, const char *src);
 int strcmp(const char *lhs, const char *rhs);
 char *strcpy(char *dest, const char *src);
-void *malloc(unsigned long size);
+void *malloc(unsigned int size);
 void free(void *ptr);
 void *memcpy(void *dest, const void *src, unsigned long count);
-void *memset(void *dest, int ch, unsigned long count);
+void *memset(void *dest, int ch, unsigned int count);
 
 void print(const char *str) { printf("%s", str); }
 
@@ -23,7 +23,7 @@ void printInt(int n) { printf("%d", n); }
 void printlnInt(int n) { printf("%d\n", n); }
 
 const char *getString() {
-  static char str[300];
+  char *str = malloc(300);
   scanf("%s", str);
   return str;
 }
@@ -35,7 +35,7 @@ int getInt() {
 }
 
 const char *toString(int n) {
-  static char str[300];
+  char *str = malloc(300);
   sprintf(str, "%d", n);
   return str;
 }
@@ -45,7 +45,7 @@ const char *boolToString(bool b) { return b ? "true" : "false"; }
 int string_length(const char *str) { return strlen(str); }
 
 const char *string_substring(const char *str, int left, int right) {
-  static char sub[300];
+  char *sub = malloc(300);
   int len = right - left;
   for (int i = 0; i < len; i++) {
     sub[i] = str[left + i];
@@ -63,7 +63,7 @@ int string_parseInt(const char *str) {
 int string_ord(const char *str, int pos) { return str[pos]; }
 
 const char *string_add(const char *lhs, const char *rhs) {
-  static char str[300];
+  char *str = malloc(300);
   strcpy(str, lhs);
   strcat(str, rhs);
   return str;
