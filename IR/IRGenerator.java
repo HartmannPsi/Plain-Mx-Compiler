@@ -577,7 +577,7 @@ public class IRGenerator {
             String cls_size = "@size." + cls_rename.substring(1, cls_rename.length());
             init_node.result = cls_size;
             init_node.tp = "i32";
-            init_node.val = Integer.toString(location);
+            init_node.val = Integer.toString(location * 4);
             tail.next = init_node;
             tail = init_node;
 
@@ -720,7 +720,7 @@ public class IRGenerator {
             }
         }
 
-        if (((IdNode) node.name).id.equals("main")) {
+        if (((TypeNode) node.type).type.equal("int")) {
             IRRetNode ret_node = new IRRetNode();
             ret_node.tp = "i32";
             ret_node.val = "0";
@@ -734,6 +734,19 @@ public class IRGenerator {
             tail = ret_node;
             // System.out.println("ret void");
 
+        } else if (((TypeNode) node.type).type.equal("bool")) {
+            IRRetNode ret_node = new IRRetNode();
+            ret_node.tp = "i1";
+            ret_node.val = "false";
+            tail.next = ret_node;
+            tail = ret_node;
+            // System.out.println("call void " + global_var_init + "()");
+        } else {
+            IRRetNode ret_node = new IRRetNode();
+            ret_node.tp = "ptr";
+            ret_node.val = "null";
+            tail.next = ret_node;
+            tail = ret_node;
         }
 
         // System.out.println("}");
@@ -1912,6 +1925,11 @@ public class IRGenerator {
                         tail = para_id.tail;
                         call_node.args[i] = para_id.ret_id;
                         call_node.tps[i] = ((ExprNode) node.paras[i]).type.getLLVMType();
+                        // IRDebugNode debug_node = new IRDebugNode();
+                        // debug_node.message = para_id.ret_id;
+                        // tail.next = debug_node;
+                        // tail = debug_node;
+                        // System.out.println(para_id.ret_id + " FUCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
                     }
                 }
 
@@ -2078,7 +2096,7 @@ public class IRGenerator {
     }
 
     IRRetType visit(MemAccNode node) {
-        if (node.father instanceof FuncCallNode) {// call function
+        if (node.father instanceof FuncCallNode && ((FuncCallNode) node.father).id == node) {// call function
             IRNode empty_node = new IRNode();
             return new IRRetType(empty_node, empty_node);
 
