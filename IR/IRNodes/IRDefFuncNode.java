@@ -14,7 +14,7 @@ public class IRDefFuncNode extends IRNode {
             return;
         }
 
-        System.out.print("define " + result_tp + " " + func_name + "(");
+        System.out.print("define dso_local " + result_tp + " " + func_name + "(");
 
         if (tps != null) {
             for (int i = 0; i != tps.length; ++i) {
