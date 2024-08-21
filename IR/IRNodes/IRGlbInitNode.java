@@ -16,7 +16,19 @@ public class IRGlbInitNode extends IRNode {
         if (val != null) {
             System.out.println(" " + val);
         } else {
-            System.out.println(" 0");
+            switch (tp) {
+                case "i32":
+                    System.out.println(" 0");
+                    break;
+
+                case "i1":
+                    System.out.println(" true");
+                    break;
+
+                default:
+                    System.out.println(" null");
+                    break;
+            }
         }
         System.out.println();
 

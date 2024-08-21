@@ -1494,24 +1494,37 @@ public class IRGenerator {
             // rhs_id);
 
         } else if (node.oprand == BinaryOprand.LAnd) {// short circuit
-            String lhs_label = renameLabel("LAnd.Lhs"), rhs_label = renameLabel("LAnd.Rhs"),
-                    end_label = renameLabel("LAnd.End");
+            String entry_rhs_label = renameLabel("LAnd.Entry.Rhs"),
+                    end_label = renameLabel("LAnd.End"), exit_lhs_label = renameLabel("LAnd.Exit.Lhs"),
+                    exit_rhs_label = renameLabel("LAnd.Exit.Rhs");
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
-            IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
-            IRBrNode br_node = new IRBrNode();
-            br_node.label_true = lhs_label;
-            head = tail = br_node;
+            IRLabelNode entry_rhs_node = new IRLabelNode(),
+                    end_node = new IRLabelNode(), exit_lhs_node = new IRLabelNode(), exit_rhs_node = new IRLabelNode();
 
-            tail.next = lhs_node;
-            tail = lhs_node;
-            lhs_node.label = lhs_label;
+            // IRBrNode br_node = new IRBrNode();
+            // br_node.label_true = entry_lhs_label;
+            // head = tail = br_node;
+
+            // tail.next = entry_lhs_node;
+            // tail = entry_lhs_node;
+            // entry_lhs_node.label = entry_lhs_label;
             // System.out.println(lhs_label + ":");
             IRRetType lhs_id = visit(node.lhs);
-            tail.next = lhs_id.head;
+            head = lhs_id.head;
             tail = lhs_id.tail;
+
+            IRBrNode br_exit_lhs_node = new IRBrNode();
+            br_exit_lhs_node.label_true = exit_lhs_label;
+            tail.next = br_exit_lhs_node;
+            tail = br_exit_lhs_node;
+
+            exit_lhs_node.label = exit_lhs_label;
+            tail.next = exit_lhs_node;
+            tail = exit_lhs_node;
+
             IRBrNode br1_node = new IRBrNode();
-            br1_node.label_true = rhs_label;
+            br1_node.label_true = entry_rhs_label;
             br1_node.label_false = end_label;
             br1_node.cond = lhs_id.ret_id;
             tail.next = br1_node;
@@ -1520,13 +1533,23 @@ public class IRGenerator {
             // System.out.println("br i1 " + lhs_id + ", label %" + rhs_label + ", label %"
             // + end_label);
 
-            rhs_node.label = rhs_label;
-            tail.next = rhs_node;
-            tail = rhs_node;
+            entry_rhs_node.label = entry_rhs_label;
+            tail.next = entry_rhs_node;
+            tail = entry_rhs_node;
             // System.out.println(rhs_label + ":");
             IRRetType rhs_id = visit(node.rhs);
             tail.next = rhs_id.head;
             tail = rhs_id.tail;
+
+            IRBrNode br_exit_rhs_node = new IRBrNode();
+            br_exit_rhs_node.label_true = exit_rhs_label;
+            tail.next = br_exit_rhs_node;
+            tail = br_exit_rhs_node;
+
+            exit_rhs_node.label = exit_rhs_label;
+            tail.next = exit_rhs_node;
+            tail = exit_rhs_node;
+
             IRBrNode br2_node = new IRBrNode();
             br2_node.label_true = end_label;
             tail.next = br2_node;
@@ -1543,7 +1566,7 @@ public class IRGenerator {
             phi_node.tp = ret_tp;
             phi_node.result = ret_id;
             phi_node.vals = new String[] { "false", rhs_id.ret_id };
-            phi_node.labels = new String[] { lhs_label, rhs_label };
+            phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
             tail.next = phi_node;
             tail = phi_node;
             // System.out.println(ret_id + " = phi " + ret_tp + " [ false, %" + lhs_label +
@@ -1551,25 +1574,38 @@ public class IRGenerator {
             // + rhs_label + " ]");
 
         } else if (node.oprand == BinaryOprand.LOr) {// short circuit
-            String lhs_label = renameLabel("LOr.Lhs"), rhs_label = renameLabel("LOr.Rhs"),
-                    end_label = renameLabel("LOr.End");
+            String entry_rhs_label = renameLabel("LOr.Entry.Rhs"),
+                    end_label = renameLabel("LOr.End"), exit_lhs_label = renameLabel("LOr.Exit.Lhs"),
+                    exit_rhs_label = renameLabel("LOr.Exit.Rhs");
             // String tmp_ptr = ptrLocal();
             // System.out.println(tmp_ptr + " = alloca " + ret_tp);
-            IRLabelNode lhs_node = new IRLabelNode(), rhs_node = new IRLabelNode(), end_node = new IRLabelNode();
-            IRBrNode br_node = new IRBrNode();
-            br_node.label_true = lhs_label;
-            head = tail = br_node;
+            IRLabelNode entry_rhs_node = new IRLabelNode(),
+                    end_node = new IRLabelNode(), exit_lhs_node = new IRLabelNode(), exit_rhs_node = new IRLabelNode();
 
-            tail.next = lhs_node;
-            tail = lhs_node;
-            lhs_node.label = lhs_label;
+            // IRBrNode br_node = new IRBrNode();
+            // br_node.label_true = entry_lhs_label;
+            // head = tail = br_node;
+
+            // tail.next = entry_lhs_node;
+            // tail = entry_lhs_node;
+            // entry_lhs_node.label = entry_lhs_label;
             // System.out.println(lhs_label + ":");
             IRRetType lhs_id = visit(node.lhs);
-            tail.next = lhs_id.head;
+            head = lhs_id.head;
             tail = lhs_id.tail;
+
+            IRBrNode br_exit_lhs_node = new IRBrNode();
+            br_exit_lhs_node.label_true = exit_lhs_label;
+            tail.next = br_exit_lhs_node;
+            tail = br_exit_lhs_node;
+
+            exit_lhs_node.label = exit_lhs_label;
+            tail.next = exit_lhs_node;
+            tail = exit_lhs_node;
+
             IRBrNode br1_node = new IRBrNode();
             br1_node.label_true = end_label;
-            br1_node.label_false = rhs_label;
+            br1_node.label_false = entry_rhs_label;
             br1_node.cond = lhs_id.ret_id;
             tail.next = br1_node;
             tail = br1_node;
@@ -1577,13 +1613,23 @@ public class IRGenerator {
             // System.out.println("br i1 " + lhs_id + ", label %" + end_label + ", label %"
             // + rhs_label);
 
-            rhs_node.label = rhs_label;
-            tail.next = rhs_node;
-            tail = rhs_node;
+            entry_rhs_node.label = entry_rhs_label;
+            tail.next = entry_rhs_node;
+            tail = entry_rhs_node;
             // System.out.println(rhs_label + ":");
             IRRetType rhs_id = visit(node.rhs);
             tail.next = rhs_id.head;
             tail = rhs_id.tail;
+
+            IRBrNode br_exit_rhs_node = new IRBrNode();
+            br_exit_rhs_node.label_true = exit_rhs_label;
+            tail.next = br_exit_rhs_node;
+            tail = br_exit_rhs_node;
+
+            exit_rhs_node.label = exit_rhs_label;
+            tail.next = exit_rhs_node;
+            tail = exit_rhs_node;
+
             IRBrNode br2_node = new IRBrNode();
             br2_node.label_true = end_label;
             tail.next = br2_node;
@@ -1600,7 +1646,7 @@ public class IRGenerator {
             phi_node.tp = ret_tp;
             phi_node.result = ret_id;
             phi_node.vals = new String[] { "true", rhs_id.ret_id };
-            phi_node.labels = new String[] { lhs_label, rhs_label };
+            phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
             tail.next = phi_node;
             tail = phi_node;
             // System.out.println(ret_id + " = phi " + ret_tp + " [ true, %" + lhs_label + "
@@ -2305,13 +2351,15 @@ public class IRGenerator {
     }
 
     IRRetType visit(TernaryOpNode node) {
-        String true_label = renameLabel("Ternary.True"),
-                false_label = renameLabel("Ternary.False"), end_label = renameLabel("Ternary.End");
+        String entry_true_label = renameLabel("Ternary.Entry.True"),
+                entry_false_label = renameLabel("Ternary.Entry.False"), end_label = renameLabel("Ternary.End"),
+                exit_true_label = renameLabel("Ternary.Exit.True"),
+                exit_false_label = renameLabel("Ternary.Exit.False");
         String ret_id = renameIdLocal("TernaryRetVal");
         String ret_tp = node.type.getLLVMType();
 
-        IRLabelNode true_node = new IRLabelNode(), false_node = new IRLabelNode(),
-                end_node = new IRLabelNode();
+        IRLabelNode entry_true_node = new IRLabelNode(), entry_false_node = new IRLabelNode(),
+                end_node = new IRLabelNode(), exit_true_node = new IRLabelNode(), exit_false_node = new IRLabelNode();
         IRNode head = new IRNode(), tail = head;
 
         // cond_node.label = cond_label;
@@ -2321,21 +2369,30 @@ public class IRGenerator {
         tail.next = cond_id.head;
         tail = cond_id.tail;
         IRBrNode br1_node = new IRBrNode();
-        br1_node.label_true = true_label;
-        br1_node.label_false = false_label;
+        br1_node.label_true = entry_true_label;
+        br1_node.label_false = entry_false_label;
         br1_node.cond = cond_id.ret_id;
         tail.next = br1_node;
         tail = br1_node;
         // System.out.println("br i1 " + cond_id + ", label %" + true_label + ", label
         // %" + false_label);
 
-        true_node.label = true_label;
-        tail.next = true_node;
-        tail = true_node;
+        entry_true_node.label = entry_true_label;
+        tail.next = entry_true_node;
+        tail = entry_true_node;
         // System.out.println(true_label + ":");
         IRRetType true_id = visit(node.lhs);
         tail.next = true_id.head;
         tail = true_id.tail;
+
+        IRBrNode br_exit_true_node = new IRBrNode();
+        br_exit_true_node.label_true = exit_true_label;
+        tail.next = br_exit_true_node;
+        tail = br_exit_true_node;
+
+        exit_true_node.label = exit_true_label;
+        tail.next = exit_true_node;
+        tail = exit_true_node;
         // System.out.println("store " + ret_tp + " " + true_id + ", ptr " + tmp_ptr);
         IRBrNode br2_node = new IRBrNode();
         br2_node.label_true = end_label;
@@ -2343,13 +2400,22 @@ public class IRGenerator {
         tail = br2_node;
         // System.out.println("br label %" + end_label);
 
-        false_node.label = false_label;
-        tail.next = false_node;
-        tail = false_node;
+        entry_false_node.label = entry_false_label;
+        tail.next = entry_false_node;
+        tail = entry_false_node;
         // System.out.println(false_label + ":");
         IRRetType false_id = visit(node.rhs);
         tail.next = false_id.head;
         tail = false_id.tail;
+
+        IRBrNode br_exit_false_node = new IRBrNode();
+        br_exit_false_node.label_true = exit_false_label;
+        tail.next = br_exit_false_node;
+        tail = br_exit_false_node;
+
+        exit_false_node.label = exit_false_label;
+        tail.next = exit_false_node;
+        tail = exit_false_node;
         // System.out.println("store " + ret_tp + " " + false_id + ", ptr " + tmp_ptr);
         IRBrNode br3_node = new IRBrNode();
         br3_node.label_true = end_label;
@@ -2366,7 +2432,7 @@ public class IRGenerator {
         phi_node.tp = ret_tp;
         phi_node.result = ret_id;
         phi_node.vals = new String[] { true_id.ret_id, false_id.ret_id };
-        phi_node.labels = new String[] { true_label, false_label };
+        phi_node.labels = new String[] { exit_true_label, exit_false_label };
         tail.next = phi_node;
         tail = phi_node;
         // System.out.println(

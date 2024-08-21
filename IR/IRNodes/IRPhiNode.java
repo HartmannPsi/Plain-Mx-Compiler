@@ -11,6 +11,10 @@ public class IRPhiNode extends IRNode {
             return;
         }
 
+        if (tp.equals("void")) {
+            tp = "ptr";
+        }
+
         System.out.print(result + " = phi " + tp + " ");
         for (int i = 0; i != vals.length; ++i) {
             System.out.print("[ " + vals[i] + ", %" + labels[i] + " ]");
