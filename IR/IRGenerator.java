@@ -1025,8 +1025,8 @@ public class IRGenerator {
         ele_node.result = lvalue_ptr;
         ele_node.tp = node.type.getLLVMType();
         ele_node.ptr = arr_id.ret_id;
-        ele_node.tps = new String[] { "i32", "i32" };
-        ele_node.idxs = new String[] { "0", ser_id.ret_id };
+        ele_node.tps = new String[] { "i32" };
+        ele_node.idxs = new String[] { ser_id.ret_id };
         tail.next = ele_node;
         tail = ele_node;
 
@@ -2177,7 +2177,7 @@ public class IRGenerator {
         // cmp = icmp slt i32 tmp, size
         IRIcmpNode icmp_node = new IRIcmpNode();
         icmp_node.cond = "slt";
-        icmp_node.tp = "i1";
+        icmp_node.tp = "i32";
         icmp_node.op1 = tmp_var;
         icmp_node.op2 = size;
         String cmp = renameIdLocal("NewExprCmp");
