@@ -497,7 +497,7 @@ public class IRGenerator {
             cons_def_node.ids = new String[1];
             cons_def_node.tps = new String[1];
             cons_def_node.ids[0] = "%this";
-            cons_def_node.tps[0] = cls_rename;
+            cons_def_node.tps[0] = "ptr";
             IRLabelNode cons_label_node = new IRLabelNode();
             cons_label_node.label = renameLabel("Cons.Entry");
             cons_def_node.stmt = cons_label_node;
@@ -629,7 +629,7 @@ public class IRGenerator {
         arg_cnt = 0;
 
         if (node.father instanceof DefClassNode) {// add "this" pointer
-            String cls_tp = ((IdNode) ((DefClassNode) node.father).name).rename_id;
+            String cls_tp = "ptr";
             def_node.ids[arg_cnt] = "%this";
             def_node.tps[arg_cnt++] = cls_tp;
             // System.out.print(cls_tp + " %this");
@@ -1801,12 +1801,13 @@ public class IRGenerator {
             head = obj_id.head;
             tail = obj_id.tail;
 
-            IRLoadNode load_node = new IRLoadNode();
-            load_node.tp = root.rename_cls.get(((ExprNode) ((MemAccNode) node.id).object).type.id);
-            load_node.ptr = obj_id.ret_id;
-            load_node.result = renameIdLocal("FuncCallObj");
-            tail.next = load_node;
-            tail = load_node;
+            // IRLoadNode load_node = new IRLoadNode();
+            // load_node.tp = root.rename_cls.get(((ExprNode) ((MemAccNode)
+            // node.id).object).type.id);
+            // load_node.ptr = obj_id.ret_id;
+            // load_node.result = renameIdLocal("FuncCallObj");
+            // tail.next = load_node;
+            // tail = load_node;
 
             if (node.paras != null) {
                 call_node.args = new String[node.paras.length + 1];
@@ -1816,8 +1817,8 @@ public class IRGenerator {
                 call_node.tps = new String[1];
             }
 
-            call_node.args[0] = load_node.result;
-            call_node.tps[0] = root.rename_cls.get(((ExprNode) ((MemAccNode) node.id).object).type.id);
+            call_node.args[0] = obj_id.ret_id;
+            call_node.tps[0] = "ptr";
 
             if (node.paras != null) {
                 for (int i = 0; i != node.paras.length; ++i) {
@@ -1905,7 +1906,7 @@ public class IRGenerator {
                     }
 
                     call_node.args[0] = obj_id;
-                    call_node.tps[0] = ((IdNode) def_node.name).rename_id;
+                    call_node.tps[0] = "ptr";
 
                     if (node.paras != null) {
                         for (int i = 0; i != node.paras.length; ++i) {
