@@ -7,6 +7,7 @@ import util.error.error;
 import util.error.syntaxError;
 import defNodes.*;
 import IR.IRGenerator;
+import Codegen.ASMTransformer;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -52,9 +53,10 @@ public class Main {
             generator.generateIR();
             System.out.println("; IR Generation Done.\n");
 
-            generator.printIR();
+            // generator.printIR();
             // System.out.println("fuck");
             // System.out.println("IR Generation Done.");
+            ASMTransformer transformer = new ASMTransformer(generator.beg);
 
             System.exit(0);
 

@@ -18,7 +18,7 @@ public class IRGenerator {
     int id_serial = 0, label_serial = 0;
     Map<String, Map<String, Integer>> classes = new HashMap<>();
     String global_var_init = "@Global.Var.Init";
-    IRNode beg = null;
+    public IRNode beg = null;
     IRNode const_str_head = new IRNode(), const_str_tail = const_str_head;
     // String str = "ptr";
 
