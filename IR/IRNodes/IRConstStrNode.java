@@ -1,7 +1,7 @@
 package IR.IRNodes;
 
 public class IRConstStrNode extends IRNode {
-    public String result = null, literal = null;
+    public String result = null, literal = null, prac_val = null;
     public int length = 0;
 
     public void printToString() {

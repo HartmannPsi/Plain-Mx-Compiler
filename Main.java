@@ -38,25 +38,22 @@ public class Main {
             parser.removeErrorListeners();
             parser.addErrorListener(new MxErrorListener());
             MxParser.ProgContext parsetree_root = parser.prog();
+
             ASTConstructor constructor = new ASTConstructor();
             ast_root = (ProgNode) constructor.visit(parsetree_root);
-
-            // System.out.println("AST Done.");
+            System.out.println("; AST Construction Done.");
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-            System.out.println("; Semantic Check Done: No Error.");
-            // if (DEBUG)
-            // ast_root.printToString();
+            System.out.println("; Semantic Check Done.");
 
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
             System.out.println("; IR Generation Done.\n");
 
-            // generator.printIR();
-            // System.out.println("fuck");
-            // System.out.println("IR Generation Done.");
             ASMTransformer transformer = new ASMTransformer(generator.beg);
+            transformer.generateASM();
+            transformer.printASM();
 
             System.exit(0);
 
