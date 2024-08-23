@@ -2,7 +2,6 @@ package Codegen;
 
 import Codegen.ASMNodes.*;
 import IR.IRNodes.*;
-
 import java.util.Map;
 import java.util.HashMap;
 
@@ -10,7 +9,6 @@ public class ASMTransformer {
 
     IRNode ir_beg;
     ASMNode asm_beg = new ASMNode();
-    Map<String, Map<String, Integer>> funcs = new HashMap<>();
     int rename_serial = 0;
 
     public ASMTransformer(IRNode beg) {
@@ -18,7 +16,7 @@ public class ASMTransformer {
     }
 
     public void generateASM() {
-        visit(ir_beg, asm_beg, null, 0);
+        visit(ir_beg, asm_beg, new HashMap<>(), 0);
     }
 
     public void printASM() {
@@ -286,7 +284,103 @@ public class ASMTransformer {
     }
 
     void visit(IRCallNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+
+        int arg_cnt = (node.args == null ? 0 : node.args.length);
+        ASMNode tail = prev;
+
+        int ra_st_addr = var_map.get(node.result) + 4;
+        ASMRetType ret4 = getStackAddr(ra_st_addr, "t2");
+        tail.next = ret4.head;
+        tail = ret4.tail;
+        // t2 = ra_st_addr
+
+        for (int i = 0; i < arg_cnt && i < 8; ++i) {
+            ASMRetType ret = loadValue(var_map, "a" + i, node.args[i]);
+            tail.next = ret.head;
+            tail = ret.tail;
+        }
+        // a0-a7 = args[0-7]
+
+        int _total_mem = arg_cnt * 4;
+        while (_total_mem % 16 != 0) {
+            _total_mem += 4;
+        }
+
+        ASMRetType ret = appStackSpace(_total_mem);
+        tail.next = ret.head;
+        tail = ret.tail;
+
+        Map<String, Integer> _var_map = new HashMap<>();
+        int addr = 0;
+
+        for (int i = 0; i < arg_cnt; ++i) {
+            _var_map.put(node.args[i], addr);
+            addr += 4;
+        }
+
+        for (int i = 0; i < arg_cnt; ++i) {
+            ASMRetType ret2 = getStackAddr(_var_map.get(node.args[i]), "t0");
+            tail.next = ret2.head;
+            tail = ret2.tail;
+            // t0 -> arg[i]
+
+            ASMRetType ret3 = loadValue(var_map, "t1", node.args[i]);
+            tail.next = ret3.head;
+            tail = ret3.tail;
+            // t1 = arg[i]
+
+            ASMSwNode sw_node = new ASMSwNode();
+            sw_node.rs1 = "t0";
+            sw_node.rs2 = "t1";
+            sw_node.imm = "0";
+            ret3.tail.next = sw_node;
+            tail = sw_node;
+            // [t0] = t1
+        }
+        // [sp + 4 * i] = args[i]
+
+        ASMSwNode sw_node2 = new ASMSwNode();
+        sw_node2.rs1 = "t2";
+        sw_node2.rs2 = "ra";
+        sw_node2.imm = "0";
+        tail.next = sw_node2;
+        tail = sw_node2;
+        // [t2] = ra
+
+        ASMCallNode call_node = new ASMCallNode();
+        call_node.label = node.func_name.substring(1, node.func_name.length());
+        tail.next = call_node;
+        tail = call_node;
+        // call func_name
+
+        int ret_st_addr = var_map.get(node.result);
+        ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
+        tail.next = ret5.head;
+        tail = ret5.tail;
+        // t2 = ret_st_addr
+
+        ASMSwNode sw_node3 = new ASMSwNode();
+        sw_node3.rs1 = "t2";
+        sw_node3.rs2 = "a0";
+        sw_node3.imm = "0";
+        tail.next = sw_node3;
+        tail = sw_node3;
+        // [t2] = a0
+
+        ASMRetType ret6 = getStackAddr(ret_st_addr + 4, "t2");
+        tail.next = ret6.head;
+        tail = ret6.tail;
+        // t2 = ret_st_addr + 4 = ra_st_addr
+
+        ASMLwNode lw_node = new ASMLwNode();
+        lw_node.rd = "ra";
+        lw_node.imm = "0";
+        lw_node.rs1 = "t2";
+        tail.next = lw_node;
+        tail = lw_node;
+        // ra = [t2]
+
+        visit(node.next, tail, var_map, total_mem);
     }
 
     void visit(IRConstStrNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
@@ -327,12 +421,12 @@ public class ASMTransformer {
 
         int addr = 0;
 
-        if (def_node.ids != null) {
-            for (int i = 0; i != def_node.ids.length; ++i) {
-                map.put(def_node.ids[i], addr);
-                addr += 4;
-            }
-        }
+        // if (def_node.ids != null) {
+        // for (int i = 0; i != def_node.ids.length; ++i) {
+        // map.put(def_node.ids[i], addr);
+        // addr += 4;
+        // }
+        // }
 
         for (IRNode node = def_node.stmt; node != null; node = node.next) {
 
@@ -351,13 +445,9 @@ public class ASMTransformer {
             } else if (node instanceof IRCallNode) {
                 IRCallNode call_node = (IRCallNode) node;
                 map.put(call_node.result, addr);
-                if (call_node.result != null) {
-                    addr += 8;
-                } else {
-                    addr += 4;
-                }
-                // ra: addr
-                // result: addr + 4
+                addr += 8;
+                // ra: addr + 4
+                // result: addr
 
             } else if (node instanceof IRGetEleNode) {
                 IRGetEleNode ele_node = (IRGetEleNode) node;
@@ -468,21 +558,38 @@ public class ASMTransformer {
     void visit(IRDefFuncNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
 
         String func_name = node.func_name.substring(1, node.func_name.length());
-        funcs.put(func_name, new HashMap<>());
-        Map<String, Integer> _var_map = funcs.get(func_name);
-        int _total_mem = collectVars(var_map, node);
+        // funcs.put(func_name, new HashMap<>());
 
-        ASMRetType ret = appStackSpace(total_mem);
-        prev.next = ret.head;
+        int args_total_mem = (node.ids == null ? 0 : node.ids.length) * 4;
+        while (args_total_mem % 16 != 0) {
+            args_total_mem += 4;
+        }
+        // the size of the stack space for the arguments
+
+        Map<String, Integer> _var_map = new HashMap<>();
+        int _total_mem = collectVars(_var_map, node);
+        // the size of the stack space for the variables
+
+        int addr = 0;
+        for (int i = 0; i != args_total_mem; i += 4) {
+            String arg = node.ids[i];
+            _var_map.put(arg, addr + _total_mem);
+            addr += 4;
+            // arg[i] -> sp + _total_mem + i
+        }
 
         ASMDotInstNode dot_node = new ASMDotInstNode();
         dot_node.inst = ".globl";
         dot_node.arg1 = func_name;
-        ret.tail.next = dot_node;
+        prev.next = dot_node;
 
         ASMLabelNode label_node = new ASMLabelNode();
         label_node.label = func_name;
         dot_node.next = label_node;
+
+        ASMRetType ret = appStackSpace(_total_mem);
+        label_node.next = ret.head;
+        // allocate stack space
 
         visit(node.stmt, label_node, _var_map, _total_mem);
 
@@ -565,7 +672,130 @@ public class ASMTransformer {
     }
 
     void visit(IRIcmpNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+        ASMRetType ret_op1 = loadValue(var_map, "t0", node.op1);
+        prev.next = ret_op1.head;
+        // t0 = op1
+
+        ASMRetType ret_op2 = loadValue(var_map, "t1", node.op2);
+        ret_op1.tail.next = ret_op2.head;
+        // t1 = op2
+        ASMNode tail;
+
+        switch (node.cond) {
+            case "eq":// ==
+                ASMArithNode arith_node = new ASMArithNode();
+                arith_node.op = "xor";
+                arith_node.rd = "t0";
+                arith_node.rs1 = "t0";
+                arith_node.rs2 = "t1";
+                ret_op2.tail.next = arith_node;
+                // t0 = t0 ^ t1
+
+                ASMArithImmNode arith_node7 = new ASMArithImmNode();
+                arith_node7.op = "seqz";
+                arith_node7.rd = "t0";
+                arith_node7.rs1 = "t0";
+                arith_node.next = arith_node7;
+                // t0 = t0 == 0
+                tail = arith_node7;
+                break;
+
+            case "ne":// !=
+                ASMArithNode arith_node8 = new ASMArithNode();
+                arith_node8.op = "xor";
+                arith_node8.rd = "t0";
+                arith_node8.rs1 = "t0";
+                arith_node8.rs2 = "t1";
+                ret_op2.tail.next = arith_node8;
+                // t0 = t0 ^ t1
+
+                ASMArithImmNode arith_node9 = new ASMArithImmNode();
+                arith_node9.op = "snez";
+                arith_node9.rd = "t0";
+                arith_node9.rs1 = "t0";
+                arith_node8.next = arith_node9;
+                // t0 = t0 != 0
+                tail = arith_node9;
+                break;
+
+            case "slt":// <
+                ASMArithNode arith_node1 = new ASMArithNode();
+                arith_node1.op = "slt";
+                arith_node1.rd = "t0";
+                arith_node1.rs1 = "t0";
+                arith_node1.rs2 = "t1";
+                ret_op2.tail.next = arith_node1;
+                // t0 = t0 < t1
+                tail = arith_node1;
+                break;
+
+            case "sgt":// >
+                ASMArithNode arith_node2 = new ASMArithNode();
+                arith_node2.op = "slt";
+                arith_node2.rd = "t0";
+                arith_node2.rs1 = "t1";
+                arith_node2.rs2 = "t0";
+                ret_op2.tail.next = arith_node2;
+                // t0 = t1 < t0
+                tail = arith_node2;
+                break;
+
+            case "sle":// <=
+                ASMArithNode arith_node3 = new ASMArithNode();
+                arith_node3.op = "slt";
+                arith_node3.rd = "t0";
+                arith_node3.rs1 = "t1";
+                arith_node3.rs2 = "t0";
+                ret_op2.tail.next = arith_node3;
+                // t0 = t1 < t0
+
+                ASMArithImmNode arith_node4 = new ASMArithImmNode();
+                arith_node4.op = "xori";
+                arith_node4.rd = "t0";
+                arith_node4.rs1 = "t0";
+                arith_node4.imm = "1";
+                arith_node3.next = arith_node4;
+                // t0 = t0 ^ 1
+                tail = arith_node4;
+                break;
+
+            case "sge":// >=
+                ASMArithNode arith_node5 = new ASMArithNode();
+                arith_node5.op = "slt";
+                arith_node5.rd = "t0";
+                arith_node5.rs1 = "t0";
+                arith_node5.rs2 = "t1";
+                ret_op2.tail.next = arith_node5;
+                // t0 = t0 < t1
+
+                ASMArithImmNode arith_node6 = new ASMArithImmNode();
+                arith_node6.op = "xori";
+                arith_node6.rd = "t0";
+                arith_node6.rs1 = "t0";
+                arith_node6.imm = "1";
+                arith_node5.next = arith_node6;
+                // t0 = t0 ^ 1
+                tail = arith_node6;
+                break;
+
+            default:
+                throw new RuntimeException("Unknown condition code: " + node.cond);
+        }
+        // t0 = value
+
+        int addr = var_map.get(node.result);
+        ASMRetType ret = getStackAddr(addr, "t1");
+        tail.next = ret.head;
+        // t1 -> result
+
+        ASMSwNode sw_node = new ASMSwNode();
+        sw_node.rs1 = "t1";
+        sw_node.rs2 = "t0";
+        sw_node.imm = "0";
+        ret.tail.next = sw_node;
+        // [t1] = t0
+
+        visit(node.next, sw_node, var_map, total_mem);
     }
 
     void visit(IRLabelNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
@@ -577,7 +807,30 @@ public class ASMTransformer {
     }
 
     void visit(IRLoadNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+        ASMRetType ret = loadValue(var_map, "t0", node.ptr);
+        prev.next = ret.head;
+        // t0 = ptr
+
+        ASMLwNode lw_node = new ASMLwNode();
+        lw_node.rd = "t1";
+        lw_node.imm = "0";
+        lw_node.rs1 = "t0";
+        ret.tail.next = lw_node;
+        // t1 = [t0]
+
+        int addr = var_map.get(node.result);
+        ASMRetType ret2 = getStackAddr(addr, "t0");
+        lw_node.next = ret2.head;
+        // t0 -> result
+
+        ASMSwNode sw_node = new ASMSwNode();
+        sw_node.rs1 = "t0";
+        sw_node.rs2 = "t1";
+        sw_node.imm = "0";
+        ret2.tail.next = sw_node;
+        // [t0] = t1
+
+        visit(node.next, sw_node, var_map, total_mem);
     }
 
     void visit(IRNLNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
@@ -588,18 +841,98 @@ public class ASMTransformer {
     }
 
     void visit(IRPhiNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+        // TODO: sth left for optimization
     }
 
     void visit(IRRetNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+        ASMRetType ret = loadValue(var_map, "a0", node.val);
+        prev.next = ret.head;
+        // a0 = ret value
+
+        ASMRetType ret2 = releaseStackSpace(total_mem);
+        ret.tail.next = ret2.head;
+        // release stack space
+
+        ASMRetNode ret_node = new ASMRetNode();
+        ret2.tail.next = ret_node;
+
+        visit(node.next, ret_node, var_map, total_mem);
     }
 
     void visit(IRSelectNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+
+        // ASMRetType ret_v2 = loadValue(var_map, "t1", node.val2);
+        // ret_v1.tail.next = ret_v2.head;
+        // t1 = val2 false_val
+
+        ASMRetType ret_cond = loadValue(var_map, "t2", node.cond);
+        prev.next = ret_cond.head;
+        // t2 = cond
+
+        String nez_label = RenameLabel("Nez");
+        String end_label = RenameLabel("End");
+
+        ASMBrNode br_node = new ASMBrNode();
+        br_node.rs1 = "t2";
+        br_node.op = "bnez";
+        br_node.label = nez_label;
+        ret_cond.tail.next = br_node;
+        // if t2 != 0 (i.e., t2 == true) then j nez
+
+        ASMRetType ret_v2 = loadValue(var_map, "t0", node.val2);
+        br_node.next = ret_v2.head;
+        // t0 = val2 false_val (if t2 == false)
+
+        ASMJNode j_node = new ASMJNode();
+        j_node.label = end_label;
+        ret_v2.tail.next = j_node;
+        // j end
+
+        ASMLabelNode label_node = new ASMLabelNode();
+        label_node.label = nez_label;
+        j_node.next = label_node;
+        // nez:
+
+        ASMRetType ret_v1 = loadValue(var_map, "t0", node.val1);
+        label_node.next = ret_v1.head;
+        // t0 = val1 true_val
+
+        ASMLabelNode label_node2 = new ASMLabelNode();
+        label_node2.label = end_label;
+        ret_v1.tail.next = label_node2;
+        // end:
+
+        int addr = var_map.get(node.result);
+        ASMRetType ret = getStackAddr(addr, "t1");
+        label_node2.next = ret.head;
+        // t1 -> result
+
+        ASMSwNode sw_node = new ASMSwNode();
+        sw_node.rs1 = "t1";
+        sw_node.rs2 = "t0";
+        sw_node.imm = "0";
+        ret.tail.next = sw_node;
+        // [t1] = t0
+
+        visit(node.next, sw_node, var_map, total_mem);
     }
 
     void visit(IRStoreNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        // TODO:
+        ASMRetType ret = loadValue(var_map, "t0", node.ptr);
+        prev.next = ret.head;
+        // t0 = ptr
+
+        ASMRetType ret2 = loadValue(var_map, "t1", node.value);
+        ret.tail.next = ret2.head;
+        // t1 = val
+
+        ASMSwNode sw_node = new ASMSwNode();
+        sw_node.rs1 = "t0";
+        sw_node.rs2 = "t1";
+        sw_node.imm = "0";
+        ret2.tail.next = sw_node;
+        // [t0] = t1
+
+        visit(node.next, sw_node, var_map, total_mem);
     }
 }

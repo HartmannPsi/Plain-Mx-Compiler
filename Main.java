@@ -50,10 +50,11 @@ public class Main {
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
             System.out.println("; IR Generation Done.\n");
+            generator.printIR();
 
-            ASMTransformer transformer = new ASMTransformer(generator.beg);
-            transformer.generateASM();
-            transformer.printASM();
+            // ASMTransformer transformer = new ASMTransformer(generator.beg);
+            // transformer.generateASM();
+            // transformer.printASM();
 
             System.exit(0);
 
