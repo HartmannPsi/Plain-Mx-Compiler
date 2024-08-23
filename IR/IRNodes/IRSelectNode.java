@@ -5,10 +5,10 @@ public class IRSelectNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println(result + " = select i1 " + cond + ", " + tp + " " + val1 + ", " + tp + " " + val2);
         printNext();

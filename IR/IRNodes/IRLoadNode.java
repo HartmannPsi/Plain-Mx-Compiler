@@ -5,10 +5,10 @@ public class IRLoadNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println(result + " = load " + tp + ", ptr " + ptr);
         printNext();

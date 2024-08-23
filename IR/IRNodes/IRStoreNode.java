@@ -5,10 +5,10 @@ public class IRStoreNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println("store " + tp + " " + value + ", ptr " + ptr);
         printNext();

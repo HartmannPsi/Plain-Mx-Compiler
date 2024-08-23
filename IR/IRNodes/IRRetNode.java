@@ -5,10 +5,10 @@ public class IRRetNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.print("ret " + tp);
         if (val != null) {
@@ -16,7 +16,7 @@ public class IRRetNode extends IRNode {
         } else {
             System.out.println();
         }
-        shadow = true;
+        // shadow = true;
 
         printNext();
     }

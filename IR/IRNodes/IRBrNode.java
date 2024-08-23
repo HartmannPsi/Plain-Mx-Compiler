@@ -5,17 +5,17 @@ public class IRBrNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         if (cond != null) {
             System.out.println("br i1 " + cond + ", label %" + label_true + ", label %" + label_false);
         } else {
             System.out.println("br label %" + label_true);
         }
-        shadow = true;
+        // shadow = true;
 
         printNext();
     }

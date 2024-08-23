@@ -5,10 +5,10 @@ public class IRIcmpNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println(result + " = icmp " + cond + " " + tp + " " + op1 + ", " + op2);
         printNext();

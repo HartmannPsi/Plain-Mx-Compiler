@@ -6,12 +6,12 @@ public class IRDclFuncNode extends IRNode {
 
     public void printToString() {
 
-        shadow = false;
+        // shadow = false;
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.print("declare dso_local " + result_tp + " " + func_name + "(");
         if (tps != null) {

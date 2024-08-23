@@ -7,12 +7,12 @@ public class IRDefFuncNode extends IRNode {
 
     public void printToString() {
 
-        shadow = false;
+        // shadow = false;
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.print("define dso_local " + result_tp + " " + func_name + "(");
 

@@ -6,10 +6,10 @@ public class IRGetEleNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.print(result + " = getelementptr " + tp + ", ptr " + ptr + ", ");
         for (int i = 0; i != tps.length; ++i) {

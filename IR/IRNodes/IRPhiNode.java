@@ -6,10 +6,10 @@ public class IRPhiNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         if (tp.equals("void")) {
             tp = "ptr";

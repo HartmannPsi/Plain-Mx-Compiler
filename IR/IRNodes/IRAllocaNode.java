@@ -5,10 +5,10 @@ public class IRAllocaNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println(result + " = alloca " + tp);
         printNext();

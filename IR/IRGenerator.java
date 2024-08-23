@@ -34,6 +34,10 @@ public class IRGenerator {
         beg.printToString();
     }
 
+    public void disposeIR() {
+        beg = beg.dispose();
+    }
+
     int getIdSerial() {
         return id_serial++;
     }
@@ -1583,8 +1587,8 @@ public class IRGenerator {
             // phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
             // tail.next = phi_node;
             // tail = phi_node;
-            // TODO: replace phi with select
 
+            // replace phi with select
             IRSelectNode select_node = new IRSelectNode();
             select_node.tp = ret_tp;
             select_node.result = ret_id;

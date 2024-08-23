@@ -5,10 +5,10 @@ public class IRBinaryNode extends IRNode {
 
     public void printToString() {
 
-        if (shadow) {
-            printNext();
-            return;
-        }
+        // if (shadow) {
+        // printNext();
+        // return;
+        // }
 
         System.out.println(result + " = " + operator + " " + tp + " " + op1 + ", " + op2);
         printNext();
