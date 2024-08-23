@@ -1,10 +1,11 @@
 package Codegen.ASMNodes;
 
 public class ASMLaNode extends ASMNode {
-    public String rd = null, symbol = null;
+    public String rd = null, label = null;
 
     public void printToString() {
-        System.out.println("la " + rd + ", " + symbol);
+        printRetract();
+        System.out.println("la " + rd + ", " + label);
         printNext();
     }
 }

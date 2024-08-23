@@ -13,4 +13,8 @@ public class IRIcmpNode extends IRNode {
         System.out.println(result + " = icmp " + cond + " " + tp + " " + op1 + ", " + op2);
         printNext();
     }
+
+    public String toString() {
+        return result + " = icmp " + cond + " " + tp + " " + op1 + ", " + op2;
+    }
 }

@@ -4,6 +4,8 @@ public class ASMArithImmNode extends ASMNode {
     public String rd = null, rs1 = null, imm = null, op = null;
 
     public void printToString() {
+
+        printRetract();
         System.out.print(op + " " + rd +
                 ", " + rs1);
         if (imm != null) {

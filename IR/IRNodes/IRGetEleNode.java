@@ -22,4 +22,16 @@ public class IRGetEleNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+
+        String ret = result + " = getelementptr " + tp + ", ptr " + ptr + ", ";
+        for (int i = 0; i != tps.length; ++i) {
+            ret += tps[i] + " " + idxs[i];
+            if (i != tps.length - 1) {
+                ret += ", ";
+            }
+        }
+        return ret;
+    }
 }

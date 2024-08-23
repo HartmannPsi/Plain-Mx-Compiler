@@ -14,17 +14,9 @@ public class Main {
 
         ArgumentParser arg_parser = new ArgumentParser(args);
         InputStream input = arg_parser.getInputStream();
-        PrintStream output = arg_parser.getOutputStream();
         boolean DEBUG = arg_parser.isDebug();
-        // System.out.println("; " + DEBUG);
 
-        // InputStream input = System.in;
         if (DEBUG) {
-            // String filename = "test.mx";
-            // input = new FileInputStream(filename);
-            // PrintStream out = new PrintStream(new FileOutputStream("test.ll"));
-            // System.out.println("Debug Mode");
-            System.setOut(output);
             System.setErr(arg_parser.getErrorStream());
         }
 
@@ -41,6 +33,11 @@ public class Main {
 
             ASTConstructor constructor = new ASTConstructor();
             ast_root = (ProgNode) constructor.visit(parsetree_root);
+
+            if (DEBUG) {
+                System.setOut(new PrintStream(arg_parser.getLLVMStream()));
+            }
+
             System.out.println("; AST Construction Done.");
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
@@ -51,11 +48,21 @@ public class Main {
             generator.generateIR();
             System.out.println("; IR Generation Done.\n");
             generator.disposeIR();
-            generator.printIR();
+            // generator.printIR();
 
-            // ASMTransformer transformer = new ASMTransformer(generator.beg);
-            // transformer.generateASM();
-            // transformer.printASM();
+            if (DEBUG) {
+                generator.printIR();
+            }
+
+            if (DEBUG) {
+                System.setOut(new PrintStream(arg_parser.getASMStream()));
+            }
+
+            ASMTransformer transformer = new ASMTransformer(generator.beg);
+            transformer.generateASM();
+            System.out.println("# ASM Generation Done.\n");
+
+            transformer.printASM();
 
             System.exit(0);
 

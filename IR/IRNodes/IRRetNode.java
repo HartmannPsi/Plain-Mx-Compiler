@@ -20,4 +20,12 @@ public class IRRetNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+        if (val == null) {
+            return "ret " + tp;
+        } else {
+            return "ret " + tp + " " + val;
+        }
+    }
 }

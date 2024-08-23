@@ -33,4 +33,19 @@ public class IRDefFuncNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+        String res = "define dso_local " + result_tp + " " + func_name + "(";
+
+        if (tps != null) {
+            for (int i = 0; i != tps.length; ++i) {
+                res += tps[i] + " " + ids[i];
+                if (i != tps.length - 1) {
+                    res += ", ";
+                }
+            }
+        }
+        res += ") { ... }";
+        return res;
+    }
 }

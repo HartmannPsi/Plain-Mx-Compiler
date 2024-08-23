@@ -27,4 +27,18 @@ public class IRDefClsNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+        String res = cls_name + " = type { ";
+        if (tps != null) {
+            for (int i = 0; i < tps.length; i++) {
+                res += tps[i];
+                if (i != tps.length - 1) {
+                    res += ", ";
+                }
+            }
+        }
+        res += " }";
+        return res;
+    }
 }

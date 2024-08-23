@@ -17,4 +17,7 @@ public class IRConstStrNode extends IRNode {
         printNext();
     }
 
+    public String toString() {
+        return result + " = private unnamed_addr constant [" + length + " x i8] c\"" + literal + "\\00\"";
+    }
 }

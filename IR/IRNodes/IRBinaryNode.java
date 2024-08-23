@@ -13,4 +13,8 @@ public class IRBinaryNode extends IRNode {
         System.out.println(result + " = " + operator + " " + tp + " " + op1 + ", " + op2);
         printNext();
     }
+
+    public String toString() {
+        return result + " = " + operator + " " + tp + " " + op1 + ", " + op2;
+    }
 }

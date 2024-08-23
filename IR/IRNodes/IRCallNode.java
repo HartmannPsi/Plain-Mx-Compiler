@@ -29,4 +29,26 @@ public class IRCallNode extends IRNode {
         System.out.println(")");
         printNext();
     }
+
+    public String toString() {
+
+        String ret;
+
+        if (res_tp.equals("void")) {
+            ret = "call void " + func_name + "(";
+        } else {
+            ret = result + " = call " + res_tp + " " + func_name + "(";
+        }
+
+        if (args != null) {
+            for (int i = 0; i != args.length; ++i) {
+                ret += tps[i] + " " + args[i];
+                if (i != args.length - 1) {
+                    ret += ", ";
+                }
+            }
+        }
+
+        return ret + ")";
+    }
 }

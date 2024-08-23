@@ -8,6 +8,10 @@ public class IRNode {
         printNext();
     }
 
+    public String toString() {
+        return "[ Basic Type ]";
+    }
+
     public IRNode dispose() {
 
         if (this instanceof IRConstStrNode || this instanceof IRDclFuncNode || this instanceof IRDefClsNode

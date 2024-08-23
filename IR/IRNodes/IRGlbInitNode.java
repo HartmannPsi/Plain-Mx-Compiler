@@ -35,4 +35,25 @@ public class IRGlbInitNode extends IRNode {
         printNext();
     }
 
+    public String toString() {
+        String tmp;
+        if (val == null) {
+            switch (tp) {
+                case "i32":
+                    tmp = "0";
+                    break;
+
+                case "i1":
+                    tmp = "true";
+                    break;
+
+                default:
+                    tmp = "null";
+                    break;
+            }
+        } else {
+            tmp = val;
+        }
+        return result + " = global " + tp + " " + tmp;
+    }
 }

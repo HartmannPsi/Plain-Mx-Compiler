@@ -13,4 +13,8 @@ public class IRSelectNode extends IRNode {
         System.out.println(result + " = select i1 " + cond + ", " + tp + " " + val1 + ", " + tp + " " + val2);
         printNext();
     }
+
+    public String toString() {
+        return result + " = select i1 " + cond + ", " + tp + " " + val1 + ", " + tp + " " + val2;
+    }
 }

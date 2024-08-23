@@ -19,11 +19,12 @@ public class IRGenerator {
     Map<String, Map<String, Integer>> classes = new HashMap<>();
     String global_var_init = "@Global.Var.Init";
     public IRNode beg = null;
-    IRNode const_str_head = new IRNode(), const_str_tail = const_str_head;
+    IRNode const_str_head = new IRSectionNode(), const_str_tail = const_str_head;
     // String str = "ptr";
 
     public IRGenerator(ProgNode root) {
         this.root = root;
+        ((IRSectionNode) const_str_head).section = ".rodata";
     }
 
     public void generateIR() {
@@ -36,6 +37,30 @@ public class IRGenerator {
 
     public void disposeIR() {
         beg = beg.dispose();
+        IRSectionNode section_node = new IRSectionNode();
+        section_node.section = ".text";
+        section_node.next = beg;
+        beg = section_node;
+        collectGlb();
+    }
+
+    void collectGlb() {
+        IRSectionNode glb_section = new IRSectionNode();
+        glb_section.section = ".data";
+        IRNode head = glb_section, tail = glb_section;
+        IRNode ptr, prev;
+
+        for (ptr = prev = beg; ptr != null; prev = ptr, ptr = ptr.next) {
+            if (ptr instanceof IRGlbInitNode) {
+                tail.next = ptr;
+                tail = ptr;
+                prev.next = ptr.next;
+                tail.next = null;
+                ptr = prev;
+            }
+        }
+
+        prev.next = head;
     }
 
     int getIdSerial() {

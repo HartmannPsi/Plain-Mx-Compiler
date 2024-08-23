@@ -9,4 +9,7 @@ public class IRDebugNode extends IRNode {
         printNext();
     }
 
+    public String toString() {
+        return message;
+    }
 }

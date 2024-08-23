@@ -19,4 +19,12 @@ public class IRBrNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+        if (cond != null) {
+            return "br i1 " + cond + ", label %" + label_true + ", label %" + label_false;
+        } else {
+            return "br label %" + label_true;
+        }
+    }
 }

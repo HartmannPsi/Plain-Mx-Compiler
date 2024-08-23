@@ -26,4 +26,15 @@ public class IRPhiNode extends IRNode {
 
         printNext();
     }
+
+    public String toString() {
+        String ret = result + " = phi " + tp + " ";
+        for (int i = 0; i != vals.length; ++i) {
+            ret += "[ " + vals[i] + ", %" + labels[i] + " ]";
+            if (i != vals.length - 1) {
+                ret += ", ";
+            }
+        }
+        return ret;
+    }
 }

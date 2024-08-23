@@ -23,53 +23,66 @@ public class ASMTransformer {
         asm_beg.printToString();
     }
 
-    String RenameLabel(String label) {
+    String renameLabel(String label) {
         return "Label.ASM.Rename." + label + "." + rename_serial++;
+    }
+
+    String renameVar(String label) {
+        return "Var.ASM.Rename." + label + "." + rename_serial++;
     }
 
     void visit(IRNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
 
-        if (node instanceof IRAllocaNode) {
-            visit((IRAllocaNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRBinaryNode) {
-            visit((IRBinaryNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRBrNode) {
-            visit((IRBrNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRCallNode) {
-            visit((IRCallNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRConstStrNode) {
-            visit((IRConstStrNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRDclFuncNode) {
-            visit((IRDclFuncNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRDebugNode) {
-            visit((IRDebugNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRDefClsNode) {
-            visit((IRDefClsNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRDefFuncNode) {
-            visit((IRDefFuncNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRGetEleNode) {
-            visit((IRGetEleNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRGlbInitNode) {
-            visit((IRGlbInitNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRIcmpNode) {
-            visit((IRIcmpNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRLabelNode) {
-            visit((IRLabelNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRLoadNode) {
-            visit((IRLoadNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRNLNode) {
-            visit((IRNLNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRPhiNode) {
-            visit((IRPhiNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRRetNode) {
-            visit((IRRetNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRSelectNode) {
-            visit((IRSelectNode) node, prev, var_map, total_mem);
-        } else if (node instanceof IRStoreNode) {
-            visit((IRStoreNode) node, prev, var_map, total_mem);
-        } else if (node == null) {
+        if (node == null) {
             return;
+        }
+
+        ASMCommNode comm_node = new ASMCommNode();
+        comm_node.message = "\n# " + node.toString();
+        prev.next = comm_node;
+
+        if (node instanceof IRAllocaNode) {
+            visit((IRAllocaNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRBinaryNode) {
+            visit((IRBinaryNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRBrNode) {
+            visit((IRBrNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRCallNode) {
+            visit((IRCallNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRConstStrNode) {
+            visit((IRConstStrNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRDclFuncNode) {
+            visit((IRDclFuncNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRDebugNode) {
+            visit((IRDebugNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRDefClsNode) {
+            visit((IRDefClsNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRDefFuncNode) {
+            visit((IRDefFuncNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRGetEleNode) {
+            visit((IRGetEleNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRGlbInitNode) {
+            visit((IRGlbInitNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRIcmpNode) {
+            visit((IRIcmpNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRLabelNode) {
+            visit((IRLabelNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRLoadNode) {
+            visit((IRLoadNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRNLNode) {
+            visit((IRNLNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRPhiNode) {
+            visit((IRPhiNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRRetNode) {
+            visit((IRRetNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRSelectNode) {
+            visit((IRSelectNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRStoreNode) {
+            visit((IRStoreNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRSectionNode) {
+            visit((IRSectionNode) node, comm_node, var_map, total_mem);
         } else {
+            prev.next = null;
             visit(node.next, prev, var_map, total_mem);
         }
     }
@@ -99,6 +112,13 @@ public class ASMTransformer {
 
     boolean isNull(String str) {
         if (str.equals("null")) {
+            return true;
+        }
+        return false;
+    }
+
+    boolean isStr(String str) {
+        if (str.contains("String")) {
             return true;
         }
         return false;
@@ -143,13 +163,23 @@ public class ASMTransformer {
             return new ASMRetType(li_node, li_node);
 
         } else if (isGlobal(var)) {
-            ASMLwNode lw_node = new ASMLwNode();
-            lw_node.rd = reg;
-            lw_node.imm = var.substring(1, var.length());
-            return new ASMRetType(lw_node, lw_node);
+
+            if (isStr(var)) {
+                ASMLaNode la_node = new ASMLaNode();
+                la_node.rd = reg;
+                la_node.label = var.substring(1, var.length());
+                return new ASMRetType(la_node, la_node);
+
+            } else {
+                ASMLwNode lw_node = new ASMLwNode();
+                lw_node.rd = reg;
+                lw_node.imm = var.substring(1, var.length());
+                return new ASMRetType(lw_node, lw_node);
+            }
             // pseudo op
 
         } else if (isLocal(var)) {
+
             int addr = var_map.get(var);
             ASMRetType ret = getStackAddr(addr, reg);
             // reg -> value
@@ -250,7 +280,7 @@ public class ASMTransformer {
 
         } else {
 
-            String true_tmp_label = RenameLabel("True_tmp");
+            String true_tmp_label = renameLabel("True_tmp");
 
             ASMRetType ret = loadValue(var_map, "t0", node.cond);
             prev.next = ret.head;
@@ -283,6 +313,23 @@ public class ASMTransformer {
         }
     }
 
+    boolean isBuiltin(String func_name) {
+        if (func_name.equals("@print") || func_name.equals("@println") || func_name.equals("@printInt")
+                || func_name.equals("@printlnInt") || func_name.equals("@getString") || func_name.equals("@getInt")
+                || func_name.equals("@toString") || func_name.equals("@boolToString")
+                || func_name.equals("@string.length")
+                || func_name.equals("@string.substring")
+                || func_name.equals("@string.parseInt") || func_name.equals("@string.ord")
+                || func_name.equals("@string.add") || func_name.equals("@string.eq")
+                || func_name.equals("@string.ne") || func_name.equals("@string.lt")
+                || func_name.equals("@string.le") || func_name.equals("@string.gt")
+                || func_name.equals("@string.ge") || func_name.equals("@array.malloc")
+                || func_name.equals("@array.size") || func_name.equals("@malloc")) {
+            return true;
+        }
+        return false;
+    }
+
     void visit(IRCallNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
 
         int arg_cnt = (node.args == null ? 0 : node.args.length);
@@ -305,39 +352,42 @@ public class ASMTransformer {
         while (_total_mem % 16 != 0) {
             _total_mem += 4;
         }
+        // the size of the stack space for the arguments
 
-        ASMRetType ret = appStackSpace(_total_mem);
-        tail.next = ret.head;
-        tail = ret.tail;
+        if (!isBuiltin(node.func_name)) {
+            ASMRetType ret = appStackSpace(_total_mem);
+            tail.next = ret.head;
+            tail = ret.tail;
 
-        Map<String, Integer> _var_map = new HashMap<>();
-        int addr = 0;
+            Map<String, Integer> _var_map = new HashMap<>();
+            int addr = 0;
 
-        for (int i = 0; i < arg_cnt; ++i) {
-            _var_map.put(node.args[i], addr);
-            addr += 4;
+            for (int i = 0; i < arg_cnt; ++i) {
+                _var_map.put(node.args[i], addr);
+                addr += 4;
+            }
+
+            for (int i = 0; i < arg_cnt; ++i) {
+                ASMRetType ret2 = getStackAddr(_var_map.get(node.args[i]), "t0");
+                tail.next = ret2.head;
+                tail = ret2.tail;
+                // t0 -> arg[i]
+
+                ASMRetType ret3 = loadValue(var_map, "t1", node.args[i]);
+                tail.next = ret3.head;
+                tail = ret3.tail;
+                // t1 = arg[i]
+
+                ASMSwNode sw_node = new ASMSwNode();
+                sw_node.rs1 = "t0";
+                sw_node.rs2 = "t1";
+                sw_node.imm = "0";
+                ret3.tail.next = sw_node;
+                tail = sw_node;
+                // [t0] = t1
+            }
+            // [sp + 4 * i] = args[i]
         }
-
-        for (int i = 0; i < arg_cnt; ++i) {
-            ASMRetType ret2 = getStackAddr(_var_map.get(node.args[i]), "t0");
-            tail.next = ret2.head;
-            tail = ret2.tail;
-            // t0 -> arg[i]
-
-            ASMRetType ret3 = loadValue(var_map, "t1", node.args[i]);
-            tail.next = ret3.head;
-            tail = ret3.tail;
-            // t1 = arg[i]
-
-            ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "t0";
-            sw_node.rs2 = "t1";
-            sw_node.imm = "0";
-            ret3.tail.next = sw_node;
-            tail = sw_node;
-            // [t0] = t1
-        }
-        // [sp + 4 * i] = args[i]
 
         ASMSwNode sw_node2 = new ASMSwNode();
         sw_node2.rs1 = "t2";
@@ -352,6 +402,13 @@ public class ASMTransformer {
         tail.next = call_node;
         tail = call_node;
         // call func_name
+
+        if (!isBuiltin(node.func_name)) {
+            ASMRetType ret7 = releaseStackSpace(_total_mem);
+            tail.next = ret7.head;
+            tail = ret7.tail;
+        }
+        // release stack space
 
         int ret_st_addr = var_map.get(node.result);
         ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
@@ -385,17 +442,17 @@ public class ASMTransformer {
 
     void visit(IRConstStrNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         ASMLabelNode label_node = new ASMLabelNode();
-        label_node.label = node.result;
+        label_node.label = node.result.substring(1, node.result.length());
         prev.next = label_node;
 
         ASMDotInstNode dot_node = new ASMDotInstNode();
         dot_node.inst = ".asciz";
-        dot_node.arg1 = node.prac_val;
+        dot_node.arg1 = "\"" + node.prac_val + "\"";
         label_node.next = dot_node;
 
         ASMDotInstNode dot_node2 = new ASMDotInstNode();
         dot_node2.inst = ".size";
-        dot_node2.arg1 = node.result;
+        dot_node2.arg1 = node.result.substring(1, node.result.length());
         dot_node2.arg2 = Integer.toString(node.length);
         dot_node.next = dot_node2;
 
@@ -408,7 +465,7 @@ public class ASMTransformer {
 
     void visit(IRDebugNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         ASMCommNode comm_node = new ASMCommNode();
-        comm_node.message = "; " + node.message;
+        comm_node.message = "# " + node.message;
         prev.next = comm_node;
         visit(node.next, comm_node, var_map, total_mem);
     }
@@ -444,6 +501,11 @@ public class ASMTransformer {
 
             } else if (node instanceof IRCallNode) {
                 IRCallNode call_node = (IRCallNode) node;
+
+                if (call_node.result == null) {
+                    call_node.result = renameVar("Void.Virtual.Ret");
+                }
+
                 map.put(call_node.result, addr);
                 addr += 8;
                 // ra: addr + 4
@@ -591,11 +653,24 @@ public class ASMTransformer {
         label_node.next = ret.head;
         // allocate stack space
 
-        visit(node.stmt, label_node, _var_map, _total_mem);
+        ASMCommNode var_table_node = new ASMCommNode();
+        var_table_node.message = "# Variable Table:\n";
+        for (Map.Entry<String, Integer> entry : _var_map.entrySet()) {
+            var_table_node.message += "\t\t# " + entry.getKey() + " -> " + entry.getValue() + "\n";
+        }
+        ret.tail.next = var_table_node;
+        // print variable table
 
-        ASMNode tail = label_node;
+        // _total_mem += args_total_mem;
+        // the size of the stack space for the arguments and the variables
+
+        visit(node.stmt, var_table_node, _var_map, _total_mem);
+
+        ASMNode tail = ret.head;
+        tail.retract = true;
         while (tail.next != null) {
             tail = tail.next;
+            tail.retract = true;
         }
 
         visit(node.next, tail, var_map, total_mem);
@@ -845,12 +920,17 @@ public class ASMTransformer {
     }
 
     void visit(IRRetNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        ASMRetType ret = loadValue(var_map, "a0", node.val);
-        prev.next = ret.head;
-        // a0 = ret value
+        ASMNode tail = prev;
+
+        if (node.val != null) {
+            ASMRetType ret = loadValue(var_map, "a0", node.val);
+            tail.next = ret.head;
+            tail = ret.tail;
+            // a0 = ret value
+        }
 
         ASMRetType ret2 = releaseStackSpace(total_mem);
-        ret.tail.next = ret2.head;
+        tail.next = ret2.head;
         // release stack space
 
         ASMRetNode ret_node = new ASMRetNode();
@@ -869,8 +949,8 @@ public class ASMTransformer {
         prev.next = ret_cond.head;
         // t2 = cond
 
-        String nez_label = RenameLabel("Nez");
-        String end_label = RenameLabel("End");
+        String nez_label = renameLabel("Nez");
+        String end_label = renameLabel("End");
 
         ASMBrNode br_node = new ASMBrNode();
         br_node.rs1 = "t2";
@@ -934,5 +1014,13 @@ public class ASMTransformer {
         // [t0] = t1
 
         visit(node.next, sw_node, var_map, total_mem);
+    }
+
+    void visit(IRSectionNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
+        ASMDotInstNode dot_node = new ASMDotInstNode();
+        dot_node.inst = ".section";
+        dot_node.arg1 = node.section;
+        prev.next = dot_node;
+        visit(node.next, dot_node, var_map, total_mem);
     }
 }

@@ -13,4 +13,8 @@ public class IRLoadNode extends IRNode {
         System.out.println(result + " = load " + tp + ", ptr " + ptr);
         printNext();
     }
+
+    public String toString() {
+        return result + " = load " + tp + ", ptr " + ptr;
+    }
 }

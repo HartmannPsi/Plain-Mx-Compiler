@@ -7,4 +7,8 @@ public class IRNLNode extends IRNode {
         System.out.println();
         printNext();
     }
+
+    public String toString() {
+        return "[ New Line ]";
+    }
 }

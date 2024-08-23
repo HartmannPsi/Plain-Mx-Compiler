@@ -5,7 +5,8 @@ import java.io.InputStream;
 
 public class ArgumentParser {
     private String inputFile = null;
-    private String outputFile = null;
+    private String outputLLVMFile = null;
+    private String outputASMFile = null;
     private String errFile = null;
     private boolean debug = false;
 
@@ -24,12 +25,18 @@ public class ArgumentParser {
                         throw new IllegalArgumentException("Missing input file argument");
                     }
                     break;
-                case "-o":
-                case "--output":
+                case "-llvm":
                     if (i + 1 < args.length) {
-                        outputFile = args[++i];
+                        outputLLVMFile = args[++i];
                     } else {
-                        throw new IllegalArgumentException("Missing output file argument");
+                        throw new IllegalArgumentException("Missing outputLLVM file argument");
+                    }
+                    break;
+                case "-asm":
+                    if (i + 1 < args.length) {
+                        outputLLVMFile = args[++i];
+                    } else {
+                        throw new IllegalArgumentException("Missing outputASM file argument");
                     }
                     break;
                 case "-e":
@@ -44,8 +51,9 @@ public class ArgumentParser {
                 case "--debug":
                     debug = true;
                     inputFile = "test.mx";
-                    outputFile = "test.ll";
-                    errFile = "debug.out";
+                    outputLLVMFile = "test.ll";
+                    outputASMFile = "test.s";
+                    errFile = null;
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown argument: " + args[i]);
@@ -61,9 +69,17 @@ public class ArgumentParser {
         }
     }
 
-    public PrintStream getOutputStream() throws Exception {
-        if (outputFile != null) {
-            return new PrintStream(new FileOutputStream(outputFile));
+    public PrintStream getLLVMStream() throws Exception {
+        if (outputLLVMFile != null) {
+            return new PrintStream(new FileOutputStream(outputLLVMFile));
+        } else {
+            return System.out;
+        }
+    }
+
+    public PrintStream getASMStream() throws Exception {
+        if (outputASMFile != null) {
+            return new PrintStream(new FileOutputStream(outputASMFile));
         } else {
             return System.out;
         }
