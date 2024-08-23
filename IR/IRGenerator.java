@@ -7,6 +7,9 @@ import defNodes.stmtNodes.*;
 import util.error.*;
 import util.*;
 import java.util.Map;
+
+import org.antlr.v4.parse.ANTLRParser.setElement_return;
+
 import IR.IRNodes.*;
 import java.util.HashMap;
 
@@ -1575,13 +1578,25 @@ public class IRGenerator {
             tail = end_node;
             // System.out.println(end_label + ":");
             // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-            IRPhiNode phi_node = new IRPhiNode();
-            phi_node.tp = ret_tp;
-            phi_node.result = ret_id;
-            phi_node.vals = new String[] { "false", rhs_id.ret_id };
-            phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
-            tail.next = phi_node;
-            tail = phi_node;
+
+            // IRPhiNode phi_node = new IRPhiNode();
+            // phi_node.tp = ret_tp;
+            // phi_node.result = ret_id;
+            // phi_node.vals = new String[] { "false", rhs_id.ret_id };
+            // phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
+            // tail.next = phi_node;
+            // tail = phi_node;
+            // TODO: replace phi with select
+
+            IRSelectNode select_node = new IRSelectNode();
+            select_node.tp = ret_tp;
+            select_node.result = ret_id;
+            select_node.cond = lhs_id.ret_id;
+            select_node.val1 = rhs_id.ret_id;
+            select_node.val2 = "false";
+            tail.next = select_node;
+            tail = select_node;
+
             // System.out.println(ret_id + " = phi " + ret_tp + " [ false, %" + lhs_label +
             // " ], [ " + rhs_id + ", %"
             // + rhs_label + " ]");
@@ -1655,13 +1670,25 @@ public class IRGenerator {
             tail = end_node;
             // System.out.println(end_label + ":");
             // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-            IRPhiNode phi_node = new IRPhiNode();
-            phi_node.tp = ret_tp;
-            phi_node.result = ret_id;
-            phi_node.vals = new String[] { "true", rhs_id.ret_id };
-            phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
-            tail.next = phi_node;
-            tail = phi_node;
+
+            // IRPhiNode phi_node = new IRPhiNode();
+            // phi_node.tp = ret_tp;
+            // phi_node.result = ret_id;
+            // phi_node.vals = new String[] { "true", rhs_id.ret_id };
+            // phi_node.labels = new String[] { exit_lhs_label, exit_rhs_label };
+            // tail.next = phi_node;
+            // tail = phi_node;
+
+            // replace phi with select
+            IRSelectNode select_node = new IRSelectNode();
+            select_node.tp = ret_tp;
+            select_node.result = ret_id;
+            select_node.cond = lhs_id.ret_id;
+            select_node.val1 = "true";
+            select_node.val2 = rhs_id.ret_id;
+            tail.next = select_node;
+            tail = select_node;
+
             // System.out.println(ret_id + " = phi " + ret_tp + " [ true, %" + lhs_label + "
             // ], [ " + rhs_id + ", %"
             // + rhs_label + " ]");
@@ -2450,13 +2477,29 @@ public class IRGenerator {
         tail = end_node;
         // System.out.println(end_label + ":");
         // System.out.println(ret_id + " = load " + ret_tp + ", ptr " + tmp_ptr);
-        IRPhiNode phi_node = new IRPhiNode();
-        phi_node.tp = ret_tp;
-        phi_node.result = ret_id;
-        phi_node.vals = new String[] { true_id.ret_id, false_id.ret_id };
-        phi_node.labels = new String[] { exit_true_label, exit_false_label };
-        tail.next = phi_node;
-        tail = phi_node;
+
+        // IRPhiNode phi_node = new IRPhiNode();
+        // phi_node.tp = ret_tp;
+        // phi_node.result = ret_id;
+        // phi_node.vals = new String[] { true_id.ret_id, false_id.ret_id };
+        // phi_node.labels = new String[] { exit_true_label, exit_false_label };
+        // tail.next = phi_node;
+        // tail = phi_node;
+
+        // replace phi with select
+        if (ret_tp.equals("void")) {
+            ret_tp = "ptr";
+            // avoid void type
+        }
+        IRSelectNode select_node = new IRSelectNode();
+        select_node.tp = ret_tp;
+        select_node.result = ret_id;
+        select_node.cond = cond_id.ret_id;
+        select_node.val1 = true_id.ret_id;
+        select_node.val2 = false_id.ret_id;
+        tail.next = select_node;
+        tail = select_node;
+
         // System.out.println(
         // ret_id + " = phi " + ret_tp + " [ " + true_id + ", %" + true_label + " ], [ "
         // + false_id + ", %"
