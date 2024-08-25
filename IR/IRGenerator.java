@@ -1273,7 +1273,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Lt) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;
@@ -1313,7 +1313,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Le) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;
@@ -1351,7 +1351,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Gt) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;
@@ -1389,7 +1389,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Ge) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;
@@ -1427,7 +1427,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Eq) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;
@@ -1465,7 +1465,7 @@ public class IRGenerator {
 
         } else if (node.oprand == BinaryOprand.Ne) {
 
-            if (node.type.equal("string")) {
+            if (((ExprNode) node.lhs).type.equal("string")) {
                 IRRetType lhs_id = visit(node.lhs);
                 IRRetType rhs_id = visit(node.rhs);
                 head = lhs_id.head;

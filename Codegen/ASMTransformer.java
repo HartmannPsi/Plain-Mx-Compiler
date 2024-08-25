@@ -386,9 +386,10 @@ public class ASMTransformer {
                 _var_map.put(node.args[i], addr);
                 addr += 4;
             }
+            addr = 0;
 
             for (int i = 0; i < arg_cnt; ++i) {
-                ASMRetType ret2 = getStackAddr(_var_map.get(node.args[i]), "t0");
+                ASMRetType ret2 = getStackAddr(addr, "t0");
                 tail.next = ret2.head;
                 tail = ret2.tail;
                 // t0 -> arg[i]
@@ -423,6 +424,8 @@ public class ASMTransformer {
                 tail.next = sw_node;
                 tail = sw_node;
                 // [t0] = t1
+
+                addr += 4;
             }
             // [sp + 4 * i] = args[i]
         }
