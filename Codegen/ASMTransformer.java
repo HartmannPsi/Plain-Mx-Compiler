@@ -52,7 +52,7 @@ public class ASMTransformer {
         } else if (node instanceof IRConstStrNode) {
             visit((IRConstStrNode) node, comm_node, var_map, total_mem);
         } else if (node instanceof IRDclFuncNode) {
-            visit((IRDclFuncNode) node, comm_node, var_map, total_mem);
+            visit((IRDclFuncNode) node, prev, var_map, total_mem);
         } else if (node instanceof IRDebugNode) {
             visit((IRDebugNode) node, comm_node, var_map, total_mem);
         } else if (node instanceof IRDefClsNode) {
@@ -70,7 +70,7 @@ public class ASMTransformer {
         } else if (node instanceof IRLoadNode) {
             visit((IRLoadNode) node, comm_node, var_map, total_mem);
         } else if (node instanceof IRNLNode) {
-            visit((IRNLNode) node, comm_node, var_map, total_mem);
+            visit((IRNLNode) node, prev, var_map, total_mem);
         } else if (node instanceof IRPhiNode) {
             visit((IRPhiNode) node, comm_node, var_map, total_mem);
         } else if (node instanceof IRRetNode) {
@@ -112,6 +112,13 @@ public class ASMTransformer {
 
     boolean isNull(String str) {
         if (str.equals("null")) {
+            return true;
+        }
+        return false;
+    }
+
+    boolean isBool(String str) {
+        if (str.equals("true") || str.equals("false")) {
             return true;
         }
         return false;
@@ -171,10 +178,10 @@ public class ASMTransformer {
                 return new ASMRetType(la_node, la_node);
 
             } else {
-                ASMLwNode lw_node = new ASMLwNode();
-                lw_node.rd = reg;
-                lw_node.imm = var.substring(1, var.length());
-                return new ASMRetType(lw_node, lw_node);
+                ASMLaNode la_node = new ASMLaNode();
+                la_node.rd = reg;
+                la_node.label = var.substring(1, var.length());
+                return new ASMRetType(la_node, la_node);
             }
             // pseudo op
 
@@ -197,6 +204,12 @@ public class ASMTransformer {
             ASMLiNode li_node = new ASMLiNode();
             li_node.rd = reg;
             li_node.imm = "0";
+            return new ASMRetType(li_node, li_node);
+
+        } else if (isBool(var)) {
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = (var.equals("true") ? "1" : "0");
             return new ASMRetType(li_node, li_node);
 
         } else {
@@ -373,16 +386,34 @@ public class ASMTransformer {
                 tail = ret2.tail;
                 // t0 -> arg[i]
 
-                ASMRetType ret3 = loadValue(var_map, "t1", node.args[i]);
-                tail.next = ret3.head;
-                tail = ret3.tail;
+                if (isLocal(node.args[i])) {
+                    int arg_addr = var_map.get(node.args[i]);
+                    arg_addr += _total_mem;
+                    ASMRetType _ret = getStackAddr(arg_addr, "t1");
+                    tail.next = _ret.head;
+                    // reg -> value
+
+                    ASMLwNode lw_node = new ASMLwNode();
+                    lw_node.rd = "t1";
+                    lw_node.imm = "0";
+                    lw_node.rs1 = "t1";
+                    _ret.tail.next = lw_node;
+                    // reg = [reg]
+
+                    tail = lw_node;
+
+                } else {
+                    ASMRetType ret3 = loadValue(var_map, "t1", node.args[i]);
+                    tail.next = ret3.head;
+                    tail = ret3.tail;
+                }
                 // t1 = arg[i]
 
                 ASMSwNode sw_node = new ASMSwNode();
                 sw_node.rs1 = "t0";
                 sw_node.rs2 = "t1";
                 sw_node.imm = "0";
-                ret3.tail.next = sw_node;
+                tail.next = sw_node;
                 tail = sw_node;
                 // [t0] = t1
             }
@@ -623,6 +654,7 @@ public class ASMTransformer {
         // funcs.put(func_name, new HashMap<>());
 
         int args_total_mem = (node.ids == null ? 0 : node.ids.length) * 4;
+        int args_cnt = args_total_mem / 4;
         while (args_total_mem % 16 != 0) {
             args_total_mem += 4;
         }
@@ -633,7 +665,7 @@ public class ASMTransformer {
         // the size of the stack space for the variables
 
         int addr = 0;
-        for (int i = 0; i != args_total_mem; i += 4) {
+        for (int i = 0; i != args_cnt; ++i) {
             String arg = node.ids[i];
             _var_map.put(arg, addr + _total_mem);
             addr += 4;
@@ -909,10 +941,10 @@ public class ASMTransformer {
     }
 
     void visit(IRNLNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        ASMCommNode comm_node = new ASMCommNode();
-        comm_node.message = "\n";
-        prev.next = comm_node;
-        visit(node.next, comm_node, var_map, total_mem);
+        // ASMCommNode comm_node = new ASMCommNode();
+        // comm_node.message = "\n";
+        // prev.next = comm_node;
+        visit(node.next, prev, var_map, total_mem);
     }
 
     void visit(IRPhiNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
