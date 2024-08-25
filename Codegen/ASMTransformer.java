@@ -163,7 +163,14 @@ public class ASMTransformer {
     }
 
     ASMRetType loadValue(Map<String, Integer> var_map, String reg, String var) {
-        if (isImm(var)) {
+        if (var == null) {
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = "0";
+            return new ASMRetType(li_node, li_node);
+
+        } else if (isImm(var)) {
+
             ASMLiNode li_node = new ASMLiNode();
             li_node.rd = reg;
             li_node.imm = var;

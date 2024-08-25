@@ -18,6 +18,19 @@ public class FStringNode extends ExprNode {
         System.out.print(literals[literals.length - 1] + "\"");
     }
 
+    public String pracVal(int n) {
+        String ret = "";
+        for (int i = 0; i != literals[n].length(); ++i) {
+            if (literals[n].charAt(i) == '$') {
+                ret += "$";
+                ++i;
+            } else {
+                ret += literals[n].charAt(i);
+            }
+        }
+        return ret;
+    }
+
     public String toString(int n) {
         String ret = "";
 

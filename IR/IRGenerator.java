@@ -1774,7 +1774,7 @@ public class IRGenerator {
             IRConstStrNode const_node = new IRConstStrNode();
             const_node.result = ret_id;
             const_node.literal = node.toString(0);
-            const_node.prac_val = node.literals[0];
+            const_node.prac_val = node.pracVal(0);
             const_node.length = node.getLength(0) + 1;
 
             const_str_tail.next = const_node;
@@ -1841,7 +1841,7 @@ public class IRGenerator {
             IRConstStrNode const_node = new IRConstStrNode();
             const_node.result = tmp_ids[0];
             const_node.literal = node.toString(0);
-            const_node.prac_val = node.literals[0];
+            const_node.prac_val = node.pracVal(0);
             const_node.length = node.getLength(0) + 1;
             const_str_tail.next = const_node;
             const_str_tail = const_node;
@@ -1872,7 +1872,7 @@ public class IRGenerator {
                 IRConstStrNode const_node2 = new IRConstStrNode();
                 const_node2.result = literal_id;
                 const_node2.literal = node.toString(i);
-                const_node2.prac_val = node.literals[i];
+                const_node2.prac_val = node.pracVal(i);
                 const_node2.length = node.getLength(i) + 1;
 
                 const_str_tail.next = const_node2;
