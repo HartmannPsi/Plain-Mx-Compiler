@@ -83,8 +83,8 @@ public class Main {
             System.exit(1);
             throw new RuntimeException();
 
-            // } catch (Throwable e) {
-            // System.exit(0);
+        } catch (Throwable e) {
+            System.exit(0);
         }
     }
 }
