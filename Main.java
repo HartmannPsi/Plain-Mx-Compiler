@@ -8,6 +8,8 @@ import util.error.syntaxError;
 import defNodes.*;
 import IR.IRGenerator;
 import Codegen.ASMTransformer;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -61,6 +63,16 @@ public class Main {
             ASMTransformer transformer = new ASMTransformer(generator.beg);
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
+
+            try (FileInputStream fis = new FileInputStream("builtin.s")) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) != -1) {
+                    System.out.write(buffer, 0, length);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             transformer.printASM();
 
