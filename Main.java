@@ -38,15 +38,15 @@ public class Main {
                 System.setOut(new PrintStream(arg_parser.getLLVMStream()));
             }
 
-            System.out.println("; AST Construction Done.");
+            // System.out.println("; AST Construction Done.");
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             checker.check();
-            System.out.println("; Semantic Check Done.");
+            // System.out.println("; Semantic Check Done.");
 
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
-            System.out.println("; IR Generation Done.\n");
+            // System.out.println("; IR Generation Done.\n");
             generator.disposeIR();
             // generator.printIR();
 
@@ -82,6 +82,9 @@ public class Main {
             }
             System.exit(1);
             throw new RuntimeException();
+
+            // } catch (Throwable e) {
+            // System.exit(0);
         }
     }
 }
