@@ -715,11 +715,12 @@ public class ASMTransformer {
         ASMNode tail = ret.tail;
         // t0 = ptr
 
-        for (int i = 0; i != node.idxs.length; ++i) {
-            ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[i]);
+        if (node.idxs.length == 1) { // array access
+
+            ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[0]);
             tail.next = ret_idx.head;
             tail = ret_idx.tail;
-            // t1 = idx
+            // t1 = idx[0]
 
             ASMArithImmNode arith_node = new ASMArithImmNode();
             arith_node.op = "slli";
@@ -728,7 +729,7 @@ public class ASMTransformer {
             arith_node.imm = Integer.toString(2);
             tail.next = arith_node;
             tail = arith_node;
-            // t1 = t1 * 4
+            // // t1 = t1 * 4
 
             ASMArithNode arith_node2 = new ASMArithNode();
             arith_node2.op = "add";
@@ -737,18 +738,68 @@ public class ASMTransformer {
             arith_node2.rs2 = "t1";
             tail.next = arith_node2;
             tail = arith_node2;
-            // t0 = t0 + t1
+            // // t0 = t0 + t1
 
-            if (i != node.idxs.length - 1) {
-                ASMLwNode lw_node = new ASMLwNode();
-                lw_node.rd = "t0";
-                lw_node.imm = "0";
-                lw_node.rs1 = "t0";
-                tail.next = lw_node;
-                tail = lw_node;
-                // t0 = [t0]
-            }
+        } else if (node.idxs.length == 2) { // class access
+
+            ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[1]);
+            tail.next = ret_idx.head;
+            tail = ret_idx.tail;
+            // t1 = idx[1]
+
+            ASMArithImmNode arith_node = new ASMArithImmNode();
+            arith_node.op = "slli";
+            arith_node.rd = "t1";
+            arith_node.rs1 = "t1";
+            arith_node.imm = Integer.toString(2);
+            tail.next = arith_node;
+            tail = arith_node;
+            // // t1 = t1 * 4
+
+            ASMArithNode arith_node2 = new ASMArithNode();
+            arith_node2.op = "add";
+            arith_node2.rd = "t0";
+            arith_node2.rs1 = "t0";
+            arith_node2.rs2 = "t1";
+            tail.next = arith_node2;
+            tail = arith_node2;
+            // // t0 = t0 + t1
+
         }
+        // for (int i = 0; i != node.idxs.length; ++i) {
+        // ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[i]);
+        // tail.next = ret_idx.head;
+        // tail = ret_idx.tail;
+        // // t1 = idx
+
+        // ASMArithImmNode arith_node = new ASMArithImmNode();
+        // arith_node.op = "slli";
+        // arith_node.rd = "t1";
+        // arith_node.rs1 = "t1";
+        // arith_node.imm = Integer.toString(2);
+        // tail.next = arith_node;
+        // tail = arith_node;
+        // // t1 = t1 * 4
+
+        // ASMArithNode arith_node2 = new ASMArithNode();
+        // arith_node2.op = "add";
+        // arith_node2.rd = "t0";
+        // arith_node2.rs1 = "t0";
+        // arith_node2.rs2 = "t1";
+        // tail.next = arith_node2;
+        // tail = arith_node2;
+        // // t0 = t0 + t1
+
+        // if (i != node.idxs.length - 1) {
+        // ASMLwNode lw_node = new ASMLwNode();
+        // lw_node.rd = "t0";
+        // lw_node.imm = "0";
+        // lw_node.rs1 = "t0";
+        // tail.next = lw_node;
+        // tail = lw_node;
+        // // t0 = [t0]
+        // }
+        // }
 
         int addr = var_map.get(node.result);
         ASMRetType ret2 = getStackAddr(addr, "t1");
@@ -765,14 +816,26 @@ public class ASMTransformer {
         visit(node.next, sw_node, var_map, total_mem);
     }
 
+    String toNum(String str) {
+        if (str == null) {
+            return "0";
+        } else if (isBool(str)) {
+            return (str.equals("true") ? "1" : "0");
+        } else if (isImm(str)) {
+            return str;
+        } else {
+            return "0";
+        }
+    }
+
     void visit(IRGlbInitNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         ASMLabelNode label_node = new ASMLabelNode();
         label_node.label = node.result.substring(1, node.result.length());
         prev.next = label_node;
 
         ASMDotInstNode dot_node = new ASMDotInstNode();
-        dot_node.inst = ".zero";
-        dot_node.arg1 = "4";
+        dot_node.inst = ".word";
+        dot_node.arg1 = toNum(node.val);
         label_node.next = dot_node;
 
         visit(node.next, dot_node, var_map, total_mem);
@@ -799,9 +862,10 @@ public class ASMTransformer {
                 // t0 = t0 ^ t1
 
                 ASMArithImmNode arith_node7 = new ASMArithImmNode();
-                arith_node7.op = "seqz";
+                arith_node7.op = "sltiu";
                 arith_node7.rd = "t0";
                 arith_node7.rs1 = "t0";
+                arith_node7.imm = "1";
                 arith_node.next = arith_node7;
                 // t0 = t0 == 0
                 tail = arith_node7;
@@ -816,13 +880,13 @@ public class ASMTransformer {
                 ret_op2.tail.next = arith_node8;
                 // t0 = t0 ^ t1
 
-                ASMArithImmNode arith_node9 = new ASMArithImmNode();
-                arith_node9.op = "snez";
-                arith_node9.rd = "t0";
-                arith_node9.rs1 = "t0";
-                arith_node8.next = arith_node9;
+                // ASMArithImmNode arith_node9 = new ASMArithImmNode();
+                // arith_node9.op = "snez";
+                // arith_node9.rd = "t0";
+                // arith_node9.rs1 = "t0";
+                // arith_node8.next = arith_node9;
                 // t0 = t0 != 0
-                tail = arith_node9;
+                tail = arith_node8;
                 break;
 
             case "slt":// <
