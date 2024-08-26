@@ -64,7 +64,7 @@ public class Main {
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
 
-            try (FileInputStream fis = new FileInputStream("builtin.s")) {
+            try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
                 byte[] buffer = new byte[1024];
                 int length;
                 while ((length = fis.read(buffer)) != -1) {
