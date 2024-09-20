@@ -14,6 +14,10 @@ public class IRAllocaNode extends IRNode {
         printNext();
     }
 
+    public String def() {
+        return result;
+    }
+
     public String toString() {
         return result + " = alloca " + tp;
     }

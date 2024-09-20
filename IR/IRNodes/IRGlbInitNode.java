@@ -3,6 +3,10 @@ package IR.IRNodes;
 public class IRGlbInitNode extends IRNode {
     public String result = null, tp = null, val = null;
 
+    public String def() {
+        return result;
+    }
+
     public void printToString() {
 
         // shadow = false;

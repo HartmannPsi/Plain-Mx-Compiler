@@ -10,6 +10,7 @@ import IR.IRGenerator;
 import Codegen.ASMTransformer;
 import java.io.FileInputStream;
 import java.io.IOException;
+import Mem2Reg.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -52,6 +53,12 @@ public class Main {
             generator.disposeIR();
             // generator.printIR();
 
+            /*************/
+
+            IROptimizer optimizer = new IROptimizer(generator.beg);
+            optimizer.calcCFG();
+            optimizer.activeAnalysis();
+
             if (DEBUG) {
                 generator.printIR();
             }
@@ -60,7 +67,8 @@ public class Main {
                 System.setOut(new PrintStream(arg_parser.getASMStream()));
             }
 
-            ASMTransformer transformer = new ASMTransformer(generator.beg);
+            // ASMTransformer transformer = new ASMTransformer(generator.beg);
+            ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
 

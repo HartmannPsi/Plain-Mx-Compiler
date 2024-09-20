@@ -1,8 +1,20 @@
 package IR.IRNodes;
 
+import java.util.Set;
+import java.util.HashSet;
+
 public class IRNode {
     public IRNode next = null;
     static public boolean shadow = false;
+    public Set<String> in = new HashSet<>(), out = new HashSet<>();
+
+    public String use() {
+        return null;
+    }
+
+    public String def() {
+        return null;
+    }
 
     public void printToString() {
         printNext();
