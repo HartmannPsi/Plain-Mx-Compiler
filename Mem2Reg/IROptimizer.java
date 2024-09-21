@@ -12,8 +12,9 @@ import java.util.Set;
 
 public class IROptimizer {
     public IRNode ir_beg = null;
-    BasicBlockNode bb_beg = null;
+    // BasicBlockNode dom_tree_root = null;
     Map<String, BasicBlockNode> bbs = new HashMap<>();
+    ArrayList<BasicBlockNode> entries = new ArrayList<>();
 
     public IROptimizer(IRNode beg) {
         ir_beg = beg;
@@ -64,7 +65,6 @@ public class IROptimizer {
     }
 
     public void activeAnalysis() {
-        // TODO
         // calc use / def of bb
         Queue<BasicBlockNode> queue = new LinkedList<>();
 
@@ -105,6 +105,11 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
 
             BasicBlockNode bb = entry.getValue();
+
+            if (bb.precursors.isEmpty()) {
+                entries.add(bb);
+            }
+
             ArrayList<IRNode> list = new ArrayList<>();
             for (IRNode node = bb.head;; node = node.next) {
                 list.add(node);
@@ -125,6 +130,116 @@ public class IROptimizer {
                 node.in = new HashSet<>(last_out);
             }
         }
+    }
+
+    public void printCFG() {
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            System.out.println("BB " + bb.label + ":");
+            System.out.println("  in: " + bb.in);
+            System.out.println("  out: " + bb.out);
+            System.out.println("  def: " + bb.def);
+            System.out.println("  use: " + bb.use);
+            System.out.println("  precursors: " + bb.precursors);
+            System.out.println("  successors: " + bb.successors);
+        }
+    }
+
+    public void calcDominate() {
+        // calc dom set of bbs
+        for (BasicBlockNode entry : entries) {
+            entry.dominates.add(entry);
+            Queue<BasicBlockNode> queue = new LinkedList<>();
+            queue.add(entry);
+
+            while (!queue.isEmpty()) {
+                BasicBlockNode bb = queue.poll();
+
+                for (BasicBlockNode succ : bb.successors) {
+
+                    Set<BasicBlockNode> tmp = new HashSet<>();
+                    tmp.addAll(bb.dominates);
+                    for (BasicBlockNode prec : succ.precursors) {
+                        if (prec == bb) {
+                            continue;
+                        }
+                        tmp.retainAll(succ.dominates);
+                    }
+                    tmp.add(succ);
+
+                    if (tmp.equals(succ.dominates)) {
+                        continue;
+                    }
+
+                    succ.dominates = tmp;
+                    queue.add(succ);
+                }
+            }
+        }
+
+        // calc IDom of bbs
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+
+            if (bb.precursors.isEmpty()) {
+                continue;
+            }
+
+            Queue<BasicBlockNode> queue = new LinkedList<>();
+            for (BasicBlockNode prec : bb.precursors) {
+                queue.add(prec);
+            }
+
+            while (true) {
+
+                BasicBlockNode tmp = queue.poll();
+
+                if (tmp.dominates.size() == bb.dominates.size() - 1) {
+                    Set<BasicBlockNode> set = new HashSet<>(bb.dominates);
+                    set.removeAll(tmp.dominates);
+                    if (set.size() == 1 && set.contains(bb)) {
+                        bb.idom = tmp;
+                        break;
+                    }
+                }
+
+                for (BasicBlockNode prec : tmp.precursors) {
+                    queue.add(prec);
+                }
+            }
+        }
+
+        // construct dom tree
+        for (BasicBlockNode bb : bbs.values()) {
+            if (bb.idom != null) {
+                bb.idom.dom_tree_son.add(bb);
+            }
+        }
+
+        // calc dom frontier of bbs
+        for (BasicBlockNode bb : bbs.values()) {
+
+            Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates), set = new HashSet<>();
+            tmp.remove(bb);
+
+            for (BasicBlockNode prec : bb.precursors) {
+                Set<BasicBlockNode> tmp2 = new HashSet<>(prec.dominates);
+                tmp2.removeAll(tmp);
+                set.addAll(tmp2);
+            }
+
+            for (BasicBlockNode node : set) {
+                node.dom_frontier = bb;
+            }
+        }
+    }
+
+    public void insertPhi() {
+        // TODO
+    }
+
+    public void linearScan() {
+        // TODO
     }
 
     // TODO
