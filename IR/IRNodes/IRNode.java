@@ -2,11 +2,13 @@ package IR.IRNodes;
 
 import java.util.Set;
 import java.util.HashSet;
+import Mem2Reg.BasicBlockNode;
 
 public class IRNode {
-    public IRNode next = null;
+    public IRNode next = null, prev = null;
     static public boolean shadow = false;
     public Set<String> in = new HashSet<>(), out = new HashSet<>();
+    public BasicBlockNode bb = null;
 
     public String use() {
         return null;

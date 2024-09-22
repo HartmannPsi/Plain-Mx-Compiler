@@ -58,6 +58,7 @@ public class Main {
             IROptimizer optimizer = new IROptimizer(generator.beg);
             optimizer.calcCFG();
             optimizer.activeAnalysis();
+            optimizer.calcDominate();
 
             if (DEBUG) {
                 generator.printIR();
