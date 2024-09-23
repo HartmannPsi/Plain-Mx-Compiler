@@ -59,6 +59,8 @@ public class Main {
             optimizer.calcCFG();
             optimizer.activeAnalysis();
             optimizer.calcDominate();
+            optimizer.placePhi();
+            optimizer.eliminatePhi();
 
             if (DEBUG) {
                 generator.printIR();

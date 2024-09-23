@@ -3,8 +3,14 @@ package IR.IRNodes;
 public class IRPhiNode extends IRNode {
     public String result = null, tp = null;
     public String[] vals = null, labels = null;
+    public boolean eliminated = false;
 
     public void printToString() {
+
+        if (eliminated) {
+            printNext();
+            return;
+        }
 
         // if (shadow) {
         // printNext();
@@ -28,6 +34,11 @@ public class IRPhiNode extends IRNode {
     }
 
     public String toString() {
+
+        if (eliminated) {
+            return "";
+        }
+
         String ret = result + " = phi " + tp + " ";
         for (int i = 0; i != vals.length; ++i) {
             ret += "[ " + vals[i] + ", %" + labels[i] + " ]";

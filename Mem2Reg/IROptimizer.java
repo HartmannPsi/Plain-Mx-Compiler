@@ -23,6 +23,10 @@ public class IROptimizer {
         return obj + ".Replace." + rename_serial++;
     }
 
+    String bbLabel() {
+        return "Label.eli_CE." + rename_serial++;
+    }
+
     public IROptimizer(IRNode beg) {
         ir_beg = beg;
 
@@ -292,8 +296,7 @@ public class IROptimizer {
             }
 
             // delete alloca
-            def.prev.next = def.next;
-            def.next.prev = def.prev;
+            def.eliminated = true;
 
             // rename obj
             Stack<String> stack = new Stack<>();
@@ -387,9 +390,7 @@ public class IROptimizer {
                     replace.put(load_node.result, stack.peek());
 
                     // delete the load node
-                    node.prev.next = node.next;
-                    node.next.prev = node.prev;
-                    node = node.prev;
+                    load_node.eliminated = true;
                 }
 
             } else if (node instanceof IRPhiNode) {
@@ -437,9 +438,7 @@ public class IROptimizer {
                     ++stack_count;
 
                     // delete the store node
-                    node.prev.next = node.next;
-                    node.next.prev = node.prev;
-                    node = node.prev;
+                    store_node.eliminated = true;
                 }
             }
 
@@ -541,6 +540,109 @@ public class IROptimizer {
     // boolean rewrite(IRStoreNode node, Stack<String> stack, String replace) {
 
     // }
+
+    public void eliminatePhi() {
+        // eliminate critical edge
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+
+            if (bb.successors.size() <= 1) {
+                continue;
+            }
+
+            for (BasicBlockNode succ : bb.successors) {
+                if (succ.precursors.size() <= 1) {
+                    continue;
+                }
+                if (!(succ.head.next instanceof IRPhiNode)) {
+                    continue;
+                }
+
+                // create empty bb and insert the commands into the linked list
+                BasicBlockNode new_bb = new BasicBlockNode();
+
+                IRLabelNode label_node = new IRLabelNode();
+                label_node.label = bbLabel();
+                new_bb.label = label_node.label;
+
+                IRBrNode br_node = new IRBrNode();
+                br_node.label_true = succ.label;
+                label_node.next = br_node;
+                br_node.prev = label_node;
+
+                new_bb.head = label_node;
+                new_bb.tail = br_node;
+
+                succ.head.prev.next = new_bb.head;
+                new_bb.head.prev = succ.head.prev;
+                succ.head.prev = new_bb.tail;
+                new_bb.tail.next = succ.head;
+
+                // replace bb with new_bb in phi_node and precs of succ
+                for (BasicBlockNode node : succ.precursors) {
+                    if (node == bb) {
+                        node = new_bb;
+                        break;
+                    }
+                }
+
+                for (IRNode node = succ.head.next;; node = node.next) {
+                    if (node instanceof IRPhiNode) {
+                        for (String label : ((IRPhiNode) node).labels) {
+                            if (label.equals(bb.label)) {
+                                label = new_bb.label;
+                            }
+                        }
+                    }
+
+                    if (node == succ.tail) {
+                        break;
+                    }
+                }
+
+                // replace succ with new_bb in succs and br_node of bb
+                for (BasicBlockNode node : bb.successors) {
+                    if (node == succ) {
+                        node = new_bb;
+                        break;
+                    }
+                }
+
+                if (bb.tail instanceof IRBrNode) {
+                    IRBrNode tail_node = ((IRBrNode) bb.tail);
+                    if (tail_node.label_true.equals(succ.label)) {
+                        tail_node.label_true = new_bb.label;
+                    }
+                    if (tail_node.label_false != null && tail_node.label_false.equals(succ.label)) {
+                        tail_node.label_false = new_bb.label;
+                    }
+                }
+            }
+        }
+
+        // replace phi with mv
+        for (IRNode node = ir_beg; node != null; node = node.next) {
+            if (node instanceof IRPhiNode) {
+                IRPhiNode phi_node = ((IRPhiNode) node);
+                for (int i = 0; i != phi_node.labels.length; ++i) {
+                    // find the reserve bb
+                    BasicBlockNode reserve_bb = bbs.get(phi_node.labels[i]);
+
+                    // isnert mv_node
+                    IRMvNode mv_node = new IRMvNode();
+                    mv_node.result = phi_node.result;
+                    mv_node.src = phi_node.vals[i];
+                    reserve_bb.tail.prev.next = mv_node;
+                    mv_node.prev = reserve_bb.tail.prev;
+                    reserve_bb.tail.prev = mv_node;
+                    mv_node.next = reserve_bb.tail;
+
+                    // delete phi_node
+                    phi_node.eliminated = true;
+                }
+            }
+        }
+    }
 
     public void linearScan() {
         // TODO
