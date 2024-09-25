@@ -9,6 +9,7 @@ public class IRNode {
     static public boolean shadow = false;
     public Set<String> in = new HashSet<>(), out = new HashSet<>();
     public BasicBlockNode bb = null;
+    public int order = -1;
 
     public String use() {
         return null;

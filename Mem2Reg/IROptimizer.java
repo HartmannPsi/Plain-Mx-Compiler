@@ -644,8 +644,32 @@ public class IROptimizer {
         }
     }
 
+    public void dfs(BasicBlockNode node, ArrayList<BasicBlockNode> order) {
+        for (BasicBlockNode succ : node.successors) {
+            dfs(succ, order);
+        }
+
+        order.add(node);
+    }
+
     public void linearScan() {
-        // TODO
+
+        for (BasicBlockNode entry : entries) {
+            ArrayList<BasicBlockNode> linear_order = new ArrayList<>();
+            dfs(entry, linear_order);
+            int comm_order = 0;
+            for (int i = linear_order.size() - 1; i >= 0; --i) {
+
+                BasicBlockNode node = linear_order.get(i);
+                for (IRNode ir_node = node.head;; ir_node = ir_node.next) {
+                    ir_node.order = comm_order++;
+                    if (ir_node == node.tail) {
+                        break;
+                    }
+                }
+
+            }
+        }
     }
 
     // TODO
