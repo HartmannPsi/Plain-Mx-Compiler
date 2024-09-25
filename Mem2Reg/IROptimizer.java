@@ -15,7 +15,8 @@ public class IROptimizer {
     public IRNode ir_beg = null;
     // BasicBlockNode dom_tree_root = null;
     Map<String, BasicBlockNode> bbs = new HashMap<>();
-    ArrayList<Pair<IRAllocaNode, BasicBlockNode>> def_in_bbs = new ArrayList<>();
+    // ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bbs = new ArrayList<>();
+    Map<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> def_in_bbs = new HashMap<>();
     ArrayList<BasicBlockNode> entries = new ArrayList<>();
     int rename_serial = 0;
 
@@ -64,9 +65,12 @@ public class IROptimizer {
                         bb.tail = node;
                         bbs.put(bb.label, bb);
 
-                    } else if (node instanceof IRAllocaNode) {
+                    } else if (node instanceof IRStoreNode) {
 
-                        def_in_bbs.add(new Pair<>((IRAllocaNode) node, bb));
+                        if (!def_in_bbs.containsKey(((IRStoreNode) node).ptr)) {
+                            def_in_bbs.put(((IRStoreNode) node).ptr, new ArrayList<>());
+                        }
+                        def_in_bbs.get(((IRStoreNode) node).ptr).add(new Pair<>((IRStoreNode) node, bb));
                     }
 
                     node.bb = bb;
@@ -168,6 +172,7 @@ public class IROptimizer {
     }
 
     public void printCFG() {
+        System.out.println("\nCFG:");
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             System.out.println("BB " + bb.label + ":");
@@ -175,13 +180,45 @@ public class IROptimizer {
             System.out.println("  out: " + bb.out);
             System.out.println("  def: " + bb.def);
             System.out.println("  use: " + bb.use);
-            System.out.println("  precursors: " + bb.precursors);
-            System.out.println("  successors: " + bb.successors);
+            System.out.print("  precursors: ");
+            for (BasicBlockNode prec : bb.precursors) {
+                System.out.print(prec.label + " ");
+            }
+            System.out.println();
+            System.out.print("  successors: ");
+            for (BasicBlockNode succ : bb.successors) {
+                System.out.print(succ.label + " ");
+            }
+            System.out.println();
+            System.out.print("  dominates: ");
+            for (BasicBlockNode dom : bb.dominates) {
+                System.out.print(dom.label + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public void printIDom() {
+        System.out.println("\nIDom:");
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            System.out.println("BB " + bb.label + ":");
+            System.out.println("  idom: " + (bb.idom == null ? "null" : bb.idom.label));
+        }
+    }
+
+    public void printFrontier() {
+        System.out.println("\nFrontier:");
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            System.out.println("BB " + bb.label + ":");
+            System.out.println("  dom_frontier: " + (bb.dom_frontier == null ? "null" : bb.dom_frontier.label));
         }
     }
 
     public void calcDominate() {
         // calc dom set of bbs
+
         for (BasicBlockNode entry : entries) {
             entry.dominates.add(entry);
             Queue<BasicBlockNode> queue = new LinkedList<>();
@@ -198,7 +235,7 @@ public class IROptimizer {
                         if (prec == bb) {
                             continue;
                         }
-                        tmp.retainAll(succ.dominates);
+                        tmp.retainAll(prec.dominates);
                     }
                     tmp.add(succ);
 
@@ -211,6 +248,8 @@ public class IROptimizer {
                 }
             }
         }
+
+        printCFG();
 
         // calc IDom of bbs
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
@@ -244,12 +283,16 @@ public class IROptimizer {
             }
         }
 
+        printIDom();
+
         // construct dom tree
         for (BasicBlockNode bb : bbs.values()) {
             if (bb.idom != null) {
                 bb.idom.dom_tree_son.add(bb);
             }
         }
+
+        // System.out.println("D");
 
         // calc dom frontier of bbs
         for (BasicBlockNode bb : bbs.values()) {
@@ -267,40 +310,60 @@ public class IROptimizer {
                 node.dom_frontier = bb;
             }
         }
+
+        printFrontier();
+
     }
 
     public void placePhi() {
-        for (Pair<IRAllocaNode, BasicBlockNode> pair : def_in_bbs) {
-            IRAllocaNode def = pair.first;
-            BasicBlockNode bb = pair.second;
-            String res = def.result;
-            bb = bb.dom_frontier;
+        for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry : def_in_bbs.entrySet()) {
 
-            // reserve phi
-            while (bb != null) {
-                if (bb.head instanceof IRPhiNode && ((IRPhiNode) bb.head).result == null) {
-                    break;
-                }
-
-                IRPhiNode phi_node = new IRPhiNode();
-                phi_node.prev = bb.head;
-                phi_node.next = bb.head.next;
-                bb.head.next.prev = phi_node;
-                bb.head.next = phi_node;
-                phi_node.vals = new String[bb.precursors.size()];
-                phi_node.labels = new String[bb.precursors.size()];
-                for (int i = 0; i != bb.precursors.size(); ++i) {
-                    phi_node.labels[i] = bb.precursors.get(i).label;
-                }
+            ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bb = entry.getValue();
+            for (Pair<IRStoreNode, BasicBlockNode> pair : def_in_bb) {
+                IRStoreNode def = pair.first;
+                BasicBlockNode bb = pair.second;
                 bb = bb.dom_frontier;
+
+                // reserve phi
+                while (bb != null) {
+                    if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
+                        break;
+                    }
+
+                    IRPhiNode phi_node = new IRPhiNode();
+                    phi_node.prev = bb.head;
+                    phi_node.next = bb.head.next;
+                    bb.head.next.prev = phi_node;
+                    bb.head.next = phi_node;
+
+                    phi_node.vals = new String[bb.precursors.size()];
+                    phi_node.labels = new String[bb.precursors.size()];
+                    for (int i = 0; i != bb.precursors.size(); ++i) {
+                        phi_node.labels[i] = bb.precursors.get(i).label;
+                        phi_node.vals[i] = "undef";
+                    }
+                    phi_node.tp = def.tp;
+
+                    bb = bb.dom_frontier;
+                }
             }
 
-            // delete alloca
-            def.eliminated = true;
-
             // rename obj
-            Stack<String> stack = new Stack<>();
-            replaceAlloca(res, stack, bb);
+            for (BasicBlockNode bb : entries) {
+                Stack<String> stack = new Stack<>();
+                replaceAlloca(entry.getKey(), stack, bb);
+            }
+        }
+
+        // delete alloca
+        for (IRNode node = ir_beg; node != null; node = node.next) {
+            if (node instanceof IRDefFuncNode) {
+                for (IRNode cur = ((IRDefFuncNode) node).stmt; cur != null; cur = cur.next) {
+                    if (cur instanceof IRAllocaNode) {
+                        ((IRAllocaNode) cur).eliminated = true;
+                    }
+                }
+            }
         }
     }
 
@@ -326,6 +389,7 @@ public class IROptimizer {
 
         // rewrite every command
         Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
+
         for (IRNode node = beg;; node = node.next) {
 
             if (node instanceof IRBinaryNode) {
@@ -350,9 +414,9 @@ public class IROptimizer {
                 IRCallNode call_node = ((IRCallNode) node);
 
                 if (call_node.args != null) {
-                    for (String arg : call_node.args) {
-                        if (replace.containsKey(arg)) {
-                            arg = replace.get(arg);
+                    for (int i = 0; i != call_node.args.length; ++i) {
+                        if (replace.containsKey(call_node.args[i])) {
+                            call_node.args[i] = replace.get(call_node.args[i]);
                         }
                     }
                 }
@@ -360,9 +424,9 @@ public class IROptimizer {
             } else if (node instanceof IRGetEleNode) {
                 IRGetEleNode ele_node = ((IRGetEleNode) node);
 
-                for (String idx : ele_node.idxs) {
-                    if (replace.containsKey(idx)) {
-                        idx = replace.get(idx);
+                for (int i = 0; i != ele_node.idxs.length; ++i) {
+                    if (replace.containsKey(ele_node.idxs[i])) {
+                        ele_node.idxs[i] = replace.get(ele_node.idxs[i]);
                     }
                 }
 
@@ -396,9 +460,9 @@ public class IROptimizer {
             } else if (node instanceof IRPhiNode) {
                 IRPhiNode phi_node = ((IRPhiNode) node);
 
-                for (String val : phi_node.vals) {
-                    if (replace.containsKey(val)) {
-                        val = replace.get(val);
+                for (int i = 0; i != phi_node.vals.length; ++i) {
+                    if (replace.containsKey(phi_node.vals[i])) {
+                        phi_node.vals[i] = replace.get(phi_node.vals[i]);
                     }
                 }
 

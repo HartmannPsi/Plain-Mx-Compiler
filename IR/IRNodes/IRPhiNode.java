@@ -17,11 +17,15 @@ public class IRPhiNode extends IRNode {
         // return;
         // }
 
-        if (tp.equals("void")) {
+        if (tp != null && tp.equals("void")) {
             tp = "ptr";
         }
 
-        System.out.print(result + " = phi " + tp + " ");
+        if (result != null && tp != null)
+            System.out.print(result + " = phi " + tp + " ");
+        else
+            System.out.print("undef = phi undef ");
+
         for (int i = 0; i != vals.length; ++i) {
             System.out.print("[ " + vals[i] + ", %" + labels[i] + " ]");
             if (i != vals.length - 1) {

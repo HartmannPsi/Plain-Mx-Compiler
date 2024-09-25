@@ -6,6 +6,7 @@ import java.io.InputStream;
 public class ArgumentParser {
     private String inputFile = null;
     private String outputLLVMFile = null;
+    private String outputOptiFile = null;
     private String outputASMFile = null;
     private String errFile = null;
     private boolean debug = false;
@@ -52,6 +53,7 @@ public class ArgumentParser {
                     debug = true;
                     inputFile = "test.mx";
                     outputLLVMFile = "test.ll";
+                    outputOptiFile = "test_opti.ll";
                     outputASMFile = "test.s";
                     errFile = null;
                     break;
@@ -72,6 +74,14 @@ public class ArgumentParser {
     public PrintStream getLLVMStream() throws Exception {
         if (outputLLVMFile != null) {
             return new PrintStream(new FileOutputStream(outputLLVMFile));
+        } else {
+            return System.out;
+        }
+    }
+
+    public PrintStream getOptiStream() throws Exception {
+        if (outputOptiFile != null) {
+            return new PrintStream(new FileOutputStream(outputOptiFile));
         } else {
             return System.out;
         }

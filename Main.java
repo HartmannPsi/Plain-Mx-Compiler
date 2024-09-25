@@ -53,18 +53,33 @@ public class Main {
             generator.disposeIR();
             // generator.printIR();
 
+            if (DEBUG) {
+                System.setOut(new PrintStream(arg_parser.getLLVMStream()));
+                generator.printIR();
+            }
+
             /*************/
 
             IROptimizer optimizer = new IROptimizer(generator.beg);
+
             optimizer.calcCFG();
-            optimizer.activeAnalysis();
-            optimizer.calcDominate();
-            optimizer.placePhi();
-            optimizer.eliminatePhi();
 
             if (DEBUG) {
-                generator.printIR();
+                System.setOut(new PrintStream(arg_parser.getOptiStream()));
             }
+
+            optimizer.activeAnalysis();
+
+            optimizer.calcDominate();
+
+            optimizer.placePhi();
+
+            if (DEBUG) {
+                optimizer.ir_beg.printToString();
+            }
+            // optimizer.eliminatePhi();
+
+            System.setOut(System.out);
 
             if (DEBUG) {
                 System.setOut(new PrintStream(arg_parser.getASMStream()));
