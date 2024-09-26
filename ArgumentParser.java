@@ -55,7 +55,7 @@ public class ArgumentParser {
                     outputLLVMFile = "test.ll";
                     outputOptiFile = "test_opti.ll";
                     outputASMFile = "test.s";
-                    errFile = null;
+                    errFile = "debug.out";
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown argument: " + args[i]);

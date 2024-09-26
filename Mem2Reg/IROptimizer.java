@@ -249,7 +249,7 @@ public class IROptimizer {
             }
         }
 
-        printCFG();
+        // printCFG();
 
         // calc IDom of bbs
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
@@ -283,7 +283,7 @@ public class IROptimizer {
             }
         }
 
-        printIDom();
+        // printIDom();
 
         // construct dom tree
         for (BasicBlockNode bb : bbs.values()) {
@@ -311,11 +311,24 @@ public class IROptimizer {
             }
         }
 
-        printFrontier();
+        // printFrontier();
 
     }
 
     public void placePhi() {
+
+        // System.out.println("\ndefs:");
+        // for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry :
+        // def_in_bbs.entrySet()) {
+        // ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bb = entry.getValue();
+        // System.out.println(entry.getKey() + ":");
+        // for (Pair<IRStoreNode, BasicBlockNode> pair : def_in_bb) {
+        // System.out.println(" " + pair.first.toString() + "\n in " +
+        // pair.second.label);
+        // }
+        // System.out.println();
+        // }
+
         for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry : def_in_bbs.entrySet()) {
 
             ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bb = entry.getValue();
@@ -336,24 +349,38 @@ public class IROptimizer {
                     bb.head.next.prev = phi_node;
                     bb.head.next = phi_node;
 
+                    phi_node.tp = def.tp;
                     phi_node.vals = new String[bb.precursors.size()];
                     phi_node.labels = new String[bb.precursors.size()];
                     for (int i = 0; i != bb.precursors.size(); ++i) {
                         phi_node.labels[i] = bb.precursors.get(i).label;
+                        // if (phi_node.tp.equals("ptr")) {
+                        // phi_node.vals[i] = "null";
+                        // } else {
+                        // phi_node.vals[i] = "0";
+                        // }
                         phi_node.vals[i] = "undef";
                     }
-                    phi_node.tp = def.tp;
 
                     bb = bb.dom_frontier;
                 }
             }
 
+            // System.out.println(entry.getKey() + ":");
+            // ir_beg.printToString();
+
             // rename obj
             for (BasicBlockNode bb : entries) {
+
                 Stack<String> stack = new Stack<>();
+                // Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
                 replaceAlloca(entry.getKey(), stack, bb);
             }
+
+            // System.out.println("C");
         }
+
+        // System.out.println("Exit");
 
         // delete alloca
         for (IRNode node = ir_beg; node != null; node = node.next) {
@@ -372,9 +399,11 @@ public class IROptimizer {
         int stack_count = 0;
         IRNode beg = bb.head.next;
 
+        // System.out.println(bb.label + ": ");
+
         // process reserved phi node
         if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
-            beg = bb.head.next.next;
+            // beg = bb.head.next.next;
             IRPhiNode phi_node = ((IRPhiNode) bb.head.next);
             phi_node.result = renameAlloca(alloca_name);
             stack.add(phi_node.result);
@@ -386,6 +415,8 @@ public class IROptimizer {
             // }
             // }
         }
+
+        // System.out.println("B");
 
         // rewrite every command
         Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
@@ -448,6 +479,10 @@ public class IROptimizer {
             } else if (node instanceof IRLoadNode) {
                 IRLoadNode load_node = ((IRLoadNode) node);
 
+                if (load_node.eliminated) {
+                    continue;
+                }
+
                 if (load_node.ptr.equals(alloca_name)) {// using the current value of variable
 
                     // construct reflect relationship
@@ -491,6 +526,10 @@ public class IROptimizer {
             } else if (node instanceof IRStoreNode) {
                 IRStoreNode store_node = ((IRStoreNode) node);
 
+                if (store_node.eliminated) {
+                    continue;
+                }
+
                 if (replace.containsKey(store_node.value)) {
                     store_node.value = replace.get(store_node.value);
                 }
@@ -511,22 +550,53 @@ public class IROptimizer {
             }
         }
 
+        // System.out.println("C");
+
         // rewrite phi branches
         for (BasicBlockNode succ : bb.successors) {
 
+            // System.out.println(succ.label);
+
+            // rewrite phi branches
             if (succ.head.next instanceof IRPhiNode) {
                 IRPhiNode phi_node = ((IRPhiNode) succ.head.next);
 
+                // System.out.println("F");
+
                 for (int i = 0; i != phi_node.labels.length; ++i) {
-                    if (phi_node.labels[i].equals(bb.label)) {
-                        phi_node.vals[i] = stack.peek();
+
+                    if (phi_node.labels[i].equals(bb.label) && phi_node.vals[i].equals("undef")) {
+                        if (stack.isEmpty()) {
+                            if (phi_node.tp.equals("ptr")) {
+                                phi_node.vals[i] = "null";
+                            } else {
+                                phi_node.vals[i] = "0";
+                            }
+                        } else {
+                            phi_node.vals[i] = stack.peek();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // rewrite phi nodes at the beginning of succ
+            for (IRNode node = succ.head.next; node instanceof IRPhiNode; node = node.next) {
+                IRPhiNode phi_node = ((IRPhiNode) node);
+                for (int i = 0; i != phi_node.vals.length; ++i) {
+                    if (replace.containsKey(phi_node.vals[i])) {
+                        phi_node.vals[i] = replace.get(phi_node.vals[i]);
                     }
                 }
             }
         }
 
+        // System.out.println("D");
+
         // recursive
-        for (BasicBlockNode son : bb.dom_tree_son) {
+        for (
+
+        BasicBlockNode son : bb.dom_tree_son) {
             replaceAlloca(alloca_name, stack, son);
         }
 
