@@ -1,7 +1,7 @@
 package IR.IRNodes;
 
-public class IRMvNode extends IRNode {
-    public String result = null, src = null;
+public class IRMvNode extends IRBinaryNode {
+    // public String result = null, src = null;
 
     public void printToString() {
 
@@ -12,13 +12,21 @@ public class IRMvNode extends IRNode {
         // return;
         // }
 
-        System.out.println(result + " = add i32 0, " + src + "; this is a mv instruction to eliminate phi");
+        if (tp.equals("ptr")) {
+            tp = "i32";
+        }
+
+        System.out.println(result + " = add " + tp + " 0, " + op2 + "; this is a mv instruction to eliminate phi");
 
         printNext();
     }
 
     public String toString() {
-        return result + " = add i32 0, " + src + "; this is a mv instruction to eliminate phi";
+        if (tp.equals("ptr")) {
+            tp = "i32";
+        }
+
+        return result + " = add " + tp + " 0, " + op2 + "; this is a mv instruction to eliminate phi";
     }
 
 }

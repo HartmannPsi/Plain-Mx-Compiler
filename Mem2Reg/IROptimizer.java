@@ -98,6 +98,12 @@ public class IROptimizer {
                 // instanceof IRRetNode
             }
         }
+
+        // set dom set to the whole set of bbs
+        Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
+        for (BasicBlockNode bb : bbs.values()) {
+            bb.dominates = all_bbs;
+        }
     }
 
     public void activeAnalysis() {
@@ -220,6 +226,7 @@ public class IROptimizer {
         // calc dom set of bbs
 
         for (BasicBlockNode entry : entries) {
+            entry.dominates = new HashSet<>();
             entry.dominates.add(entry);
             Queue<BasicBlockNode> queue = new LinkedList<>();
             queue.add(entry);
@@ -229,8 +236,8 @@ public class IROptimizer {
 
                 for (BasicBlockNode succ : bb.successors) {
 
-                    Set<BasicBlockNode> tmp = new HashSet<>();
-                    tmp.addAll(bb.dominates);
+                    Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates);
+                    // tmp.addAll(bb.dominates);
                     for (BasicBlockNode prec : succ.precursors) {
                         if (prec == bb) {
                             continue;
@@ -267,6 +274,7 @@ public class IROptimizer {
             while (true) {
 
                 BasicBlockNode tmp = queue.poll();
+                // System.out.println("\n" + tmp.label);
 
                 if (tmp.dominates.size() == bb.dominates.size() - 1) {
                     Set<BasicBlockNode> set = new HashSet<>(bb.dominates);
@@ -607,74 +615,6 @@ public class IROptimizer {
 
     }
 
-    // boolean rewrite(IRNode node, Stack<String> stack, String replace) {
-    // if (node == null) {
-    // return false;
-    // } else if (node instanceof IRBinaryNode) {
-    // return rewrite(((IRBinaryNode) node), stack, replace);
-    // } else if (node instanceof IRBrNode) {
-    // return rewrite(((IRBrNode) node), stack, replace);
-    // } else if (node instanceof IRCallNode) {
-    // return rewrite(((IRCallNode) node), stack, replace);
-    // } else if (node instanceof IRGetEleNode) {
-    // return rewrite(((IRGetEleNode) node), stack, replace);
-    // } else if (node instanceof IRIcmpNode) {
-    // return rewrite(((IRIcmpNode) node), stack, replace);
-    // } else if (node instanceof IRLoadNode) {
-    // return rewrite(((IRLoadNode) node), stack, replace);
-    // } else if (node instanceof IRPhiNode) {
-    // return rewrite(((IRPhiNode) node), stack, replace);
-    // } else if (node instanceof IRRetNode) {
-    // return rewrite(((IRRetNode) node), stack, replace);
-    // } else if (node instanceof IRSelectNode) {
-    // return rewrite(((IRSelectNode) node), stack, replace);
-    // } else if (node instanceof IRStoreNode) {
-    // return rewrite(((IRStoreNode) node), stack, replace);
-    // } else {
-    // return false;
-    // }
-    // }
-
-    // boolean rewrite(IRBinaryNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRBrNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRCallNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRGetEleNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRIcmpNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRLoadNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRPhiNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRRetNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRSelectNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRStoreNode node, Stack<String> stack, String replace) {
-
-    // }
-
     public void eliminatePhi() {
         // eliminate critical edge
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
@@ -765,7 +705,11 @@ public class IROptimizer {
                     // isnert mv_node
                     IRMvNode mv_node = new IRMvNode();
                     mv_node.result = phi_node.result;
-                    mv_node.src = phi_node.vals[i];
+                    mv_node.op2 = phi_node.vals[i];
+                    mv_node.tp = phi_node.tp;
+                    mv_node.op1 = "0";
+                    mv_node.operator = "add";
+
                     reserve_bb.tail.prev.next = mv_node;
                     mv_node.prev = reserve_bb.tail.prev;
                     reserve_bb.tail.prev = mv_node;
@@ -807,5 +751,73 @@ public class IROptimizer {
     }
 
     // TODO
+
+    // boolean rewrite(IRNode node, Stack<String> stack, String replace) {
+    // if (node == null) {
+    // return false;
+    // } else if (node instanceof IRBinaryNode) {
+    // return rewrite(((IRBinaryNode) node), stack, replace);
+    // } else if (node instanceof IRBrNode) {
+    // return rewrite(((IRBrNode) node), stack, replace);
+    // } else if (node instanceof IRCallNode) {
+    // return rewrite(((IRCallNode) node), stack, replace);
+    // } else if (node instanceof IRGetEleNode) {
+    // return rewrite(((IRGetEleNode) node), stack, replace);
+    // } else if (node instanceof IRIcmpNode) {
+    // return rewrite(((IRIcmpNode) node), stack, replace);
+    // } else if (node instanceof IRLoadNode) {
+    // return rewrite(((IRLoadNode) node), stack, replace);
+    // } else if (node instanceof IRPhiNode) {
+    // return rewrite(((IRPhiNode) node), stack, replace);
+    // } else if (node instanceof IRRetNode) {
+    // return rewrite(((IRRetNode) node), stack, replace);
+    // } else if (node instanceof IRSelectNode) {
+    // return rewrite(((IRSelectNode) node), stack, replace);
+    // } else if (node instanceof IRStoreNode) {
+    // return rewrite(((IRStoreNode) node), stack, replace);
+    // } else {
+    // return false;
+    // }
+    // }
+
+    // boolean rewrite(IRBinaryNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRBrNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRCallNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRGetEleNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRIcmpNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRLoadNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRPhiNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRRetNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRSelectNode node, Stack<String> stack, String replace) {
+
+    // }
+
+    // boolean rewrite(IRStoreNode node, Stack<String> stack, String replace) {
+
+    // }
 
 }
