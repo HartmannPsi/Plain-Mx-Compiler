@@ -81,26 +81,28 @@ public class Main {
 
             System.setOut(System.out);
 
-            if (DEBUG) {
-                System.setOut(new PrintStream(arg_parser.getASMStream()));
-            }
+            optimizer.ir_beg.printToString();
 
-            // ASMTransformer transformer = new ASMTransformer(generator.beg);
-            ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
-            transformer.generateASM();
-            System.out.println("# ASM Generation Done.\n");
+            // if (DEBUG) {
+            // System.setOut(new PrintStream(arg_parser.getASMStream()));
+            // }
 
-            try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = fis.read(buffer)) != -1) {
-                    System.out.write(buffer, 0, length);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // // ASMTransformer transformer = new ASMTransformer(generator.beg);
+            // ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
+            // transformer.generateASM();
+            // System.out.println("# ASM Generation Done.\n");
 
-            transformer.printASM();
+            // try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
+            // byte[] buffer = new byte[1024];
+            // int length;
+            // while ((length = fis.read(buffer)) != -1) {
+            // System.out.write(buffer, 0, length);
+            // }
+            // } catch (IOException e) {
+            // e.printStackTrace();
+            // }
+
+            // transformer.printASM();
 
             System.exit(0);
 

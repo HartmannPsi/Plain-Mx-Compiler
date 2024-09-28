@@ -104,6 +104,13 @@ public class IROptimizer {
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
         }
+
+        // delete global vars in def_in_bbs
+        for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry : def_in_bbs.entrySet()) {
+            if (entry.getKey().charAt(0) == '@') {
+                def_in_bbs.remove(entry.getKey());
+            }
+        }
     }
 
     public void activeAnalysis() {
