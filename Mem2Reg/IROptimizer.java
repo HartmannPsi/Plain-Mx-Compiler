@@ -17,6 +17,7 @@ public class IROptimizer {
     Map<String, BasicBlockNode> bbs = new HashMap<>();
     // ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bbs = new ArrayList<>();
     Map<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> def_in_bbs = new HashMap<>();
+    Map<String, IRAllocaNode> allocas = new HashMap<>();
     ArrayList<BasicBlockNode> entries = new ArrayList<>();
     int rename_serial = 0;
 
@@ -42,6 +43,10 @@ public class IROptimizer {
                 for (IRNode node = func_node.stmt; node != null; node = node.next) {
                     if (node.next != null)
                         node.next.prev = node;
+
+                    if (node instanceof IRAllocaNode) {
+                        allocas.put(((IRAllocaNode) node).result, (IRAllocaNode) node);
+                    }
                 }
             }
         }
@@ -70,7 +75,7 @@ public class IROptimizer {
 
                     } else if (node instanceof IRStoreNode) {
 
-                        if (((IRStoreNode) node).ptr.charAt(0) != '@') {
+                        if (allocas.containsKey(((IRStoreNode) node).ptr)) {
                             if (!def_in_bbs.containsKey(((IRStoreNode) node).ptr)) {
                                 def_in_bbs.put(((IRStoreNode) node).ptr, new ArrayList<>());
                             }
@@ -361,6 +366,9 @@ public class IROptimizer {
         for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry : def_in_bbs.entrySet()) {
 
             ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bb = entry.getValue();
+
+            // System.out.println(entry.getKey() + ":");
+
             for (Pair<IRStoreNode, BasicBlockNode> pair : def_in_bb) {
                 IRStoreNode def = pair.first;
                 BasicBlockNode bb = pair.second;
@@ -395,16 +403,27 @@ public class IROptimizer {
                 }
             }
 
-            // System.out.println(entry.getKey() + ":");
+            // System.out.println("RES");
             // ir_beg.printToString();
 
-            // rename obj
-            for (BasicBlockNode bb : entries) {
-
-                Stack<String> stack = new Stack<>();
-                // Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
-                replaceAlloca(entry.getKey(), stack, bb);
+            // find the entry block
+            BasicBlockNode bb = def_in_bb.get(0).second;
+            while (bb.idom != null) {
+                bb = bb.idom;
             }
+
+            // rename obj
+            // for (BasicBlockNode bb : entries) {
+
+            Stack<String> stack = new Stack<>();
+            if (def_in_bb.get(0).first.tp.equals("ptr")) {
+                stack.add("null");
+            } else {
+                stack.add("0");
+            }
+            // Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
+            replaceAlloca(entry.getKey(), stack, bb);
+            // }
 
             // System.out.println("C");
         }
@@ -428,7 +447,7 @@ public class IROptimizer {
         int stack_count = 0;
         IRNode beg = bb.head.next;
 
-        // System.out.println(bb.label + ": ");
+        // System.out.println("RA");
 
         // process reserved phi node
         if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
@@ -445,12 +464,14 @@ public class IROptimizer {
             // }
         }
 
-        // System.out.println("B");
+        /// System.out.println("B");
 
         // rewrite every command
         Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
 
         for (IRNode node = beg;; node = node.next) {
+
+            // System.out.println(node.toString());
 
             if (node instanceof IRBinaryNode) {
                 IRBinaryNode bin_node = ((IRBinaryNode) node);

@@ -66,13 +66,23 @@ public class Main {
 
             IROptimizer optimizer = new IROptimizer(generator.beg);
 
+            System.out.println("; OPTI");
+
             optimizer.calcCFG();
+
+            System.out.println("; CFG");
 
             optimizer.activeAnalysis();
 
+            System.out.println("; AA");
+
             optimizer.calcDominate();
 
+            System.out.println("; DOM");
+
             optimizer.placePhi();
+
+            System.out.println("; PHI");
 
             optimizer.ir_beg.printToString();
 
