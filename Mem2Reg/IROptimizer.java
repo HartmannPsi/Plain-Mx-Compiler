@@ -117,6 +117,9 @@ public class IROptimizer {
         Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
+            if (bb.precursors.isEmpty()) {
+                entries.add(bb);
+            }
         }
 
         // System.out.println("DDDD");
@@ -174,9 +177,9 @@ public class IROptimizer {
 
             BasicBlockNode bb = entry.getValue();
 
-            if (bb.precursors.isEmpty()) {
-                entries.add(bb);
-            }
+            // if (bb.precursors.isEmpty()) {
+            // entries.add(bb);
+            // }
 
             // ArrayList<IRNode> list = new ArrayList<>();
             // for (IRNode node = bb.head;; node = node.next) {
@@ -208,10 +211,10 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             System.out.println("BB " + bb.label + ":");
-            System.out.println("  in: " + bb.in);
-            System.out.println("  out: " + bb.out);
-            System.out.println("  def: " + bb.def);
-            System.out.println("  use: " + bb.use);
+            // System.out.println(" in: " + bb.in);
+            // System.out.println(" out: " + bb.out);
+            // System.out.println(" def: " + bb.def);
+            // System.out.println(" use: " + bb.use);
             System.out.print("  precursors: ");
             for (BasicBlockNode prec : bb.precursors) {
                 System.out.print(prec.label + " ");
@@ -226,7 +229,7 @@ public class IROptimizer {
             for (BasicBlockNode dom : bb.dominates) {
                 System.out.print(dom.label + " ");
             }
-            System.out.println();
+            System.out.println("\n" + bb.dominates.size() + "\n");
         }
     }
 
@@ -251,7 +254,12 @@ public class IROptimizer {
     public void calcDominate() {
         // calc dom set of bbs
 
+        // if (entries.isEmpty()) {
+        // System.out.println("No entries");
+        // }
+
         for (BasicBlockNode entry : entries) {
+            // System.out.println("Entry: " + entry.label);
             entry.dominates = new HashSet<>();
             entry.dominates.add(entry);
             Queue<BasicBlockNode> queue = new LinkedList<>();

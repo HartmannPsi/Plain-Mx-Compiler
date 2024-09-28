@@ -72,10 +72,6 @@ public class Main {
 
             System.out.println("; CFG");
 
-            optimizer.activeAnalysis();
-
-            System.out.println("; AA");
-
             optimizer.calcDominate();
 
             System.out.println("; DOM");
