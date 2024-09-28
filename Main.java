@@ -60,13 +60,13 @@ public class Main {
 
             /*************/
 
-            IROptimizer optimizer = new IROptimizer(generator.beg);
-
-            optimizer.calcCFG();
-
             if (DEBUG) {
                 System.setOut(new PrintStream(arg_parser.getOptiStream()));
             }
+
+            IROptimizer optimizer = new IROptimizer(generator.beg);
+
+            optimizer.calcCFG();
 
             optimizer.activeAnalysis();
 
@@ -74,14 +74,11 @@ public class Main {
 
             optimizer.placePhi();
 
-            if (DEBUG) {
-                optimizer.ir_beg.printToString();
-            }
+            optimizer.ir_beg.printToString();
+
             // optimizer.eliminatePhi();
 
-            System.setOut(System.out);
-
-            optimizer.ir_beg.printToString();
+            // System.setOut(System.out);
 
             // if (DEBUG) {
             // System.setOut(new PrintStream(arg_parser.getASMStream()));

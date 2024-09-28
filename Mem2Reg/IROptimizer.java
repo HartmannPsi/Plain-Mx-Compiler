@@ -49,6 +49,9 @@ public class IROptimizer {
 
     public void calcCFG() {
         // generate bbs
+
+        // System.out.println("AAAA");
+
         for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
             if (cur instanceof IRDefFuncNode) {
 
@@ -67,16 +70,20 @@ public class IROptimizer {
 
                     } else if (node instanceof IRStoreNode) {
 
-                        if (!def_in_bbs.containsKey(((IRStoreNode) node).ptr)) {
-                            def_in_bbs.put(((IRStoreNode) node).ptr, new ArrayList<>());
+                        if (((IRStoreNode) node).ptr.charAt(0) != '@') {
+                            if (!def_in_bbs.containsKey(((IRStoreNode) node).ptr)) {
+                                def_in_bbs.put(((IRStoreNode) node).ptr, new ArrayList<>());
+                            }
+                            def_in_bbs.get(((IRStoreNode) node).ptr).add(new Pair<>((IRStoreNode) node, bb));
                         }
-                        def_in_bbs.get(((IRStoreNode) node).ptr).add(new Pair<>((IRStoreNode) node, bb));
                     }
 
                     node.bb = bb;
                 }
             }
         }
+
+        // System.out.println("BBBB");
 
         // link bbs
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
@@ -99,18 +106,25 @@ public class IROptimizer {
             }
         }
 
+        // System.out.println("CCCC");
+
         // set dom set to the whole set of bbs
         Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
         }
 
+        // System.out.println("DDDD");
+
         // delete global vars in def_in_bbs
-        for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry : def_in_bbs.entrySet()) {
-            if (entry.getKey().charAt(0) == '@') {
-                def_in_bbs.remove(entry.getKey());
-            }
-        }
+        // for (Map.Entry<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> entry :
+        // def_in_bbs.entrySet()) {
+        // if (entry.getKey().charAt(0) == '@') {
+        // def_in_bbs.remove(entry.getKey());
+        // }
+        // }
+
+        // System.out.println("EEEE");
     }
 
     public void activeAnalysis() {
