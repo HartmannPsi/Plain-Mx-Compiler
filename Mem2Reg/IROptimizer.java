@@ -247,7 +247,11 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             System.out.println("BB " + bb.label + ":");
-            System.out.println("  dom_frontier: " + (bb.dom_frontier == null ? "null" : bb.dom_frontier.label));
+            System.out.print("  dom_frontier: ");
+            for (BasicBlockNode dom : bb.dom_frontier) {
+                System.out.print(dom.label + " ");
+            }
+            System.out.println();
         }
     }
 
@@ -349,7 +353,7 @@ public class IROptimizer {
             }
 
             for (BasicBlockNode node : set) {
-                node.dom_frontier = bb;
+                node.dom_frontier.add(bb);
             }
         }
 
@@ -379,13 +383,18 @@ public class IROptimizer {
 
             for (Pair<IRStoreNode, BasicBlockNode> pair : def_in_bb) {
                 IRStoreNode def = pair.first;
-                BasicBlockNode bb = pair.second;
-                bb = bb.dom_frontier;
+                BasicBlockNode beg = pair.second;
+                // bb = bb.dom_frontier;
+                Queue<BasicBlockNode> queue = new LinkedList<>();
+                for (BasicBlockNode frontier : beg.dom_frontier) {
+                    queue.add(frontier);
+                }
 
                 // reserve phi
-                while (bb != null) {
+                while (!queue.isEmpty()) {
+                    BasicBlockNode bb = queue.poll();
                     if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
-                        break;
+                        continue;
                     }
 
                     IRPhiNode phi_node = new IRPhiNode();
@@ -407,7 +416,9 @@ public class IROptimizer {
                         phi_node.vals[i] = "undef";
                     }
 
-                    bb = bb.dom_frontier;
+                    for (BasicBlockNode frontier : bb.dom_frontier) {
+                        queue.add(frontier);
+                    }
                 }
             }
 
@@ -429,8 +440,9 @@ public class IROptimizer {
             } else {
                 stack.add("0");
             }
-            // Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
-            replaceAlloca(entry.getKey(), stack, bb);
+            Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
+            collectRenames(entry.getKey(), stack, bb, replace);
+            renameVars(replace, bb.head);
             // }
 
             // System.out.println("C");
@@ -450,34 +462,8 @@ public class IROptimizer {
         }
     }
 
-    void replaceAlloca(String alloca_name, Stack<String> stack,
-            BasicBlockNode bb) {
-        int stack_count = 0;
-        IRNode beg = bb.head.next;
-
-        // System.out.println("RA");
-
-        // process reserved phi node
-        if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
-            // beg = bb.head.next.next;
-            IRPhiNode phi_node = ((IRPhiNode) bb.head.next);
-            phi_node.result = renameAlloca(alloca_name);
-            stack.add(phi_node.result);
-            ++stack_count;
-
-            // for (int i = 0; i != phi_node.labels.length; ++i) {
-            // if (phi_node.labels[i].equals(prec.label)) {
-            // phi_node.vals[i] = prec_rename;
-            // }
-            // }
-        }
-
-        /// System.out.println("B");
-
-        // rewrite every command
-        Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
-
-        for (IRNode node = beg;; node = node.next) {
+    void renameVars(Map<String, String> replace, IRNode beg) {
+        for (IRNode node = beg; node != null; node = node.next) {
 
             // System.out.println(node.toString());
 
@@ -547,13 +533,8 @@ public class IROptimizer {
                     continue;
                 }
 
-                if (load_node.ptr.equals(alloca_name)) {// using the current value of variable
-
-                    // construct reflect relationship
-                    replace.put(load_node.result, stack.peek());
-
-                    // delete the load node
-                    load_node.eliminated = true;
+                if (replace.containsKey(load_node.ptr)) {
+                    load_node.ptr = replace.get(load_node.ptr);
                 }
 
             } else if (node instanceof IRPhiNode) {
@@ -596,6 +577,68 @@ public class IROptimizer {
 
                 if (replace.containsKey(store_node.value)) {
                     store_node.value = replace.get(store_node.value);
+                }
+
+                if (replace.containsKey(store_node.ptr)) {
+                    store_node.ptr = replace.get(store_node.ptr);
+                }
+            }
+
+        }
+    }
+
+    void collectRenames(String alloca_name, Stack<String> stack,
+            BasicBlockNode bb, Map<String, String> replace) {
+        int stack_count = 0;
+        IRNode beg = bb.head.next;
+
+        // System.out.println("RA");
+
+        // process reserved phi node
+        if (bb.head.next instanceof IRPhiNode && ((IRPhiNode) bb.head.next).result == null) {
+            // beg = bb.head.next.next;
+            IRPhiNode phi_node = ((IRPhiNode) bb.head.next);
+            phi_node.result = renameAlloca(alloca_name);
+            stack.add(phi_node.result);
+            ++stack_count;
+
+            // for (int i = 0; i != phi_node.labels.length; ++i) {
+            // if (phi_node.labels[i].equals(prec.label)) {
+            // phi_node.vals[i] = prec_rename;
+            // }
+            // }
+        }
+
+        /// System.out.println("B");
+
+        // rewrite every command
+        // Map<String, String> replace = new HashMap<>();// <cur_name, replace_name>
+
+        for (IRNode node = beg;; node = node.next) {
+
+            // System.out.println(node.toString());
+
+            if (node instanceof IRLoadNode) {
+                IRLoadNode load_node = ((IRLoadNode) node);
+
+                if (load_node.eliminated) {
+                    continue;
+                }
+
+                if (load_node.ptr.equals(alloca_name)) {// using the current value of variable
+
+                    // construct reflect relationship
+                    replace.put(load_node.result, stack.peek());
+
+                    // delete the load node
+                    load_node.eliminated = true;
+                }
+
+            } else if (node instanceof IRStoreNode) {
+                IRStoreNode store_node = ((IRStoreNode) node);
+
+                if (store_node.eliminated) {
+                    continue;
                 }
 
                 if (store_node.ptr.equals(alloca_name)) {// changing the value of variable
@@ -650,14 +693,15 @@ public class IROptimizer {
             }
 
             // rewrite phi nodes at the beginning of succ
-            for (IRNode node = succ.head.next; node instanceof IRPhiNode; node = node.next) {
-                IRPhiNode phi_node = ((IRPhiNode) node);
-                for (int i = 0; i != phi_node.vals.length; ++i) {
-                    if (replace.containsKey(phi_node.vals[i])) {
-                        phi_node.vals[i] = replace.get(phi_node.vals[i]);
-                    }
-                }
-            }
+            // for (IRNode node = succ.head.next; node instanceof IRPhiNode; node =
+            // node.next) {
+            // IRPhiNode phi_node = ((IRPhiNode) node);
+            // for (int i = 0; i != phi_node.vals.length; ++i) {
+            // if (replace.containsKey(phi_node.vals[i])) {
+            // phi_node.vals[i] = replace.get(phi_node.vals[i]);
+            // }
+            // }
+            // }
         }
 
         // System.out.println("D");
@@ -666,7 +710,7 @@ public class IROptimizer {
         for (
 
         BasicBlockNode son : bb.dom_tree_son) {
-            replaceAlloca(alloca_name, stack, son);
+            collectRenames(alloca_name, stack, son, replace);
         }
 
         // pop stack
