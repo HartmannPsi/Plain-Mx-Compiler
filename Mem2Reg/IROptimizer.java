@@ -513,8 +513,14 @@ public class IROptimizer {
             } else if (node instanceof IRGetEleNode) {
                 IRGetEleNode ele_node = ((IRGetEleNode) node);
 
+                if (replace.containsKey(ele_node.ptr)) {
+                    ele_node.ptr = replace.get(ele_node.ptr);
+                }
+
                 for (int i = 0; i != ele_node.idxs.length; ++i) {
+
                     if (replace.containsKey(ele_node.idxs[i])) {
+
                         ele_node.idxs[i] = replace.get(ele_node.idxs[i]);
                     }
                 }
@@ -607,6 +613,11 @@ public class IROptimizer {
                 break;
             }
         }
+
+        // if (replace.containsKey("%IdRetVal.103")) {
+        // System.out.println(bb.label + ":");
+        // System.out.println(replace.get("%IdRetVal.103"));
+        // }
 
         // System.out.println("C");
 
