@@ -311,8 +311,12 @@ public class IROptimizer {
 
             while (true) {
 
+                if (queue.isEmpty()) {
+                    break;
+                }
+
                 BasicBlockNode tmp = queue.poll();
-                // System.out.println("\n" + tmp.label);
+                // System.out.println(tmp.label);
 
                 if (tmp.dominates.size() == bb.dominates.size() - 1) {
                     Set<BasicBlockNode> set = new HashSet<>(bb.dominates);
