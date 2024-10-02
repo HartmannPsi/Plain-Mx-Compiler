@@ -16,7 +16,7 @@ public class IRMvNode extends IRBinaryNode {
             tp = "i32";
         }
 
-        System.out.println(result + " = add " + tp + " 0, " + op2 + "; this is a mv instruction to eliminate phi");
+        System.out.println(result + " = add " + tp + " 0, " + op2 + "; this is a MV instruction to eliminate PHI");
 
         printNext();
     }
@@ -26,7 +26,7 @@ public class IRMvNode extends IRBinaryNode {
             tp = "i32";
         }
 
-        return result + " = add " + tp + " 0, " + op2 + "; this is a mv instruction to eliminate phi";
+        return result + " = add " + tp + " 0, " + op2 + "; this is a MV instruction to eliminate PHI";
     }
 
 }

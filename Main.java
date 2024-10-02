@@ -70,19 +70,19 @@ public class Main {
 
             optimizer.calcCFG();
 
-            System.out.println("; CFG");
+            System.out.println("; CCFG");
 
             optimizer.calcDominate();
 
-            System.out.println("; DOM");
+            System.out.println("; CDOM");
 
             optimizer.placePhi();
 
-            System.out.println("; PHI");
+            System.out.println("; PPHI");
 
-            optimizer.ir_beg.printToString();
+            optimizer.printIR();
 
-            // optimizer.eliminatePhi();
+            optimizer.eliminatePhi();
 
             // System.setOut(System.out);
 

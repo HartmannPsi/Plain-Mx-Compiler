@@ -52,6 +52,10 @@ public class IROptimizer {
         }
     }
 
+    public void printIR() {
+        ir_beg.printToString();
+    }
+
     public void calcCFG() {
         // generate bbs
 
@@ -726,6 +730,7 @@ public class IROptimizer {
 
     public void eliminatePhi() {
         // eliminate critical edge
+        Map<String, BasicBlockNode> new_bbs = new HashMap<>();
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
 
@@ -747,6 +752,7 @@ public class IROptimizer {
                 IRLabelNode label_node = new IRLabelNode();
                 label_node.label = bbLabel();
                 new_bb.label = label_node.label;
+                new_bbs.put(new_bb.label, new_bb);
 
                 IRBrNode br_node = new IRBrNode();
                 br_node.label_true = succ.label;
@@ -762,18 +768,14 @@ public class IROptimizer {
                 new_bb.tail.next = succ.head;
 
                 // replace bb with new_bb in phi_node and precs of succ
-                for (BasicBlockNode node : succ.precursors) {
-                    if (node == bb) {
-                        node = new_bb;
-                        break;
-                    }
-                }
+                succ.precursors.remove(bb);
+                succ.precursors.add(new_bb);
 
                 for (IRNode node = succ.head.next;; node = node.next) {
                     if (node instanceof IRPhiNode) {
-                        for (String label : ((IRPhiNode) node).labels) {
-                            if (label.equals(bb.label)) {
-                                label = new_bb.label;
+                        for (int i = 0; i != ((IRPhiNode) node).labels.length; ++i) {
+                            if (((IRPhiNode) node).labels[i].equals(bb.label)) {
+                                ((IRPhiNode) node).labels[i] = new_bb.label;
                             }
                         }
                     }
@@ -784,12 +786,8 @@ public class IROptimizer {
                 }
 
                 // replace succ with new_bb in succs and br_node of bb
-                for (BasicBlockNode node : bb.successors) {
-                    if (node == succ) {
-                        node = new_bb;
-                        break;
-                    }
-                }
+                bb.successors.remove(succ);
+                bb.successors.add(new_bb);
 
                 if (bb.tail instanceof IRBrNode) {
                     IRBrNode tail_node = ((IRBrNode) bb.tail);
@@ -803,32 +801,47 @@ public class IROptimizer {
             }
         }
 
+        // insert new bbs into set
+        for (Map.Entry<String, BasicBlockNode> entry : new_bbs.entrySet()) {
+            bbs.put(entry.getKey(), entry.getValue());
+        }
+
+        System.out.println("; ECE");
+        printIR();
+
         // replace phi with mv
-        for (IRNode node = ir_beg; node != null; node = node.next) {
-            if (node instanceof IRPhiNode) {
-                IRPhiNode phi_node = ((IRPhiNode) node);
-                for (int i = 0; i != phi_node.labels.length; ++i) {
-                    // find the reserve bb
-                    BasicBlockNode reserve_bb = bbs.get(phi_node.labels[i]);
+        for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
+            if (cur instanceof IRDefFuncNode) {
+                for (IRNode node = ((IRDefFuncNode) cur).stmt; node != null; node = node.next) {
+                    if (node instanceof IRPhiNode) {
+                        IRPhiNode phi_node = ((IRPhiNode) node);
+                        for (int i = 0; i != phi_node.labels.length; ++i) {
+                            // find the reserve bb
+                            BasicBlockNode reserve_bb = bbs.get(phi_node.labels[i]);
 
-                    // isnert mv_node
-                    IRMvNode mv_node = new IRMvNode();
-                    mv_node.result = phi_node.result;
-                    mv_node.op2 = phi_node.vals[i];
-                    mv_node.tp = phi_node.tp;
-                    mv_node.op1 = "0";
-                    mv_node.operator = "add";
+                            // insert mv_node
+                            IRMvNode mv_node = new IRMvNode();
+                            mv_node.result = phi_node.result;
+                            mv_node.op2 = phi_node.vals[i];
+                            mv_node.tp = phi_node.tp;
+                            mv_node.op1 = "0";
+                            mv_node.operator = "add";
 
-                    reserve_bb.tail.prev.next = mv_node;
-                    mv_node.prev = reserve_bb.tail.prev;
-                    reserve_bb.tail.prev = mv_node;
-                    mv_node.next = reserve_bb.tail;
+                            reserve_bb.tail.prev.next = mv_node;
+                            mv_node.prev = reserve_bb.tail.prev;
+                            reserve_bb.tail.prev = mv_node;
+                            mv_node.next = reserve_bb.tail;
+                        }
 
-                    // delete phi_node
-                    phi_node.eliminated = true;
+                        // delete phi_node
+                        phi_node.eliminated = true;
+                    }
                 }
             }
         }
+
+        System.out.println("; EPHI");
+        printIR();
     }
 
     public void dfs(BasicBlockNode node, ArrayList<BasicBlockNode> order) {
