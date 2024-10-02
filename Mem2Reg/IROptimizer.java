@@ -730,7 +730,7 @@ public class IROptimizer {
 
     public void eliminatePhi() {
         // eliminate critical edge
-        Map<String, BasicBlockNode> new_bbs = new HashMap<>();
+        ArrayList<Pair<String, BasicBlockNode>> new_bbs = new ArrayList<>();
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
 
@@ -752,7 +752,7 @@ public class IROptimizer {
                 IRLabelNode label_node = new IRLabelNode();
                 label_node.label = bbLabel();
                 new_bb.label = label_node.label;
-                new_bbs.put(new_bb.label, new_bb);
+                new_bbs.add(new Pair<>(new_bb.label, new_bb));
 
                 IRBrNode br_node = new IRBrNode();
                 br_node.label_true = succ.label;
@@ -802,8 +802,8 @@ public class IROptimizer {
         }
 
         // insert new bbs into set
-        for (Map.Entry<String, BasicBlockNode> entry : new_bbs.entrySet()) {
-            bbs.put(entry.getKey(), entry.getValue());
+        for (Pair<String, BasicBlockNode> pair : new_bbs) {
+            bbs.put(pair.first, pair.second);
         }
 
         System.out.println("; ECE");
