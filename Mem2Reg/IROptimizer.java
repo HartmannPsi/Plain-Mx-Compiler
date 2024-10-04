@@ -807,7 +807,7 @@ public class IROptimizer {
         }
 
         System.out.println("; ECE");
-        printIR();
+        // printIR();
 
         // replace phi with mv
         for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
@@ -841,7 +841,56 @@ public class IROptimizer {
         }
 
         System.out.println("; EPHI");
-        printIR();
+        // printIR();
+    }
+
+    public void deleteEliminated() {
+        for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
+            if (cur instanceof IRDefFuncNode) {
+                for (IRNode node = ((IRDefFuncNode) cur).stmt; node != null; node = node.next) {
+                    if (node instanceof IRAllocaNode && ((IRAllocaNode) node).eliminated) {
+                        if (node.prev == cur) {
+                            ((IRDefFuncNode) cur).stmt = node.next;
+                        } else {
+                            node.prev.next = node.next;
+                        }
+                        if (node.next != null) {
+                            node.next.prev = node.prev;
+                        }
+
+                    } else if (node instanceof IRLoadNode && ((IRLoadNode) node).eliminated) {
+                        if (node.prev == cur) {
+                            ((IRDefFuncNode) cur).stmt = node.next;
+                        } else {
+                            node.prev.next = node.next;
+                        }
+                        if (node.next != null) {
+                            node.next.prev = node.prev;
+                        }
+
+                    } else if (node instanceof IRStoreNode && ((IRStoreNode) node).eliminated) {
+                        if (node.prev == cur) {
+                            ((IRDefFuncNode) cur).stmt = node.next;
+                        } else {
+                            node.prev.next = node.next;
+                        }
+                        if (node.next != null) {
+                            node.next.prev = node.prev;
+                        }
+
+                    } else if (node instanceof IRPhiNode && ((IRPhiNode) node).eliminated) {
+                        if (node.prev == cur) {
+                            ((IRDefFuncNode) cur).stmt = node.next;
+                        } else {
+                            node.prev.next = node.next;
+                        }
+                        if (node.next != null) {
+                            node.next.prev = node.prev;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void dfs(BasicBlockNode node, ArrayList<BasicBlockNode> order) {

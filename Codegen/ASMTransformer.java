@@ -530,15 +530,19 @@ public class ASMTransformer {
 
             if (node instanceof IRAllocaNode) {
                 IRAllocaNode alloca_node = (IRAllocaNode) node;
-                map.put(alloca_node.result, addr);
-                addr += 8;
+                if (!map.containsKey(alloca_node.result)) {
+                    map.put(alloca_node.result, addr);
+                    addr += 8;
+                }
                 // result: addr
                 // value: addr + 4
 
             } else if (node instanceof IRBinaryNode) {
                 IRBinaryNode binary_node = (IRBinaryNode) node;
-                map.put(binary_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(binary_node.result)) {
+                    map.put(binary_node.result, addr);
+                    addr += 4;
+                }
 
             } else if (node instanceof IRCallNode) {
                 IRCallNode call_node = (IRCallNode) node;
@@ -547,35 +551,47 @@ public class ASMTransformer {
                     call_node.result = renameVar("Void.Virtual.Ret");
                 }
 
-                map.put(call_node.result, addr);
-                addr += 8;
+                if (!map.containsKey(call_node.result)) {
+                    map.put(call_node.result, addr);
+                    addr += 8;
+                }
                 // ra: addr + 4
                 // result: addr
 
             } else if (node instanceof IRGetEleNode) {
                 IRGetEleNode ele_node = (IRGetEleNode) node;
-                map.put(ele_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(ele_node.result)) {
+                    map.put(ele_node.result, addr);
+                    addr += 4;
+                }
 
             } else if (node instanceof IRIcmpNode) {
                 IRIcmpNode icmp_node = (IRIcmpNode) node;
-                map.put(icmp_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(icmp_node.result)) {
+                    map.put(icmp_node.result, addr);
+                    addr += 4;
+                }
 
             } else if (node instanceof IRLoadNode) {
                 IRLoadNode load_node = (IRLoadNode) node;
-                map.put(load_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(load_node.result)) {
+                    map.put(load_node.result, addr);
+                    addr += 4;
+                }
 
             } else if (node instanceof IRPhiNode) {
                 IRPhiNode phi_node = (IRPhiNode) node;
-                map.put(phi_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(phi_node.result)) {
+                    map.put(phi_node.result, addr);
+                    addr += 4;
+                }
 
             } else if (node instanceof IRSelectNode) {
                 IRSelectNode select_node = (IRSelectNode) node;
-                map.put(select_node.result, addr);
-                addr += 4;
+                if (!map.containsKey(select_node.result)) {
+                    map.put(select_node.result, addr);
+                    addr += 4;
+                }
             }
         }
 

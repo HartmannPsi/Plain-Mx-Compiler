@@ -80,32 +80,34 @@ public class Main {
 
             System.out.println("; PPHI");
 
-            optimizer.printIR();
-
             optimizer.eliminatePhi();
 
-            // System.setOut(System.out);
+            optimizer.deleteEliminated();
 
-            // if (DEBUG) {
-            // System.setOut(new PrintStream(arg_parser.getASMStream()));
-            // }
+            optimizer.printIR();
 
-            // // ASMTransformer transformer = new ASMTransformer(generator.beg);
-            // ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
-            // transformer.generateASM();
-            // System.out.println("# ASM Generation Done.\n");
+            System.setOut(System.out);
 
-            // try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
-            // byte[] buffer = new byte[1024];
-            // int length;
-            // while ((length = fis.read(buffer)) != -1) {
-            // System.out.write(buffer, 0, length);
-            // }
-            // } catch (IOException e) {
-            // e.printStackTrace();
-            // }
+            if (DEBUG) {
+                System.setOut(new PrintStream(arg_parser.getASMStream()));
+            }
 
-            // transformer.printASM();
+            // ASMTransformer transformer = new ASMTransformer(generator.beg);
+            ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
+            transformer.generateASM();
+            System.out.println("# ASM Generation Done.\n");
+
+            try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) != -1) {
+                    System.out.write(buffer, 0, length);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            transformer.printASM();
 
             System.exit(0);
 
