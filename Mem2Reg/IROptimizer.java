@@ -298,13 +298,13 @@ public class IROptimizer {
             }
         }
 
-        printCFG();
+        // printCFG();
 
         // calc IDom of bbs
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
 
-            System.out.println(bb.label);
+            // System.out.println(bb.label);
 
             if (bb.precursors.isEmpty() || bb.dominates.size() == 1) {
                 continue;

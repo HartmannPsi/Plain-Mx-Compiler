@@ -129,6 +129,7 @@ public class Main {
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
 
+            // attach builtin.s
             try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
                 byte[] buffer = new byte[1024];
                 int length;
