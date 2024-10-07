@@ -9,9 +9,6 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
-
-import org.antlr.v4.parse.ANTLRParser.rules_return;
-
 import util.Pair;
 
 public class IROptimizer {
