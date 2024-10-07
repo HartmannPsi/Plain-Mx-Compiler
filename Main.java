@@ -46,16 +46,23 @@ public class Main {
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
             // ast_root.printToString();
             checker.check();
-            // System.out.println("; Semantic Check Done.");
+
+            if (DEBUG) {
+                System.setOut(new PrintStream(arg_parser.getLLVMStream()));
+                System.out.println("; Semantic Check Done.");
+            }
 
             IRGenerator generator = new IRGenerator((ProgNode) ast_root);
             generator.generateIR();
-            // System.out.println("; IR Generation Done.\n");
+
+            if (DEBUG) {
+                System.out.println("; IR Generation Done.\n");
+            }
+
             generator.disposeIR();
             // generator.printIR();
 
             if (DEBUG) {
-                System.setOut(new PrintStream(arg_parser.getLLVMStream()));
                 generator.printIR();
             }
 

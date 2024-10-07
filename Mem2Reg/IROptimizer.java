@@ -301,21 +301,23 @@ public class IROptimizer {
             }
         }
 
-        // printCFG();
+        printCFG();
 
         // calc IDom of bbs
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
 
-            // System.out.println(bb.label);
+            System.out.println(bb.label);
 
             if (bb.precursors.isEmpty() || bb.dominates.size() == 1) {
                 continue;
             }
 
             Queue<BasicBlockNode> queue = new LinkedList<>();
+            Set<BasicBlockNode> visited = new HashSet<>();
             for (BasicBlockNode prec : bb.precursors) {
                 queue.add(prec);
+                visited.add(prec);
             }
 
             while (true) {
@@ -337,7 +339,10 @@ public class IROptimizer {
                 }
 
                 for (BasicBlockNode prec : tmp.precursors) {
-                    queue.add(prec);
+                    if (!visited.contains(prec)) {
+                        visited.add(prec);
+                        queue.add(prec);
+                    }
                 }
             }
         }
