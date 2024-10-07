@@ -1224,9 +1224,19 @@ public class SemanticChecker {
     }
 
     void check(IdNode node) {
+
+        // System.out.println(node.rename_id + "." + node.id);
+
         if (node.father instanceof MemAccNode && ((MemAccNode) node.father).member == node) {// find in class
 
+            // System.out.println("AA");
+
             Type cls_tp = ((ExprNode) ((MemAccNode) node.father).object).type;
+
+            if ((cls_tp.equal(bool_type) || cls_tp.equal(int_type)) && cls_tp.dim == 0) {
+                // System.out.println(12);
+                throw_semantic(undef_id, node.pos);
+            }
 
             if (cls_tp.dim > 0) {// only has size method
 
@@ -1306,6 +1316,9 @@ public class SemanticChecker {
                 node.type.is_lvalue = false;
 
             } else {// member variable
+
+                // System.out.println("BB");
+
                 node.is_var = true;
                 for (int i = 0; i != root.global_stmt.length; ++i) {
 
@@ -1313,6 +1326,9 @@ public class SemanticChecker {
                         DefClassNode def_cls = (DefClassNode) root.global_stmt[i];
 
                         if (((IdNode) def_cls.name).id.equals(cls_tp.id)) {
+
+                            // System.out.println(cls_tp.id);
+
                             Map<String, Type> scope = def_cls.vars;
                             Map<String, String> rename_scope = def_cls.rename_vars;
                             if (scope.containsKey(node.id)) {
@@ -1320,6 +1336,7 @@ public class SemanticChecker {
                                 node.rename_id = rename_scope.get(node.id);
                             } else {
                                 // System.out.println(18);
+                                // System.out.println("What");
                                 throw_semantic(undef_id, node.pos);
                             }
                         }

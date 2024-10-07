@@ -6,6 +6,6 @@ public class IdNode extends ExprNode {
     public boolean is_var = true;
 
     public void printToString() {
-        System.out.print((is_var ? "Var" : "Func") + rename_id);
+        System.out.print((is_var ? "Var" : "Func") + rename_id + "." + id);
     }
 }

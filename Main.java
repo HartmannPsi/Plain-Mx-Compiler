@@ -44,6 +44,7 @@ public class Main {
             // System.out.println("; AST Construction Done.");
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
+            ast_root.printToString();
             checker.check();
             // System.out.println("; Semantic Check Done.");
 
@@ -136,8 +137,10 @@ public class Main {
             System.exit(0);
 
         } catch (error err) {
+            // System.out.println("OMG");
 
             if (err instanceof syntaxError) {
+
                 if (DEBUG)
                     System.out.println(err.toString());
                 else
