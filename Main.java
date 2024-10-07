@@ -66,25 +66,49 @@ public class Main {
 
             IROptimizer optimizer = new IROptimizer(generator.beg);
 
-            System.out.println("; OPTI");
-
+            if (DEBUG) {
+                System.out.println("; OPTI");
+            }
             optimizer.calcCFG();
 
-            System.out.println("; CCFG");
-
+            if (DEBUG) {
+                System.out.println("; CCFG");
+            }
             optimizer.calcDominate();
 
-            System.out.println("; CDOM");
-
+            if (DEBUG) {
+                System.out.println("; CDOM");
+                // optimizer.printFrontier();
+            }
             optimizer.placePhi();
 
-            System.out.println("; PPHI");
+            if (DEBUG) {
+                System.out.println("; PPHI");
+                // optimizer.printIR();
+            }
+
+            optimizer.sortPhi();
+
+            if (DEBUG) {
+                System.out.println("; SPHI");
+                // optimizer.printIR();
+            }
 
             optimizer.eliminatePhi();
 
+            if (DEBUG) {
+                System.out.println("; EPHI");
+            }
+
             optimizer.deleteEliminated();
 
-            optimizer.printIR();
+            if (DEBUG) {
+                System.out.println("; DEL");
+            }
+
+            if (DEBUG) {
+                optimizer.printIR();
+            }
 
             System.setOut(System.out);
 

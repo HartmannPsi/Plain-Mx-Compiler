@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
+
+import org.antlr.v4.parse.ANTLRParser.rules_return;
+
 import util.Pair;
 
 public class IROptimizer {
@@ -470,6 +473,115 @@ public class IROptimizer {
         }
     }
 
+    public void sortPhi() {
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            if (bb.dom_frontier.isEmpty()) {
+                continue;
+            }
+
+            Map<String, Integer> order = new HashMap<>();
+            int ser = 0;
+
+            // get the order of phis
+            for (IRNode node = bb.head;; node = node.next) {
+                if (node instanceof IRStoreNode) {
+                    IRStoreNode store_node = ((IRStoreNode) node);
+                    if (!order.containsKey(store_node.ptr)) {
+                        order.put(store_node.ptr, ser++);
+                    }
+                }
+                if (node == bb.tail)
+                    break;
+            }
+
+            // if (!order.isEmpty()) {
+            // for (Map.Entry<String, Integer> entry2 : order.entrySet()) {
+            // System.out.println(entry2.getKey() + " " + entry2.getValue());
+            // }
+            // }
+
+            // init
+            Queue<BasicBlockNode> queue = new LinkedList<>();
+            Set<BasicBlockNode> visited = new HashSet<>();
+            for (BasicBlockNode frontier : bb.dom_frontier) {
+                queue.add(frontier);
+                visited.add(frontier);
+            }
+
+            while (!queue.isEmpty()) {
+                BasicBlockNode frontier = queue.poll();
+                // System.out.println(frontier.label);
+                int phi_cnt = 0;
+
+                // coutn phis & get the order
+                for (IRNode node = frontier.head.next; node instanceof IRPhiNode; node = node.next) {
+                    ++phi_cnt;
+                    // if (!order.containsKey(((IRPhiNode) node).result)) {
+                    // order.put(((IRPhiNode) node).result, ser);
+                    // }
+                }
+
+                // sort
+                for (int i = 0; i != phi_cnt; ++i) {
+                    IRNode node = (IRPhiNode) frontier.head.next;
+                    for (int j = 0; j != phi_cnt - 1; ++j) {
+                        String sub = ".Replace.";
+                        String key1 = new String(((IRPhiNode) node).result),
+                                key2 = new String(((IRPhiNode) node.next).result);
+                        int tmp1 = key1.indexOf(sub), tmp2 = key2.indexOf(sub);
+                        key1 = key1.substring(0, tmp1);
+                        key2 = key2.substring(0, tmp2);
+                        int idx1 = ser;
+                        if (order.containsKey(key1)) {
+                            idx1 = order.get(key1);
+                        }
+                        int idx2 = ser;
+                        if (order.containsKey(key2)) {
+                            idx2 = order.get(key2);
+                        }
+                        // System.out.println(key1 + "=" + idx1 + " " + key2 + "=" + idx2);
+
+                        if (idx1 > idx2) {
+                            // System.out.print("SWAP");
+                            // swap
+                            IRPhiNode phi1 = (IRPhiNode) node, phi2 = (IRPhiNode) node.next, phi3 = new IRPhiNode();
+                            phi3.result = phi1.result;
+                            phi1.result = phi2.result;
+                            phi2.result = phi3.result;
+
+                            phi3.tp = phi1.tp;
+                            phi1.tp = phi2.tp;
+                            phi2.tp = phi3.tp;
+
+                            phi3.vals = phi1.vals;
+                            phi1.vals = phi2.vals;
+                            phi2.vals = phi3.vals;
+
+                            phi3.labels = phi1.labels;
+                            phi1.labels = phi2.labels;
+                            phi2.labels = phi3.labels;
+
+                            phi3.eliminated = phi1.eliminated;
+                            phi1.eliminated = phi2.eliminated;
+                            phi2.eliminated = phi3.eliminated;
+                        }
+                        node = node.next;
+                    }
+                }
+
+                // add the frontiers
+                for (BasicBlockNode tmp : frontier.dom_frontier) {
+                    if (!visited.contains(tmp)) {
+                        queue.add(tmp);
+                        visited.add(tmp);
+                    }
+                }
+            }
+
+        }
+    }
+
     void renameVars(Map<String, String> replace, IRNode beg) {
         for (IRNode node = beg; node != null; node = node.next) {
 
@@ -806,7 +918,7 @@ public class IROptimizer {
             bbs.put(pair.first, pair.second);
         }
 
-        System.out.println("; ECE");
+        // System.out.println("; ECE");
         // printIR();
 
         // replace phi with mv
@@ -840,7 +952,7 @@ public class IROptimizer {
             }
         }
 
-        System.out.println("; EPHI");
+        // System.out.println("; EPHI");
         // printIR();
     }
 
