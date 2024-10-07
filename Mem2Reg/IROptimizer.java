@@ -307,7 +307,9 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
 
-            if (bb.precursors.isEmpty()) {
+            // System.out.println(bb.label);
+
+            if (bb.precursors.isEmpty() || bb.dominates.size() == 1) {
                 continue;
             }
 
