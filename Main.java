@@ -44,7 +44,7 @@ public class Main {
             // System.out.println("; AST Construction Done.");
 
             SemanticChecker checker = new SemanticChecker((ProgNode) ast_root);
-            ast_root.printToString();
+            // ast_root.printToString();
             checker.check();
             // System.out.println("; Semantic Check Done.");
 

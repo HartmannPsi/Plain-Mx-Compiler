@@ -822,7 +822,12 @@ public class ASTConstructor extends MxParserBaseVisitor<Node> {
     public Node visitNum(MxParser.NumContext ctx) {
         NumConstNode node = new NumConstNode();
         node.type = new Type(int_type);
-        node.val = Integer.valueOf(ctx.getText());
+        // System.out.println(ctx.getText());
+        if (ctx.getText().equals("2147483648")) {
+            node.val = 2147483647;// sad
+        } else {
+            node.val = Integer.valueOf(ctx.getText());
+        }
         node.pos = new position(ctx);
         return node;
     }
