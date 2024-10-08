@@ -10,9 +10,12 @@ public class ASMTransformer {
     IRNode ir_beg;
     ASMNode asm_beg = new ASMNode();
     int rename_serial = 0;
+    Map<String, String> var_map = new HashMap<>();
+    // TODO: allocate vars to registers
 
-    public ASMTransformer(IRNode beg) {
+    public ASMTransformer(IRNode beg, Map<String, String> var_map) {
         this.ir_beg = beg;
+        this.var_map = var_map;
     }
 
     public void generateASM() {

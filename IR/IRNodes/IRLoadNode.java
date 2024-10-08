@@ -4,8 +4,16 @@ public class IRLoadNode extends IRNode {
     public String result = null, tp = null, ptr = null;
     public boolean eliminated = false;
 
-    public String use() {
-        return ptr;
+    public String[] use() {
+        if (isActive(ptr)) {
+            return new String[] { ptr };
+        } else {
+            return null;
+        }
+    }
+
+    public String def() {
+        return result;
     }
 
     public void printToString() {

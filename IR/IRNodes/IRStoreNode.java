@@ -4,8 +4,15 @@ public class IRStoreNode extends IRNode {
     public String tp = null, value = null, ptr = null;
     public boolean eliminated = false;
 
-    public String use() {
-        return ptr;
+    public String[] use() {
+        String[] res = new String[2];
+        if (isActive(value)) {
+            res[0] = value;
+        }
+        if (isActive(ptr)) {
+            res[1] = ptr;
+        }
+        return res;
     }
 
     public void printToString() {

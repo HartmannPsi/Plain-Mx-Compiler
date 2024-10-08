@@ -20,6 +20,14 @@ public class IRBrNode extends IRNode {
         printNext();
     }
 
+    public String[] use() {
+        if (cond != null && isActive(cond)) {
+            return new String[] { cond };
+        } else {
+            return null;
+        }
+    }
+
     public String toString() {
         if (cond != null) {
             return "br i1 " + cond + ", label %" + label_true + ", label %" + label_false;

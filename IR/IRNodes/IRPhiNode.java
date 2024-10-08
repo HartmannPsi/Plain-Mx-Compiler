@@ -5,6 +5,20 @@ public class IRPhiNode extends IRNode {
     public String[] vals = null, labels = null;
     public boolean eliminated = false;
 
+    public String[] use() {
+        String[] res = new String[vals.length];
+        for (int i = 0; i != vals.length; ++i) {
+            if (isActive(vals[i])) {
+                res[i] = vals[i];
+            }
+        }
+        return res;
+    }
+
+    public String def() {
+        return result;
+    }
+
     public void printToString() {
 
         if (eliminated) {

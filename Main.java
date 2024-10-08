@@ -10,6 +10,8 @@ import IR.IRGenerator;
 import Codegen.ASMTransformer;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.HashMap;
 import Mem2Reg.*;
 
 public class Main {
@@ -114,6 +116,12 @@ public class Main {
                 System.out.println("; DEL");
             }
 
+            Map<String, String> var_map = optimizer.linearScan();
+
+            if (DEBUG) {
+                System.out.println("; SCAN");
+            }
+
             if (DEBUG) {
                 optimizer.printIR();
             }
@@ -125,7 +133,7 @@ public class Main {
             }
 
             // ASMTransformer transformer = new ASMTransformer(generator.beg);
-            ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg);
+            ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg, var_map);
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
 

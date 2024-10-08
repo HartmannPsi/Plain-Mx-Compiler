@@ -14,6 +14,21 @@ public class IRBinaryNode extends IRNode {
         printNext();
     }
 
+    public String def() {
+        return result;
+    }
+
+    public String[] use() {
+        String[] res = new String[2];
+        if (isActive(op1)) {
+            res[0] = op1;
+        }
+        if (isActive(op2)) {
+            res[1] = op2;
+        }
+        return res;
+    }
+
     public String toString() {
         return result + " = " + operator + " " + tp + " " + op1 + ", " + op2;
     }

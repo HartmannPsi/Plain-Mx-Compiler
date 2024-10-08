@@ -4,6 +4,21 @@ public class IRCallNode extends IRNode {
     public String result = null, res_tp = null, func_name = null;
     public String[] args = null, tps = null;
 
+    public String def() {
+        return result;
+    }
+
+    public String[] use() {
+        String[] res = new String[args.length];
+        for (int i = 0; i != args.length; ++i) {
+            if (isActive(args[i])) {
+                res[i] = args[i];
+            }
+        }
+
+        return res;
+    }
+
     public void printToString() {
 
         // if (shadow) {

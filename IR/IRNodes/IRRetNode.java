@@ -3,6 +3,14 @@ package IR.IRNodes;
 public class IRRetNode extends IRNode {
     public String tp = null, val = null;
 
+    public String[] use() {
+        if (val != null && isActive(val)) {
+            return new String[] { val };
+        } else {
+            return null;
+        }
+    }
+
     public void printToString() {
 
         // if (shadow) {

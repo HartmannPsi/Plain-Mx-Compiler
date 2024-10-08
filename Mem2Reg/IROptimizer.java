@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
+import java.util.PriorityQueue;
 import util.Pair;
 
 public class IROptimizer {
@@ -150,7 +151,11 @@ public class IROptimizer {
                     bb.def.add(node.def());
                 }
                 if (node.use() != null) {
-                    bb.use.add(node.use());
+                    for (String use : node.use()) {
+                        if (use != null) {
+                            bb.use.add(use);
+                        }
+                    }
                 }
                 if (node == bb.tail)
                     break;
@@ -200,7 +205,12 @@ public class IROptimizer {
                     last_out.remove(node.def());
                 }
                 if (node.use() != null) {
-                    last_out.add(node.use());
+                    for (String use : node.use()) {
+                        if (use != null) {
+                            last_out.add(use);
+                        }
+                    }
+                    // last_out.add(node.use());
                 }
                 node.in = new HashSet<>(last_out);
 
@@ -1009,102 +1019,104 @@ public class IROptimizer {
         }
     }
 
-    public void dfs(BasicBlockNode node, ArrayList<BasicBlockNode> order) {
+    public void getOrder(BasicBlockNode node, ArrayList<BasicBlockNode> order) {
         for (BasicBlockNode succ : node.successors) {
-            dfs(succ, order);
+            getOrder(succ, order);
         }
 
         order.add(node);
     }
 
-    public void linearScan() {
+    String regName(int i) {
+        if (i < 12) {
+            return "s" + i;
+        } else if (i < 16) {
+            return "t" + (i - 9);
+        } else {
+            return "a" + (i - 16);
+        }
+    }
 
+    public Map<String, String> linearScan() {
+
+        // ret value
+        Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
+
+        // active analysis
+        activeAnalysis();
+
+        // consider every functions independently
         for (BasicBlockNode entry : entries) {
-            ArrayList<BasicBlockNode> linear_order = new ArrayList<>();
-            dfs(entry, linear_order);
-            int comm_order = 0;
-            for (int i = linear_order.size() - 1; i >= 0; --i) {
 
-                BasicBlockNode node = linear_order.get(i);
+            // get linear order of commands
+            ArrayList<BasicBlockNode> bb_order_rev = new ArrayList<>();
+            ArrayList<IRNode> comm_order = new ArrayList<>();
+            getOrder(entry, bb_order_rev);
+            int comm_ser = 0;
+            for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+
+                BasicBlockNode node = bb_order_rev.get(i);
                 for (IRNode ir_node = node.head;; ir_node = ir_node.next) {
-                    ir_node.order = comm_order++;
+                    ir_node.order = comm_ser++;
+                    comm_order.add(ir_node);
                     if (ir_node == node.tail) {
                         break;
                     }
                 }
 
             }
+
+            // get the sorted life range of variables
+            Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
+            Set<String> active = new HashSet<>();
+            PriorityQueue<VarLifeRange> vars = new PriorityQueue<>();
+
+            for (IRNode node : comm_order) {
+                if (node.def() != null) {
+                    life_beg.put(node.def(), node.order);
+                    active.add(node.def());
+                }
+                active.addAll(node.in);
+
+                Set<String> dead_vars = new HashSet<>(active);
+                dead_vars.removeAll(node.out);
+
+                for (String dead_var : dead_vars) {
+                    active.remove(dead_var);
+                    life_end.put(dead_var, node.order);
+                    // vars.add(new VarLifeRange(dead_var, life_beg.get(dead_var), node.order));
+                }
+            }
+
+            for (Map.Entry<String, Integer> var_beg : life_beg.entrySet()) {
+                vars.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
+            }
+
+            // allocate registers
+            // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
+            int[] reg_state = new int[24];// 24 available: s0 - s11, t3 - t6, a0 - a7
+            for (int i = 0; i != 24; ++i) {
+                reg_state[i] = 0;
+            }
+
+            while (!vars.isEmpty()) {
+                VarLifeRange var = vars.poll();
+                int i = 0;
+                for (; i != 24; ++i) {
+                    if (reg_state[i] <= var.beg) {
+                        break;
+                    }
+                }
+
+                if (i == 24) {// spill to stack
+                    var_state.put(var.name, "SPILL");
+                } else {// allocate register
+                    reg_state[i] = var.end;
+                    var_state.put(var.name, regName(i));
+                }
+            }
         }
+
+        return var_state;
     }
-
-    // TODO
-
-    // boolean rewrite(IRNode node, Stack<String> stack, String replace) {
-    // if (node == null) {
-    // return false;
-    // } else if (node instanceof IRBinaryNode) {
-    // return rewrite(((IRBinaryNode) node), stack, replace);
-    // } else if (node instanceof IRBrNode) {
-    // return rewrite(((IRBrNode) node), stack, replace);
-    // } else if (node instanceof IRCallNode) {
-    // return rewrite(((IRCallNode) node), stack, replace);
-    // } else if (node instanceof IRGetEleNode) {
-    // return rewrite(((IRGetEleNode) node), stack, replace);
-    // } else if (node instanceof IRIcmpNode) {
-    // return rewrite(((IRIcmpNode) node), stack, replace);
-    // } else if (node instanceof IRLoadNode) {
-    // return rewrite(((IRLoadNode) node), stack, replace);
-    // } else if (node instanceof IRPhiNode) {
-    // return rewrite(((IRPhiNode) node), stack, replace);
-    // } else if (node instanceof IRRetNode) {
-    // return rewrite(((IRRetNode) node), stack, replace);
-    // } else if (node instanceof IRSelectNode) {
-    // return rewrite(((IRSelectNode) node), stack, replace);
-    // } else if (node instanceof IRStoreNode) {
-    // return rewrite(((IRStoreNode) node), stack, replace);
-    // } else {
-    // return false;
-    // }
-    // }
-
-    // boolean rewrite(IRBinaryNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRBrNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRCallNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRGetEleNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRIcmpNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRLoadNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRPhiNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRRetNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRSelectNode node, Stack<String> stack, String replace) {
-
-    // }
-
-    // boolean rewrite(IRStoreNode node, Stack<String> stack, String replace) {
-
-    // }
-
 }

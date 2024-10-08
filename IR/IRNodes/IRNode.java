@@ -11,7 +11,7 @@ public class IRNode {
     public BasicBlockNode bb = null;
     public int order = -1;
 
-    public String use() {
+    public String[] use() {
         return null;
     }
 
@@ -68,5 +68,11 @@ public class IRNode {
         if (next != null) {
             next.printToString();
         }
+    }
+
+    boolean isActive(String str) {
+        return !(str != null && ((str.charAt(0) >= '0' && str.charAt(0) <= '9') || str.charAt(0) == '-'
+                || str.charAt(0) == '@'
+                || str.equals("true") || str.equals("false")));
     }
 }

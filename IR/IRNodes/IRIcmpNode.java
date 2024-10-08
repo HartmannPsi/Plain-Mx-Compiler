@@ -14,6 +14,24 @@ public class IRIcmpNode extends IRNode {
         printNext();
     }
 
+    public String def() {
+        return result;
+    }
+
+    public String[] use() {
+        String[] res = new String[3];
+        if (isActive(op1)) {
+            res[0] = op1;
+        }
+        if (isActive(op2)) {
+            res[1] = op2;
+        }
+        if (isActive(cond)) {
+            res[2] = cond;
+        }
+        return res;
+    }
+
     public String toString() {
         return result + " = icmp " + cond + " " + tp + " " + op1 + ", " + op2;
     }
