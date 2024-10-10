@@ -236,6 +236,67 @@ public class ASMTransformer {
         }
     }
 
+    ASMRetType loadValueExact(Map<String, Integer> var_map, String reg, String var) {
+        if (var == null) {
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = "0";
+            return new ASMRetType(li_node, li_node, reg);
+
+        } else if (isImm(var)) {
+
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = var;
+            return new ASMRetType(li_node, li_node, reg);
+
+        } else if (isGlobal(var)) {
+
+            if (isStr(var)) {
+                ASMLaNode la_node = new ASMLaNode();
+                la_node.rd = reg;
+                la_node.label = var.substring(1, var.length());
+                return new ASMRetType(la_node, la_node, reg);
+
+            } else {
+                ASMLaNode la_node = new ASMLaNode();
+                la_node.rd = reg;
+                la_node.label = var.substring(1, var.length());
+                return new ASMRetType(la_node, la_node, reg);
+            }
+            // pseudo op
+
+        } else if (isLocal(var)) {
+            int addr = var_map.get(var);
+            ASMRetType ret = getStackAddr(addr, reg);
+            // reg -> value
+
+            ASMLwNode lw_node = new ASMLwNode();
+            lw_node.rd = reg;
+            lw_node.imm = "0";
+            lw_node.rs1 = reg;
+            ret.tail.next = lw_node;
+            // reg = [reg]
+
+            return new ASMRetType(ret.head, lw_node, reg);
+
+        } else if (isNull(var)) {
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = "0";
+            return new ASMRetType(li_node, li_node, reg);
+
+        } else if (isBool(var)) {
+            ASMLiNode li_node = new ASMLiNode();
+            li_node.rd = reg;
+            li_node.imm = (var.equals("true") ? "1" : "0");
+            return new ASMRetType(li_node, li_node, reg);
+
+        } else {
+            throw new RuntimeException("Unknown variable: " + var);
+        }
+    }
+
     void visit(IRBinaryNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         int addr = 0;
         if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
