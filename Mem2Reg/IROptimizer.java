@@ -147,6 +147,7 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             for (IRNode node = bb.head;; node = node.next) {
+                System.out.println(node.toString());
                 if (node.def() != null) {
                     bb.def.add(node.def());
                 }
@@ -1013,6 +1014,15 @@ public class IROptimizer {
                         if (node.next != null) {
                             node.next.prev = node.prev;
                         }
+                    } else if (node.getClass() == IRNode.class) {
+                        if (node.prev == cur) {
+                            ((IRDefFuncNode) cur).stmt = node.next;
+                        } else {
+                            node.prev.next = node.next;
+                        }
+                        if (node.next != null) {
+                            node.next.prev = node.prev;
+                        }
                     }
                 }
             }
@@ -1066,10 +1076,19 @@ public class IROptimizer {
 
             }
 
+            // print order of bbs
+            System.out.println("Func " + entry.label + ":\nBB order:");
+            for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+                BasicBlockNode node = bb_order_rev.get(i);
+                System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" + node.head.order + ", "
+                        + node.tail.order + "]");
+            }
+
             // get the sorted life range of variables
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
             Set<String> active = new HashSet<>();
             PriorityQueue<VarLifeRange> vars = new PriorityQueue<>();
+            ArrayList<VarLifeRange> vars2 = new ArrayList<>();// just for debugging
 
             for (IRNode node : comm_order) {
                 if (node.def() != null) {
@@ -1090,6 +1109,13 @@ public class IROptimizer {
 
             for (Map.Entry<String, Integer> var_beg : life_beg.entrySet()) {
                 vars.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
+                vars2.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
+            }
+
+            // print life range of variables
+            System.out.println("var life:");
+            for (VarLifeRange var : vars2) {
+                System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
             }
 
             // allocate registers
@@ -1114,6 +1140,12 @@ public class IROptimizer {
                     reg_state[i] = var.end;
                     var_state.put(var.name, regName(i));
                 }
+            }
+
+            // print allocation
+            System.out.println("Allocation:");
+            for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
+                System.out.println(entry2.getKey() + ": " + entry2.getValue());
             }
         }
 

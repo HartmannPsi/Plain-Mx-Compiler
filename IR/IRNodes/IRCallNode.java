@@ -9,6 +9,9 @@ public class IRCallNode extends IRNode {
     }
 
     public String[] use() {
+        if (args == null) {
+            return null;
+        }
         String[] res = new String[args.length];
         for (int i = 0; i != args.length; ++i) {
             if (isActive(args[i])) {

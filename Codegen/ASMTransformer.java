@@ -475,8 +475,8 @@ public class ASMTransformer {
         // t0 -> ra
 
         ASMSwNode sw_ra_node = new ASMSwNode();
-        sw_ra_node.rs1 = "ra";
-        sw_ra_node.rs2 = "t0";
+        sw_ra_node.rs2 = "ra";
+        sw_ra_node.rs1 = "t0";
         sw_ra_node.imm = "0";
         tail.next = sw_ra_node;
         tail = sw_ra_node;
@@ -490,8 +490,8 @@ public class ASMTransformer {
             // t0 -> t[i]
 
             ASMSwNode sw_ti_node = new ASMSwNode();
-            sw_ti_node.rs1 = "t" + i;
-            sw_ti_node.rs2 = "t0";
+            sw_ti_node.rs2 = "t" + i;
+            sw_ti_node.rs1 = "t0";
             sw_ti_node.imm = "0";
             tail.next = sw_ti_node;
             tail = sw_ti_node;
@@ -506,8 +506,8 @@ public class ASMTransformer {
             // t0 -> a[i]
 
             ASMSwNode sw_ai_node = new ASMSwNode();
-            sw_ai_node.rs1 = "a" + i;
-            sw_ai_node.rs2 = "t0";
+            sw_ai_node.rs2 = "a" + i;
+            sw_ai_node.rs1 = "t0";
             sw_ai_node.imm = "0";
             tail.next = sw_ai_node;
             tail = sw_ai_node;
@@ -1014,8 +1014,8 @@ public class ASMTransformer {
 
         for (int i = 0; i < 12; ++i) {
             ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "s" + i;
-            sw_node.rs2 = "sp";
+            sw_node.rs2 = "s" + i;
+            sw_node.rs1 = "sp";
             sw_node.imm = Integer.toString(i * 4);
             tail.next = sw_node;
             tail = sw_node;
