@@ -170,13 +170,14 @@ public class IROptimizer {
 
         while (!queue.isEmpty()) {
             BasicBlockNode bb = queue.poll();
+            // System.out.println(bb.label);
             bb.in = new HashSet<>(bb.out);
             bb.in.removeAll(bb.def);
             bb.in.addAll(bb.use);
 
             for (BasicBlockNode prec : bb.precursors) {
-                if (!bb.in.equals(prec.out)) {
-                    prec.out = new HashSet<>(bb.in);
+                if (!prec.out.containsAll(bb.in)) {// out[prec] != \\union in[bb]
+                    prec.out.addAll(bb.in);
                     queue.add(prec);
                 }
             }

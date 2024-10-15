@@ -124,9 +124,8 @@ public class Main {
 
             if (DEBUG) {
                 System.out.println("; SCAN");
+                // optimizer.printInOut();
             }
-
-            optimizer.printInOut();
 
             System.setOut(System.out);
 
