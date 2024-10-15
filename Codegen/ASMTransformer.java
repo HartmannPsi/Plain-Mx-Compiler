@@ -1025,7 +1025,7 @@ public class ASMTransformer {
             sw_node.imm = Integer.toString(i * 4);
             tail.next = sw_node;
             tail = sw_node;
-            // [sp + 4 * i] = ra
+            // [sp + 4 * i] = si
         }
         // save callee saved registers: s0-s11
 
@@ -1062,7 +1062,7 @@ public class ASMTransformer {
 
             ASMArithImmNode arith_node = new ASMArithImmNode();
             arith_node.op = "slli";
-            arith_node.rd = ret_idx.reg;
+            arith_node.rd = "t1";
             arith_node.rs1 = ret_idx.reg;
             arith_node.imm = Integer.toString(2);
             tail.next = arith_node;
@@ -1073,7 +1073,7 @@ public class ASMTransformer {
             arith_node2.op = "add";
             arith_node2.rd = "t0";
             arith_node2.rs1 = ret.reg;
-            arith_node2.rs2 = ret_idx.reg;
+            arith_node2.rs2 = "t1";
             tail.next = arith_node2;
             tail = arith_node2;
             // // t0 = t0 + t1
@@ -1089,7 +1089,7 @@ public class ASMTransformer {
 
             ASMArithImmNode arith_node = new ASMArithImmNode();
             arith_node.op = "slli";
-            arith_node.rd = ret_idx.reg;
+            arith_node.rd = "t1";
             arith_node.rs1 = ret_idx.reg;
             arith_node.imm = Integer.toString(2);
             tail.next = arith_node;
@@ -1100,7 +1100,7 @@ public class ASMTransformer {
             arith_node2.op = "add";
             arith_node2.rd = "t0";
             arith_node2.rs1 = ret.reg;
-            arith_node2.rs2 = ret_idx.reg;
+            arith_node2.rs2 = "t1";
             tail.next = arith_node2;
             tail = arith_node2;
             // // t0 = t0 + t1
