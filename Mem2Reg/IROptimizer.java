@@ -1183,13 +1183,13 @@ public class IROptimizer {
             }
 
             // print order of bbs
-            System.out.println("Func " + entry.label + ":\nBB order:");
-            for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
-                BasicBlockNode node = bb_order_rev.get(i);
-                System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" +
-                        node.head.order + ", "
-                        + node.tail.order + "]");
-            }
+            // System.out.println("Func " + entry.label + ":\nBB order:");
+            // for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+            // BasicBlockNode node = bb_order_rev.get(i);
+            // System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" +
+            // node.head.order + ", "
+            // + node.tail.order + "]");
+            // }
 
             // get the sorted life range of variables
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
@@ -1257,10 +1257,10 @@ public class IROptimizer {
             }
 
             // print life range of variables
-            System.out.println("var life:");
-            for (VarLifeRange var : vars2) {
-                System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
-            }
+            // System.out.println("var life:");
+            // for (VarLifeRange var : vars2) {
+            // System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
+            // }
 
             // allocate registers
             // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
@@ -1287,10 +1287,10 @@ public class IROptimizer {
             }
 
             // print allocation
-            System.out.println("Allocation:");
-            for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
-                System.out.println(entry2.getKey() + ": " + entry2.getValue());
-            }
+            // System.out.println("Allocation:");
+            // for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
+            // System.out.println(entry2.getKey() + ": " + entry2.getValue());
+            // }
         }
 
         return var_state;

@@ -5,7 +5,7 @@ build:
 
 .PHONY: run
 run:
-	java -Xss16m -cp /ulib/antlr-4.13.2-complete.jar:bin Main
+	java -Xss64m -cp /ulib/antlr-4.13.2-complete.jar:bin Main
 
 .PHONY: compile
 compile:
@@ -13,4 +13,4 @@ compile:
 
 .PHONY: start
 start:
-	java -Xss16m -cp lib/antlr-4.13.2-complete.jar:bin Main
+	java -Xss64m -cp lib/antlr-4.13.2-complete.jar:bin Main
