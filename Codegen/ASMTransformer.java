@@ -43,6 +43,7 @@ public class ASMTransformer {
 
         ASMCommNode comm_node = new ASMCommNode();
         comm_node.message = "\n# " + node.toString();
+        // System.out.println(node.toString());
         prev.next = comm_node;
 
         if (node instanceof IRAllocaNode) {
@@ -458,6 +459,8 @@ public class ASMTransformer {
 
     void visit(IRCallNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
 
+        // System.out.println(node.toString());
+
         int arg_cnt = (node.args == null ? 0 : node.args.length);
         ASMNode tail = prev;
 
@@ -467,32 +470,32 @@ public class ASMTransformer {
         // tail = ret4.tail;
         // t2 = ra_st_addr
 
-        int caller_st_addr = var_map.get(node.result) + 4;
+        int caller_st_addr = 12 * 4;// ra
 
-        ASMRetType ra_addr = getStackAddr(caller_st_addr, "t0");
-        tail.next = ra_addr.head;
-        tail = ra_addr.tail;
+        // ASMRetType ra_addr = getStackAddr(caller_st_addr, "t0");
+        // tail.next = ra_addr.head;
+        // tail = ra_addr.tail;
         // t0 -> ra
 
         ASMSwNode sw_ra_node = new ASMSwNode();
         sw_ra_node.rs2 = "ra";
-        sw_ra_node.rs1 = "t0";
-        sw_ra_node.imm = "0";
+        sw_ra_node.rs1 = "sp";
+        sw_ra_node.imm = Integer.toString(caller_st_addr);
         tail.next = sw_ra_node;
         tail = sw_ra_node;
         // [t0] = ra
 
         for (int i = 0; i < 7; ++i) {
 
-            ASMRetType ti_addr = getStackAddr(caller_st_addr + 4 * (i + 1), "t0");
-            tail.next = ti_addr.head;
-            tail = ti_addr.tail;
+            // ASMRetType ti_addr = getStackAddr(caller_st_addr + 4 * (i + 1), "t0");
+            // tail.next = ti_addr.head;
+            // tail = ti_addr.tail;
             // t0 -> t[i]
 
             ASMSwNode sw_ti_node = new ASMSwNode();
             sw_ti_node.rs2 = "t" + i;
-            sw_ti_node.rs1 = "t0";
-            sw_ti_node.imm = "0";
+            sw_ti_node.rs1 = "sp";
+            sw_ti_node.imm = Integer.toString(caller_st_addr + 4 * (i + 1));
             tail.next = sw_ti_node;
             tail = sw_ti_node;
             // [t0] = t[i]
@@ -500,15 +503,15 @@ public class ASMTransformer {
 
         for (int i = 0; i < 8; ++i) {
 
-            ASMRetType ai_addr = getStackAddr(caller_st_addr + 4 * (i + 8 + 1), "t0");
-            tail.next = ai_addr.head;
-            tail = ai_addr.tail;
+            // ASMRetType ai_addr = getStackAddr(caller_st_addr + 4 * (i + 8 + 1), "t0");
+            // tail.next = ai_addr.head;
+            // tail = ai_addr.tail;
             // t0 -> a[i]
 
             ASMSwNode sw_ai_node = new ASMSwNode();
             sw_ai_node.rs2 = "a" + i;
-            sw_ai_node.rs1 = "t0";
-            sw_ai_node.imm = "0";
+            sw_ai_node.rs1 = "sp";
+            sw_ai_node.imm = Integer.toString(caller_st_addr + 4 * (i + 7 + 1));
             tail.next = sw_ai_node;
             tail = sw_ai_node;
             // [t0] = a[i]
@@ -524,16 +527,16 @@ public class ASMTransformer {
 
                 int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
                 int arg_addr = caller_st_addr + 4 * (arg_ser + 8 + 1);
-                ASMRetType ret = getStackAddr(arg_addr, "t0");
-                tail.next = ret.head;
-                tail = ret.tail;
+                // ASMRetType ret = getStackAddr(arg_addr, "t0");
+                // tail.next = ret.head;
+                // tail = ret.tail;
                 // t0 -> arg[i]
 
                 ASMLwNode lw_node = new ASMLwNode();
                 lw_node.rd = "a" + i;
-                lw_node.imm = "0";
-                lw_node.rs1 = "t0";
-                ret.tail.next = lw_node;
+                lw_node.imm = Integer.toString(arg_addr);
+                lw_node.rs1 = "sp";
+                tail.next = lw_node;
                 tail = lw_node;
                 // a[i] = [t0]
 
@@ -671,46 +674,48 @@ public class ASMTransformer {
 
         String res_reg = "";
 
-        if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
-            // on stack
+        if (!node.res_tp.equals("void")) {
+            if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
+                // on stack
 
-            int ret_st_addr = var_map.get(node.result);
-            ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
-            tail.next = ret5.head;
-            tail = ret5.tail;
-            // t2 = ret_st_addr
+                int ret_st_addr = var_map.get(node.result);
+                ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
+                tail.next = ret5.head;
+                tail = ret5.tail;
+                // t2 = ret_st_addr
 
-            ASMSwNode sw_node3 = new ASMSwNode();
-            sw_node3.rs1 = "t2";
-            sw_node3.rs2 = "a0";
-            sw_node3.imm = "0";
-            tail.next = sw_node3;
-            tail = sw_node3;
-            // [t2] = a0
-        } else {
-            // in register
+                ASMSwNode sw_node3 = new ASMSwNode();
+                sw_node3.rs1 = "t2";
+                sw_node3.rs2 = "a0";
+                sw_node3.imm = "0";
+                tail.next = sw_node3;
+                tail = sw_node3;
+                // [t2] = a0
+            } else {
+                // in register
 
-            ASMMvNode mv_node = new ASMMvNode();
-            mv_node.rd = alloca_map.get(node.result);
-            mv_node.rs = "a0";
-            tail.next = mv_node;
-            tail = mv_node;
-            res_reg = mv_node.rd;
-            // result = a0
+                ASMMvNode mv_node = new ASMMvNode();
+                mv_node.rd = alloca_map.get(node.result);
+                mv_node.rs = "a0";
+                tail.next = mv_node;
+                tail = mv_node;
+                res_reg = mv_node.rd;
+                // result = a0
+            }
         }
         // save result
 
-        int caller_ld_addr = var_map.get(node.result) + 4;
+        int caller_ld_addr = 12 * 4;
 
-        ASMRetType lw_ra = getStackAddr(caller_ld_addr, "t0");
-        tail.next = lw_ra.head;
-        tail = lw_ra.tail;
+        // ASMRetType lw_ra = getStackAddr(caller_ld_addr, "t0");
+        // tail.next = lw_ra.head;
+        // tail = lw_ra.tail;
         // t0 -> ra
 
         ASMLwNode lw_ra_node = new ASMLwNode();
         lw_ra_node.rd = "ra";
-        lw_ra_node.rs1 = "t0";
-        lw_ra_node.imm = "0";
+        lw_ra_node.rs1 = "sp";
+        lw_ra_node.imm = Integer.toString(caller_ld_addr);
         tail.next = lw_ra_node;
         tail = lw_ra_node;
         // ra = [t0]
@@ -721,15 +726,15 @@ public class ASMTransformer {
                 continue;
             }
 
-            ASMRetType lw_ti = getStackAddr(caller_ld_addr + 4 * (i + 1), "t0");
-            tail.next = lw_ti.head;
-            tail = lw_ti.tail;
+            // ASMRetType lw_ti = getStackAddr(caller_ld_addr + 4 * (i + 1), "t0");
+            // tail.next = lw_ti.head;
+            // tail = lw_ti.tail;
             // t0 -> t[i]
 
             ASMLwNode lw_ti_node = new ASMLwNode();
             lw_ti_node.rd = "t" + i;
-            lw_ti_node.rs1 = "t0";
-            lw_ti_node.imm = "0";
+            lw_ti_node.rs1 = "sp";
+            lw_ti_node.imm = Integer.toString(caller_ld_addr + 4 * (i + 1));
             tail.next = lw_ti_node;
             tail = lw_ti_node;
             // t[i] = [t0]
@@ -741,15 +746,15 @@ public class ASMTransformer {
                 continue;
             }
 
-            ASMRetType lw_ai = getStackAddr(caller_ld_addr + 4 * (i + 8 + 1), "t0");
-            tail.next = lw_ai.head;
-            tail = lw_ai.tail;
+            // ASMRetType lw_ai = getStackAddr(caller_ld_addr + 4 * (i + 8 + 1), "t0");
+            // tail.next = lw_ai.head;
+            // tail = lw_ai.tail;
             // t0 -> a[i]
 
             ASMLwNode lw_ai_node = new ASMLwNode();
             lw_ai_node.rd = "a" + i;
-            lw_ai_node.rs1 = "t0";
-            lw_ai_node.imm = "0";
+            lw_ai_node.rs1 = "sp";
+            lw_ai_node.imm = Integer.toString(caller_ld_addr + 4 * (i + 7 + 1));
             tail.next = lw_ai_node;
             tail = lw_ai_node;
             // a[i] = [t0]
@@ -795,8 +800,11 @@ public class ASMTransformer {
 
     int collectVars(Map<String, Integer> map, IRDefFuncNode def_node) {
 
-        int addr = 12 * 4;
+        int addr = 12 * 4 + 4 + 7 * 4 + 8 * 4;
         // s0-s11: [0, 12 * 4)
+        // ra: [12 * 4, 12 * 4 + 4)
+        // t0-t6: [12 * 4 + 4, 12 * 4 + 4 + 7 * 4)
+        // a0-a7: [12 * 4 + 4 + 7 * 4, 12 * 4 + 4 + 7 * 4 + 8 * 4)
 
         // if (def_node.ids != null) {
         // for (int i = 0; i != def_node.ids.length; ++i) {
@@ -828,20 +836,18 @@ public class ASMTransformer {
             } else if (node instanceof IRCallNode) {
                 IRCallNode call_node = (IRCallNode) node;
 
-                if (call_node.result == null) {
-                    call_node.result = renameVar("Void.Virtual.Ret");
-                    // map.put(call_node.result, addr);
-                }
+                // if (call_node.result == null) {
+                // call_node.result = renameVar("Void.Virtual.Ret");
+                // // map.put(call_node.result, addr);
+                // }
 
-                if ((!alloca_map.containsKey(call_node.result) || alloca_map.get(call_node.result).equals("SPILL"))
+                if (call_node.result != null
+                        && (!alloca_map.containsKey(call_node.result)
+                                || alloca_map.get(call_node.result).equals("SPILL"))
                         && !map.containsKey(call_node.result)) {
                     map.put(call_node.result, addr);
+                    addr += 4;
                 }
-
-                addr += 8 + 15 * 4;
-                // ra: addr + 4
-                // a0-a7: [addr + 8, addr + 8 + 4 * 8)
-                // t0-t6: [addr + 8 + 4 * 8, addr + 8 + 4 * 15)
                 // result: addr
 
             } else if (node instanceof IRGetEleNode) {
@@ -1387,6 +1393,13 @@ public class ASMTransformer {
     void visit(IRRetNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         ASMNode tail = prev;
 
+        if (node.val != null) {
+            ASMRetType ret = loadValueExact(var_map, "a0", node.val);
+            tail.next = ret.head;
+            tail = ret.tail;
+            // a0 = ret value
+        }
+
         for (int i = 0; i < 12; ++i) {
             ASMLwNode lw_si_node = new ASMLwNode();
             lw_si_node.rd = "s" + i;
@@ -1397,13 +1410,6 @@ public class ASMTransformer {
             // s[i] = [sp + 4 * i]
         }
         // load callee saved registers: s0-s11
-
-        if (node.val != null) {
-            ASMRetType ret = loadValue(var_map, "a0", node.val);
-            tail.next = ret.head;
-            tail = ret.tail;
-            // a0 = ret value
-        }
 
         ASMRetType ret2 = releaseStackSpace(total_mem);
         tail.next = ret2.head;
@@ -1515,5 +1521,15 @@ public class ASMTransformer {
         dot_node.arg1 = node.section;
         prev.next = dot_node;
         visit(node.next, dot_node, var_map, total_mem);
+    }
+
+    public void printAlloca() {
+        System.out.println("# Allocated Registers:");
+        for (Map.Entry<String, String> entry : alloca_map.entrySet()) {
+            if (!entry.getValue().equals("SPILL")) {
+                System.out.println("# " + entry.getKey() + " -> " + entry.getValue());
+            }
+
+        }
     }
 }

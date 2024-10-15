@@ -126,6 +126,8 @@ public class Main {
                 System.out.println("; SCAN");
             }
 
+            optimizer.printInOut();
+
             System.setOut(System.out);
 
             if (DEBUG) {
@@ -134,6 +136,7 @@ public class Main {
 
             // ASMTransformer transformer = new ASMTransformer(generator.beg);
             ASMTransformer transformer = new ASMTransformer(optimizer.ir_beg, var_map);
+            transformer.printAlloca();
             transformer.generateASM();
             System.out.println("# ASM Generation Done.\n");
 

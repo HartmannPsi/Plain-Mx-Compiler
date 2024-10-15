@@ -147,7 +147,7 @@ public class IROptimizer {
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             for (IRNode node = bb.head;; node = node.next) {
-                System.out.println(node.toString());
+                // System.out.println(node.toString());
                 if (node.def() != null) {
                     bb.def.add(node.def());
                 }
@@ -265,6 +265,23 @@ public class IROptimizer {
             System.out.print("  dom_frontier: ");
             for (BasicBlockNode dom : bb.dom_frontier) {
                 System.out.print(dom.label + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public void printInOut() {
+        System.out.println("\nInOut:");
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            System.out.println("BB " + bb.label + ":");
+            System.out.print("  in: ");
+            for (String in : bb.in) {
+                System.out.print(" " + in);
+            }
+            System.out.print("\n  out: ");
+            for (String out : bb.out) {
+                System.out.print(" " + out);
             }
             System.out.println();
         }
@@ -855,6 +872,88 @@ public class IROptimizer {
 
     }
 
+    public void eliminateCE() {
+        ArrayList<Pair<String, BasicBlockNode>> new_bbs = new ArrayList<>();
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+
+            if (bb.successors.size() <= 1) {
+                continue;
+            }
+
+            for (BasicBlockNode succ : bb.successors) {
+                if (succ.precursors.size() <= 1) {
+                    continue;
+                }
+                if (!(succ.head.next instanceof IRPhiNode)) {
+                    continue;
+                }
+
+                // create empty bb and insert the commands into the linked list
+                BasicBlockNode new_bb = new BasicBlockNode();
+
+                IRLabelNode label_node = new IRLabelNode();
+                label_node.label = bbLabel();
+                new_bb.label = label_node.label;
+                new_bbs.add(new Pair<>(new_bb.label, new_bb));
+
+                IRBrNode br_node = new IRBrNode();
+                br_node.label_true = succ.label;
+                label_node.next = br_node;
+                br_node.prev = label_node;
+
+                new_bb.head = label_node;
+                new_bb.tail = br_node;
+
+                succ.head.prev.next = new_bb.head;
+                new_bb.head.prev = succ.head.prev;
+                succ.head.prev = new_bb.tail;
+                new_bb.tail.next = succ.head;
+
+                // replace bb with new_bb in phi_node and precs of succ
+                succ.precursors.remove(bb);
+                succ.precursors.add(new_bb);
+
+                for (IRNode node = succ.head.next;; node = node.next) {
+                    if (node instanceof IRPhiNode) {
+                        for (int i = 0; i != ((IRPhiNode) node).labels.length; ++i) {
+                            if (((IRPhiNode) node).labels[i].equals(bb.label)) {
+                                ((IRPhiNode) node).labels[i] = new_bb.label;
+                            }
+                        }
+                    }
+
+                    if (node == succ.tail) {
+                        break;
+                    }
+                }
+
+                // replace succ with new_bb in succs and br_node of bb
+                bb.successors.remove(succ);
+                bb.successors.add(new_bb);
+
+                if (bb.tail instanceof IRBrNode) {
+                    IRBrNode tail_node = ((IRBrNode) bb.tail);
+                    if (tail_node.label_true.equals(succ.label)) {
+                        tail_node.label_true = new_bb.label;
+                    }
+                    if (tail_node.label_false != null && tail_node.label_false.equals(succ.label)) {
+                        tail_node.label_false = new_bb.label;
+                    }
+                }
+            }
+        }
+
+        // insert new bbs into set
+        for (Pair<String, BasicBlockNode> pair : new_bbs) {
+            bbs.put(pair.first, pair.second);
+        }
+
+        // System.out.println("; ECE");
+        // printIR();
+
+    }
+
     public void eliminatePhi() {
         // eliminate critical edge
         ArrayList<Pair<String, BasicBlockNode>> new_bbs = new ArrayList<>();
@@ -1029,9 +1128,14 @@ public class IROptimizer {
         }
     }
 
-    public void getOrder(BasicBlockNode node, ArrayList<BasicBlockNode> order) {
+    public void getOrder(BasicBlockNode node, ArrayList<BasicBlockNode> order, Set<BasicBlockNode> visited) {
+        // System.out.println(node.label);
+        visited.add(node);
         for (BasicBlockNode succ : node.successors) {
-            getOrder(succ, order);
+            if (!visited.contains(succ)) {
+                getOrder(succ, order, visited);
+            }
+            // getOrder(succ, order);
         }
 
         order.add(node);
@@ -1061,7 +1165,8 @@ public class IROptimizer {
             // get linear order of commands
             ArrayList<BasicBlockNode> bb_order_rev = new ArrayList<>();
             ArrayList<IRNode> comm_order = new ArrayList<>();
-            getOrder(entry, bb_order_rev);
+            Set<BasicBlockNode> visited_bb = new HashSet<>();
+            getOrder(entry, bb_order_rev, visited_bb);
             int comm_ser = 0;
             for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
 
@@ -1077,12 +1182,13 @@ public class IROptimizer {
             }
 
             // print order of bbs
-            System.out.println("Func " + entry.label + ":\nBB order:");
-            for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
-                BasicBlockNode node = bb_order_rev.get(i);
-                System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" + node.head.order + ", "
-                        + node.tail.order + "]");
-            }
+            // System.out.println("Func " + entry.label + ":\nBB order:");
+            // for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+            // BasicBlockNode node = bb_order_rev.get(i);
+            // System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" +
+            // node.head.order + ", "
+            // + node.tail.order + "]");
+            // }
 
             // get the sorted life range of variables
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
@@ -1092,7 +1198,11 @@ public class IROptimizer {
 
             for (IRNode node : comm_order) {
                 if (node.def() != null) {
-                    life_beg.put(node.def(), node.order);
+                    if (!life_beg.containsKey(node.def())) {
+                        life_beg.put(node.def(), node.order);
+                    } else if (life_beg.get(node.def()) > node.order) {
+                        life_beg.put(node.def(), node.order);
+                    }
                     active.add(node.def());
                 }
                 active.addAll(node.in);
@@ -1102,21 +1212,54 @@ public class IROptimizer {
 
                 for (String dead_var : dead_vars) {
                     active.remove(dead_var);
-                    life_end.put(dead_var, node.order);
+                    if (!life_end.containsKey(dead_var)) {
+                        life_end.put(dead_var, node.order);
+                    } else if (life_end.get(dead_var) < node.order) {
+                        life_end.put(dead_var, node.order);
+                    }
                     // vars.add(new VarLifeRange(dead_var, life_beg.get(dead_var), node.order));
                 }
             }
 
+            for (String var : active) {
+                if (!life_end.containsKey(var)) {
+                    life_end.put(var, comm_order.getLast().order);
+                } else if (life_end.get(var) < comm_order.getLast().order) {
+                    life_end.put(var, comm_order.getLast().order);
+                }
+            }
+
+            // for (int i = 0; i != comm_order.size(); ++i) {
+            // IRNode node = comm_order.get(i);
+            // if (node.def() != null) {
+            // if (!life_beg.containsKey(node.def())) {
+            // life_beg.put(node.def(), node.order);
+            // life_end.put(node.def(), node.order);
+            // } else if (life_beg.get(node.def()) > node.order) {
+            // life_beg.put(node.def(), node.order);
+            // } else if (life_end.get(node.def()) < node.order) {
+            // life_end.put(node.def(), node.order);
+            // }
+            // }
+
+            // if (node.use() != null) {
+            // for (String use : node.use()) {
+            // life_end.put(use, node.order);
+            // }
+            // }
+            // }
+
             for (Map.Entry<String, Integer> var_beg : life_beg.entrySet()) {
                 vars.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
-                vars2.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
+                vars2.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(),
+                        life_end.get(var_beg.getKey())));
             }
 
             // print life range of variables
-            System.out.println("var life:");
-            for (VarLifeRange var : vars2) {
-                System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
-            }
+            // System.out.println("var life:");
+            // for (VarLifeRange var : vars2) {
+            // System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
+            // }
 
             // allocate registers
             // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
@@ -1143,10 +1286,10 @@ public class IROptimizer {
             }
 
             // print allocation
-            System.out.println("Allocation:");
-            for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
-                System.out.println(entry2.getKey() + ": " + entry2.getValue());
-            }
+            // System.out.println("Allocation:");
+            // for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
+            // System.out.println(entry2.getKey() + ": " + entry2.getValue());
+            // }
         }
 
         return var_state;

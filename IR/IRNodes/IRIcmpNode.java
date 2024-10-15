@@ -19,15 +19,12 @@ public class IRIcmpNode extends IRNode {
     }
 
     public String[] use() {
-        String[] res = new String[3];
+        String[] res = new String[2];
         if (isActive(op1)) {
             res[0] = op1;
         }
         if (isActive(op2)) {
             res[1] = op2;
-        }
-        if (isActive(cond)) {
-            res[2] = cond;
         }
         return res;
     }
