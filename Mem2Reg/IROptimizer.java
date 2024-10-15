@@ -1257,10 +1257,10 @@ public class IROptimizer {
             }
 
             // print life range of variables
-            // System.out.println("var life:");
-            // for (VarLifeRange var : vars2) {
-            // System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
-            // }
+            System.out.println("var life:");
+            for (VarLifeRange var : vars2) {
+                System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
+            }
 
             // allocate registers
             // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
@@ -1287,10 +1287,10 @@ public class IROptimizer {
             }
 
             // print allocation
-            // System.out.println("Allocation:");
-            // for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
-            // System.out.println(entry2.getKey() + ": " + entry2.getValue());
-            // }
+            System.out.println("Allocation:");
+            for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
+                System.out.println(entry2.getKey() + ": " + entry2.getValue());
+            }
         }
 
         return var_state;

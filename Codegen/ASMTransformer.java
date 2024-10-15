@@ -526,7 +526,7 @@ public class ASMTransformer {
                 // need to load from saved memory
 
                 int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
-                int arg_addr = caller_st_addr + 4 * (arg_ser + 8 + 1);
+                int arg_addr = caller_st_addr + 4 * (arg_ser + 8);
                 // ASMRetType ret = getStackAddr(arg_addr, "t0");
                 // tail.next = ret.head;
                 // tail = ret.tail;
@@ -586,7 +586,7 @@ public class ASMTransformer {
                             // need to load from saved memory
 
                             int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
-                            int arg_addr = caller_st_addr + 4 * (arg_ser + 8 + 1) + _total_mem;
+                            int arg_addr = caller_st_addr + 4 * (arg_ser + 8) + _total_mem;
                             ASMRetType ld_arg = getStackAddr(arg_addr, "t1");
                             tail.next = ld_arg.head;
                             tail = ld_arg.tail;
