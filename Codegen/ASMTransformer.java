@@ -579,7 +579,7 @@ public class ASMTransformer {
 
                 if (isLocal(node.args[i])) {
 
-                    if (alloca_map.containsKey(node.args[i])) {
+                    if (alloca_map.containsKey(node.args[i]) && !alloca_map.get(node.args[i]).equals("SPILL")) {
 
                         String arg_reg = alloca_map.get(node.args[i]);
                         if (arg_reg.charAt(0) == 'a' && (arg_cnt >= 8 || arg_reg.charAt(1) < '0' + arg_cnt)) {
