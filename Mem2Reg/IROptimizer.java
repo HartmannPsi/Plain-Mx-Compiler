@@ -1129,10 +1129,33 @@ public class IROptimizer {
         }
     }
 
+    ArrayList<BasicBlockNode> sortSucc(ArrayList<BasicBlockNode> order) {
+        if (order.size() <= 1) {
+            return order;
+
+        } else if (order.size() == 2) {
+
+            ArrayList<BasicBlockNode> sorted_order = new ArrayList<>(order);
+            BasicBlockNode succ0 = order.get(0), succ1 = order.get(1);
+
+            if ((succ0.label.contains("Body") && succ1.label.contains("End")) || succ1.label.contains("Entry.Rhs")) {
+                sorted_order.set(0, succ1);
+                sorted_order.set(1, succ0);
+                return sorted_order;
+
+            } else {
+                return order;
+            }
+
+        } else {
+            throw new RuntimeException("Error: illegal size of successors");
+        }
+    }
+
     public void getOrder(BasicBlockNode node, ArrayList<BasicBlockNode> order, Set<BasicBlockNode> visited) {
         // System.out.println(node.label);
         visited.add(node);
-        for (BasicBlockNode succ : node.successors) {
+        for (BasicBlockNode succ : sortSucc(node.successors)) {
             if (!visited.contains(succ)) {
                 getOrder(succ, order, visited);
             }
@@ -1183,13 +1206,14 @@ public class IROptimizer {
             }
 
             // print order of bbs
-            // System.out.println("Func " + entry.label + ":\nBB order:");
-            // for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
-            // BasicBlockNode node = bb_order_rev.get(i);
-            // System.out.println(bb_order_rev.size() - 1 - i + ": " + node.label + " [" +
-            // node.head.order + ", "
-            // + node.tail.order + "]");
-            // }
+            System.out.println("; Func " + entry.label + ":\n; BB order:");
+            for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+                BasicBlockNode node = bb_order_rev.get(i);
+                System.out.println(
+                        "; " + (bb_order_rev.size() - 1 - i) + ": " + node.label + " [" +
+                                node.head.order + ", "
+                                + node.tail.order + "]");
+            }
 
             // get the sorted life range of variables
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
@@ -1257,9 +1281,9 @@ public class IROptimizer {
             }
 
             // print life range of variables
-            System.out.println("var life:");
+            System.out.println("; var life:");
             for (VarLifeRange var : vars2) {
-                System.out.println(var.name + ": [" + var.beg + ", " + var.end + "]");
+                System.out.println("; " + var.name + ": [" + var.beg + ", " + var.end + "]");
             }
 
             // allocate registers
@@ -1286,11 +1310,12 @@ public class IROptimizer {
                 }
             }
 
-            // print allocation
-            System.out.println("Allocation:");
-            for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
-                System.out.println(entry2.getKey() + ": " + entry2.getValue());
-            }
+        }
+
+        // print allocation
+        System.out.println("; Allocation:");
+        for (Map.Entry<String, String> entry2 : var_state.entrySet()) {
+            System.out.println("; " + entry2.getKey() + ": " + entry2.getValue());
         }
 
         return var_state;
