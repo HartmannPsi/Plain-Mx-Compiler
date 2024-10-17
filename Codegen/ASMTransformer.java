@@ -7,6 +7,11 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 
+//TODO:
+// IRBinaryNode
+// IRGetEleNode
+// IRIcmpNode
+
 public class ASMTransformer {
 
     IRNode ir_beg;
@@ -317,86 +322,312 @@ public class ASMTransformer {
     }
 
     void visit(IRBinaryNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
-        int addr = 0;
-        if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
-            // on stack
-            addr = var_map.get(node.result);
-        } else {
-            // in register
-            addr = -1;
+
+        if (isImm(node.op1) && isImm(node.op2)) {// 2 constants
+            int op1 = Integer.parseInt(node.op1), op2 = Integer.parseInt(node.op2);
+            // System.out.println("op1: " + op1 + " op2: " + op2 + " operator: " +
+            // node.operator);
+            switch (node.operator) {
+                case "add":// +
+                    op1 += op2;
+                    break;
+                case "sub":// -
+                    op1 -= op2;
+                    break;
+                case "mul":// *
+                    op1 *= op2;
+                    break;
+                case "sdiv":// /
+                    if (op2 == 0) {
+                        op2 = 1;
+                        // Warning: may cause error
+                    }
+                    op1 /= op2;
+                    break;
+                case "srem":// %
+                    if (op2 == 0) {
+                        op2 = 1;
+                        // Warning: may cause error
+                    }
+                    op1 %= op2;
+                    break;
+                case "and":// &
+                    op1 &= op2;
+                    break;
+                case "or":// |
+                    op1 |= op2;
+                    break;
+                case "xor":// ^
+                    op1 ^= op2;
+                    break;
+                case "shl":// <<
+                    op1 <<= op2;
+                    break;
+                case "ashr":// >>
+                    op1 >>= op2;
+                    break;
+                default:
+                    throw new RuntimeException("Unknown operator: " + node.operator);
+            }
+
+            int addr = 0;
+            if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
+                // on stack
+
+                ASMLiNode li_node = new ASMLiNode();
+                li_node.rd = "t1";
+                li_node.imm = Integer.toString(op1);
+                prev.next = li_node;
+
+                addr = var_map.get(node.result);
+                ASMRetType ret = getStackAddr(addr, "t0");
+                li_node.next = ret.head;
+                // t0 -> result
+
+                ASMSwNode sw_node = new ASMSwNode();
+                sw_node.rs1 = "t0";
+                sw_node.rs2 = "t1";
+                sw_node.imm = "0";
+                ret.tail.next = sw_node;
+                // [t0] = t1
+
+                visit(node.next, sw_node, var_map, total_mem);
+            } else {
+                // in register
+
+                ASMLiNode li_node = new ASMLiNode();
+                li_node.rd = alloca_map.get(node.result);
+                li_node.imm = Integer.toString(op1);
+                prev.next = li_node;
+                visit(node.next, li_node, var_map, total_mem);
+            }
+            return;
         }
 
-        ASMRetType ret_op1 = loadValue(var_map, "t0", node.op1);
-        prev.next = ret_op1.head;
-        // t0 -> op1
-
-        ASMRetType ret_op2 = loadValue(var_map, "t1", node.op2);
-        ret_op1.tail.next = ret_op2.head;
-        // t1 -> op2
-
-        ASMArithNode arith_node = new ASMArithNode();
-        arith_node.rd = "t1";
-        arith_node.rs1 = ret_op1.reg;
-        arith_node.rs2 = ret_op2.reg;
-        ret_op2.tail.next = arith_node;
-        // t1 = t0 op t1
+        boolean comm_imm = false;
+        int comm_type = 0;
+        String imm = null, var = null;
 
         switch (node.operator) {
-            case "add":// +
-                arith_node.op = "add";
-                break;
             case "sub":// -
-                arith_node.op = "sub";
+                comm_type = 3;
                 break;
+
             case "mul":// *
-                arith_node.op = "mul";
-                break;
             case "sdiv":// /
-                arith_node.op = "div";
-                break;
             case "srem":// %
-                arith_node.op = "rem";
+                comm_type = 2;
                 break;
+
+            case "add":// +
             case "and":// &
-                arith_node.op = "and";
-                break;
             case "or":// |
-                arith_node.op = "or";
-                break;
             case "xor":// ^
-                arith_node.op = "xor";
+                comm_type = 0;
                 break;
+
             case "shl":// <<
-                arith_node.op = "sll";
-                break;
             case "ashr":// >>
-                arith_node.op = "sra";
+                comm_type = 1;
                 break;
+
             default:
                 throw new RuntimeException("Unknown operator: " + node.operator);
         }
 
-        if (addr != -1) {
-            // on stack
+        if (comm_type == 1) {// op2: imm[4:0]
+            var = node.op1;
+            imm = node.op2;
+            if (isImm(node.op2) && Integer.parseInt(node.op2) >= 0 && Integer.parseInt(node.op2) <= 31) {
+                comm_imm = true;
+            } else {
+                comm_imm = false;
 
-            ASMRetType ret = getStackAddr(addr, "t0");
-            arith_node.next = ret.head;
-            // t0 -> result
+            }
+        } else if (comm_type == 0) {// imm[11:0]
 
-            ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "t0";
-            sw_node.rs2 = "t1";
-            sw_node.imm = "0";
-            ret.tail.next = sw_node;
-            // [t0] = t1
+            if (isImm(node.op2)) {
+                imm = node.op2;
+                var = node.op1;
+            } else if (isImm(node.op1)) {
+                imm = node.op1;
+                var = node.op2;
+            }
 
-            visit(node.next, sw_node, var_map, total_mem);
+            if (imm != null) {
 
+                int imm_val = Integer.parseInt(imm);
+                if (imm_val >= -2048 && imm_val <= 2047) {
+                    comm_imm = true;
+                } else {
+                    comm_imm = false;
+                }
+
+            } else {
+                comm_imm = false;
+            }
+
+        } else if (comm_type == 2) {
+            comm_imm = false;
+
+        } else {// sub
+
+            if (isImm(node.op1)) {
+                comm_imm = false;
+
+            } else if (isImm(node.op2)) {
+
+                var = node.op1;
+                int imm_val = Integer.parseInt(node.op2);
+                imm_val = -imm_val;
+
+                if (imm_val >= -2048 && imm_val <= 2047) {
+                    comm_imm = true;
+                    imm = Integer.toString(imm_val);
+                } else {
+                    comm_imm = false;
+                }
+            }
+        }
+
+        if (comm_imm) {
+            // 1 variable
+
+            ASMRetType ret_op1 = loadValue(var_map, "t0", var);
+            prev.next = ret_op1.head;
+            // t0 -> op1
+
+            ASMArithImmNode arith_node = new ASMArithImmNode();
+            arith_node.rd = "t1";
+            arith_node.rs1 = ret_op1.reg;
+            arith_node.imm = imm;
+            ret_op1.tail.next = arith_node;
+
+            switch (node.operator) {
+                case "add":// +
+                case "sub":// -
+                    arith_node.op = "addi";
+                    break;
+                case "and":// &
+                    arith_node.op = "andi";
+                    break;
+                case "or":// |
+                    arith_node.op = "ori";
+                    break;
+                case "xor":// ^
+                    arith_node.op = "xori";
+                    break;
+                case "shl":// <<
+                    arith_node.op = "slli";
+                    break;
+                case "ashr":// >>
+                    arith_node.op = "srai";
+                    break;
+                default:
+                    throw new RuntimeException("Unknown operator: " + node.operator);
+            }
+
+            int addr = 0;
+            if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
+                // on stack
+                addr = var_map.get(node.result);
+                ASMRetType ret = getStackAddr(addr, "t0");
+                arith_node.next = ret.head;
+                // t0 -> result
+
+                ASMSwNode sw_node = new ASMSwNode();
+                sw_node.rs1 = "t0";
+                sw_node.rs2 = "t1";
+                sw_node.imm = "0";
+                ret.tail.next = sw_node;
+                // [t0] = t1
+
+                visit(node.next, sw_node, var_map, total_mem);
+
+            } else {
+                // in register
+
+                arith_node.rd = alloca_map.get(node.result);
+                visit(node.next, arith_node, var_map, total_mem);
+            }
+
+            return;
         } else {
-            // in register
+            // 2 variables
 
-            arith_node.rd = alloca_map.get(node.result);
-            visit(node.next, arith_node, var_map, total_mem);
+            ASMRetType ret_op1 = loadValue(var_map, "t0", node.op1);
+            prev.next = ret_op1.head;
+            // t0 -> op1
+
+            ASMRetType ret_op2 = loadValue(var_map, "t1", node.op2);
+            ret_op1.tail.next = ret_op2.head;
+            // t1 -> op2
+
+            ASMArithNode arith_node = new ASMArithNode();
+            arith_node.rd = "t1";
+            arith_node.rs1 = ret_op1.reg;
+            arith_node.rs2 = ret_op2.reg;
+            ret_op2.tail.next = arith_node;
+            // t1 = t0 op t1
+
+            switch (node.operator) {
+                case "add":// +
+                    arith_node.op = "add";
+                    break;
+                case "sub":// -
+                    arith_node.op = "sub";
+                    break;
+                case "mul":// *
+                    arith_node.op = "mul";
+                    break;
+                case "sdiv":// /
+                    arith_node.op = "div";
+                    break;
+                case "srem":// %
+                    arith_node.op = "rem";
+                    break;
+                case "and":// &
+                    arith_node.op = "and";
+                    break;
+                case "or":// |
+                    arith_node.op = "or";
+                    break;
+                case "xor":// ^
+                    arith_node.op = "xor";
+                    break;
+                case "shl":// <<
+                    arith_node.op = "sll";
+                    break;
+                case "ashr":// >>
+                    arith_node.op = "sra";
+                    break;
+                default:
+                    throw new RuntimeException("Unknown operator: " + node.operator);
+            }
+
+            int addr = 0;
+            if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
+                // on stack
+                addr = var_map.get(node.result);
+                ASMRetType ret = getStackAddr(addr, "t0");
+                arith_node.next = ret.head;
+                // t0 -> result
+
+                ASMSwNode sw_node = new ASMSwNode();
+                sw_node.rs1 = "t0";
+                sw_node.rs2 = "t1";
+                sw_node.imm = "0";
+                ret.tail.next = sw_node;
+                // [t0] = t1
+
+                visit(node.next, sw_node, var_map, total_mem);
+
+            } else {
+                // in register
+
+                arith_node.rd = alloca_map.get(node.result);
+                visit(node.next, arith_node, var_map, total_mem);
+            }
         }
     }
 
