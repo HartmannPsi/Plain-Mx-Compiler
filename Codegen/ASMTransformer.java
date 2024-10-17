@@ -4,6 +4,8 @@ import Codegen.ASMNodes.*;
 import IR.IRNodes.*;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 public class ASMTransformer {
 
@@ -461,6 +463,15 @@ public class ASMTransformer {
 
         // System.out.println(node.toString());
 
+        Set<String> saved_regs = new HashSet<>();
+        if (node.in != null) {
+            for (String active_var : node.in) {
+                if (alloca_map.containsKey(active_var) && !alloca_map.get(active_var).equals("SPILL")) {
+                    saved_regs.add(alloca_map.get(active_var));
+                }
+            }
+        }
+
         int arg_cnt = (node.args == null ? 0 : node.args.length);
         ASMNode tail = prev;
 
@@ -487,6 +498,10 @@ public class ASMTransformer {
 
         for (int i = 0; i < 7; ++i) {
 
+            if (!saved_regs.contains("t" + i)) {
+                continue;
+            }
+
             // ASMRetType ti_addr = getStackAddr(caller_st_addr + 4 * (i + 1), "t0");
             // tail.next = ti_addr.head;
             // tail = ti_addr.tail;
@@ -502,6 +517,10 @@ public class ASMTransformer {
         }
 
         for (int i = 0; i < 8; ++i) {
+
+            if (!saved_regs.contains("a" + i)) {
+                continue;
+            }
 
             // ASMRetType ai_addr = getStackAddr(caller_st_addr + 4 * (i + 8 + 1), "t0");
             // tail.next = ai_addr.head;
@@ -726,6 +745,10 @@ public class ASMTransformer {
                 continue;
             }
 
+            if (!saved_regs.contains("t" + i)) {
+                continue;
+            }
+
             // ASMRetType lw_ti = getStackAddr(caller_ld_addr + 4 * (i + 1), "t0");
             // tail.next = lw_ti.head;
             // tail = lw_ti.tail;
@@ -743,6 +766,10 @@ public class ASMTransformer {
         for (int i = 0; i < 8; ++i) {
 
             if (res_reg.equals("a" + i)) {
+                continue;
+            }
+
+            if (!saved_regs.contains("a" + i)) {
                 continue;
             }
 

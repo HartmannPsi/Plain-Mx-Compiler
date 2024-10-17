@@ -139,15 +139,15 @@ public class Main {
             System.out.println("# ASM Generation Done.\n");
 
             // attach builtin.s
-            try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = fis.read(buffer)) != -1) {
-                    System.out.write(buffer, 0, length);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // try (FileInputStream fis = new FileInputStream("IR/builtin.s")) {
+            // byte[] buffer = new byte[1024];
+            // int length;
+            // while ((length = fis.read(buffer)) != -1) {
+            // System.out.write(buffer, 0, length);
+            // }
+            // } catch (IOException e) {
+            // e.printStackTrace();
+            // }
 
             transformer.printASM();
 
