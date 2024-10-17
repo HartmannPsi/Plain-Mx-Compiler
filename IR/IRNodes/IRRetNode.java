@@ -1,7 +1,10 @@
 package IR.IRNodes;
 
+import java.util.Set;
+
 public class IRRetNode extends IRNode {
     public String tp = null, val = null;
+    public Set<String> used_regs = null;
 
     public String[] use() {
         if (val != null && isActive(val)) {

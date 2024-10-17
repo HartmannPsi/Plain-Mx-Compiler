@@ -825,7 +825,7 @@ public class ASMTransformer {
         visit(node.next, prev, var_map, total_mem);
     }
 
-    int collectVars(Map<String, Integer> map, IRDefFuncNode def_node) {
+    int collectVars(Map<String, Integer> map, IRDefFuncNode def_node, Set<String> used_regs) {
 
         int addr = 12 * 4 + 4 + 7 * 4 + 8 * 4;
         // s0-s11: [0, 12 * 4)
@@ -858,6 +858,10 @@ public class ASMTransformer {
                         && !map.containsKey(binary_node.result)) {
                     map.put(binary_node.result, addr);
                     addr += 4;
+
+                } else if (alloca_map.containsKey(binary_node.result)
+                        && !alloca_map.get(binary_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(binary_node.result));
                 }
 
             } else if (node instanceof IRCallNode) {
@@ -874,6 +878,10 @@ public class ASMTransformer {
                         && !map.containsKey(call_node.result)) {
                     map.put(call_node.result, addr);
                     addr += 4;
+
+                } else if (call_node.result != null && alloca_map.containsKey(call_node.result)
+                        && !alloca_map.get(call_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(call_node.result));
                 }
                 // result: addr
 
@@ -883,6 +891,10 @@ public class ASMTransformer {
                         && !map.containsKey(ele_node.result)) {
                     map.put(ele_node.result, addr);
                     addr += 4;
+
+                } else if (alloca_map.containsKey(ele_node.result)
+                        && !alloca_map.get(ele_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(ele_node.result));
                 }
 
             } else if (node instanceof IRIcmpNode) {
@@ -891,6 +903,10 @@ public class ASMTransformer {
                         && !map.containsKey(icmp_node.result)) {
                     map.put(icmp_node.result, addr);
                     addr += 4;
+
+                } else if (alloca_map.containsKey(icmp_node.result)
+                        && !alloca_map.get(icmp_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(icmp_node.result));
                 }
 
             } else if (node instanceof IRLoadNode) {
@@ -899,6 +915,10 @@ public class ASMTransformer {
                         && !map.containsKey(load_node.result)) {
                     map.put(load_node.result, addr);
                     addr += 4;
+
+                } else if (alloca_map.containsKey(load_node.result)
+                        && !alloca_map.get(load_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(load_node.result));
                 }
 
             } else if (node instanceof IRPhiNode) {
@@ -907,6 +927,9 @@ public class ASMTransformer {
                         && !map.containsKey(phi_node.result)) {
                     map.put(phi_node.result, addr);
                     addr += 4;
+                } else if (alloca_map.containsKey(phi_node.result)
+                        && !alloca_map.get(phi_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(phi_node.result));
                 }
 
             } else if (node instanceof IRSelectNode) {
@@ -915,7 +938,13 @@ public class ASMTransformer {
                         && !map.containsKey(select_node.result)) {
                     map.put(select_node.result, addr);
                     addr += 4;
+                } else if (alloca_map.containsKey(select_node.result)
+                        && !alloca_map.get(select_node.result).equals("SPILL")) {
+                    used_regs.add(alloca_map.get(select_node.result));
                 }
+            } else if (node instanceof IRRetNode) {
+                IRRetNode ret_node = (IRRetNode) node;
+                ret_node.used_regs = used_regs;
             }
         }
 
@@ -1011,7 +1040,8 @@ public class ASMTransformer {
         // the size of the stack space for the arguments
 
         Map<String, Integer> _var_map = new HashMap<>();
-        int _total_mem = collectVars(_var_map, node);
+        Set<String> used_regs = new HashSet<>();
+        int _total_mem = collectVars(_var_map, node, used_regs);
         // the size of the stack space for the variables
 
         int addr = 0;
@@ -1046,6 +1076,11 @@ public class ASMTransformer {
         ASMNode tail = var_table_node;
 
         for (int i = 0; i < 12; ++i) {
+
+            if (!used_regs.contains("s" + i)) {
+                continue;
+            }
+
             ASMSwNode sw_node = new ASMSwNode();
             sw_node.rs2 = "s" + i;
             sw_node.rs1 = "sp";
@@ -1428,6 +1463,11 @@ public class ASMTransformer {
         }
 
         for (int i = 0; i < 12; ++i) {
+
+            if (!node.used_regs.contains("s" + i)) {
+                continue;
+            }
+
             ASMLwNode lw_si_node = new ASMLwNode();
             lw_si_node.rd = "s" + i;
             lw_si_node.imm = Integer.toString(i * 4);
