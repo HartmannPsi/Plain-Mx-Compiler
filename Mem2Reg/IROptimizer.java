@@ -1170,8 +1170,14 @@ public class IROptimizer {
             return "s" + i;
         } else if (i < 16) {
             return "t" + (i - 9);
-        } else {
+        } else if (i < 24) {
             return "a" + (i - 16);
+        } else if (i == 24) {
+            return "gp";
+        } else if (i == 25) {
+            return "tp";
+        } else {
+            throw new RuntimeException("Error: illegal register index");
         }
     }
 
@@ -1288,21 +1294,21 @@ public class IROptimizer {
 
             // allocate registers
             // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
-            int[] reg_state = new int[24];// 24 available: s0 - s11, t3 - t6, a0 - a7
-            for (int i = 0; i != 24; ++i) {
+            int[] reg_state = new int[26];// 26 available: s0 - s11, t3 - t6, a0 - a7, gp, tp
+            for (int i = 0; i != 26; ++i) {
                 reg_state[i] = 0;
             }
 
             while (!vars.isEmpty()) {
                 VarLifeRange var = vars.poll();
                 int i = 0;
-                for (; i != 24; ++i) {
+                for (; i != 26; ++i) {
                     if (reg_state[i] <= var.beg) {
                         break;
                     }
                 }
 
-                if (i == 24) {// spill to stack
+                if (i == 26) {// spill to stack
                     var_state.put(var.name, "SPILL");
                 } else {// allocate register
                     reg_state[i] = var.end;

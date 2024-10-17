@@ -535,7 +535,25 @@ public class ASMTransformer {
             tail = sw_ai_node;
             // [t0] = a[i]
         }
-        // save caller saved registers: ra, t0-t6, a0-a7
+
+        if (saved_regs.contains("gp")) {
+            ASMSwNode sw_gp_node = new ASMSwNode();
+            sw_gp_node.rs2 = "gp";
+            sw_gp_node.rs1 = "sp";
+            sw_gp_node.imm = "112";
+            tail.next = sw_gp_node;
+            tail = sw_gp_node;
+        }
+
+        if (saved_regs.contains("tp")) {
+            ASMSwNode sw_tp_node = new ASMSwNode();
+            sw_tp_node.rs2 = "tp";
+            sw_tp_node.rs1 = "sp";
+            sw_tp_node.imm = "116";
+            tail.next = sw_tp_node;
+            tail = sw_tp_node;
+        }
+        // save caller saved registers: ra, t0-t6, a0-a7, gp, tp
 
         for (int i = 0; i < arg_cnt && i < 8; ++i) {
             // TODO: Save Regs & use saved regs
@@ -786,6 +804,24 @@ public class ASMTransformer {
             tail = lw_ai_node;
             // a[i] = [t0]
         }
+
+        if (saved_regs.contains("gp") && !res_reg.equals("gp")) {
+            ASMLwNode lw_gp_node = new ASMLwNode();
+            lw_gp_node.rd = "gp";
+            lw_gp_node.rs1 = "sp";
+            lw_gp_node.imm = "112";
+            tail.next = lw_gp_node;
+            tail = lw_gp_node;
+        }
+
+        if (saved_regs.contains("tp") && !res_reg.equals("tp")) {
+            ASMLwNode lw_tp_node = new ASMLwNode();
+            lw_tp_node.rd = "tp";
+            lw_tp_node.rs1 = "sp";
+            lw_tp_node.imm = "116";
+            tail.next = lw_tp_node;
+            tail = lw_tp_node;
+        }
         // load caller saved registers: ra, t0-t6, a0-a7
 
         visit(node.next, tail, var_map, total_mem);
@@ -827,11 +863,13 @@ public class ASMTransformer {
 
     int collectVars(Map<String, Integer> map, IRDefFuncNode def_node, Set<String> used_regs) {
 
-        int addr = 12 * 4 + 4 + 7 * 4 + 8 * 4;
+        int addr = 12 * 4 + 4 + 7 * 4 + 8 * 4 + 4 + 4;
         // s0-s11: [0, 12 * 4)
         // ra: [12 * 4, 12 * 4 + 4)
         // t0-t6: [12 * 4 + 4, 12 * 4 + 4 + 7 * 4)
         // a0-a7: [12 * 4 + 4 + 7 * 4, 12 * 4 + 4 + 7 * 4 + 8 * 4)
+        // gp: [12 * 4 + 4 + 7 * 4 + 8 * 4, 12 * 4 + 4 + 7 * 4 + 8 * 4 + 4)
+        // tp: [12 * 4 + 4 + 7 * 4 + 8 * 4 + 4, 12 * 4 + 4 + 7 * 4 + 8 * 4 + 4 + 4)
 
         // if (def_node.ids != null) {
         // for (int i = 0; i != def_node.ids.length; ++i) {
