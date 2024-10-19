@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.HashSet;
 
 //TODO:
-// IRBinaryNode
 // IRGetEleNode
 // IRIcmpNode
 
@@ -1382,61 +1381,99 @@ public class ASMTransformer {
         ASMNode tail = ret.tail;
         // t0 = ptr
 
-        ASMArithNode crux_node = null;
+        ASMNode crux_node = null;
 
         if (node.idxs.length == 1) { // array access
 
-            ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[0]);
-            tail.next = ret_idx.head;
-            tail = ret_idx.tail;
-            // t1 = idx[0]
+            if (isImm(node.idxs[0]) && Integer.parseInt(node.idxs[0]) * 4 < 1 << 11) {
+                // constant
 
-            ASMArithImmNode arith_node = new ASMArithImmNode();
-            arith_node.op = "slli";
-            arith_node.rd = "t1";
-            arith_node.rs1 = ret_idx.reg;
-            arith_node.imm = Integer.toString(2);
-            tail.next = arith_node;
-            tail = arith_node;
-            // // t1 = t1 * 4
+                int imm = Integer.parseInt(node.idxs[0]);
 
-            ASMArithNode arith_node2 = new ASMArithNode();
-            arith_node2.op = "add";
-            arith_node2.rd = "t0";
-            arith_node2.rs1 = ret.reg;
-            arith_node2.rs2 = "t1";
-            tail.next = arith_node2;
-            tail = arith_node2;
-            // // t0 = t0 + t1
+                ASMArithImmNode arith_node = new ASMArithImmNode();
+                arith_node.op = "addi";
+                arith_node.rd = "t0";
+                arith_node.rs1 = ret.reg;
+                arith_node.imm = Integer.toString(imm * 4);
+                tail.next = arith_node;
+                tail = arith_node;
+                // t0 = t0 + idx[0]
+                crux_node = arith_node;
 
-            crux_node = arith_node2;
+            } else {
+                // variable
+
+                ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[0]);
+                tail.next = ret_idx.head;
+                tail = ret_idx.tail;
+                // t1 = idx[0]
+
+                ASMArithImmNode arith_node = new ASMArithImmNode();
+                arith_node.op = "slli";
+                arith_node.rd = "t1";
+                arith_node.rs1 = ret_idx.reg;
+                arith_node.imm = Integer.toString(2);
+                tail.next = arith_node;
+                tail = arith_node;
+                // // t1 = t1 * 4
+
+                ASMArithNode arith_node2 = new ASMArithNode();
+                arith_node2.op = "add";
+                arith_node2.rd = "t0";
+                arith_node2.rs1 = ret.reg;
+                arith_node2.rs2 = "t1";
+                tail.next = arith_node2;
+                tail = arith_node2;
+                // // t0 = t0 + t1
+
+                crux_node = arith_node2;
+            }
 
         } else if (node.idxs.length == 2) { // class access
 
-            ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[1]);
-            tail.next = ret_idx.head;
-            tail = ret_idx.tail;
-            // t1 = idx[1]
+            if (isImm(node.idxs[1]) && Integer.parseInt(node.idxs[1]) * 4 < 1 << 11) {
+                // constant
 
-            ASMArithImmNode arith_node = new ASMArithImmNode();
-            arith_node.op = "slli";
-            arith_node.rd = "t1";
-            arith_node.rs1 = ret_idx.reg;
-            arith_node.imm = Integer.toString(2);
-            tail.next = arith_node;
-            tail = arith_node;
-            // // t1 = t1 * 4
+                int imm = Integer.parseInt(node.idxs[1]);
 
-            ASMArithNode arith_node2 = new ASMArithNode();
-            arith_node2.op = "add";
-            arith_node2.rd = "t0";
-            arith_node2.rs1 = ret.reg;
-            arith_node2.rs2 = "t1";
-            tail.next = arith_node2;
-            tail = arith_node2;
-            // // t0 = t0 + t1
+                ASMArithImmNode arith_node = new ASMArithImmNode();
+                arith_node.op = "addi";
+                arith_node.rd = "t0";
+                arith_node.rs1 = ret.reg;
+                arith_node.imm = Integer.toString(imm * 4);
+                tail.next = arith_node;
+                tail = arith_node;
+                // t0 = t0 + idx[1]
+                crux_node = arith_node;
 
-            crux_node = arith_node2;
+            } else {
+                // variable
+
+                ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[1]);
+                tail.next = ret_idx.head;
+                tail = ret_idx.tail;
+                // t1 = idx[1]
+
+                ASMArithImmNode arith_node = new ASMArithImmNode();
+                arith_node.op = "slli";
+                arith_node.rd = "t1";
+                arith_node.rs1 = ret_idx.reg;
+                arith_node.imm = Integer.toString(2);
+                tail.next = arith_node;
+                tail = arith_node;
+                // // t1 = t1 * 4
+
+                ASMArithNode arith_node2 = new ASMArithNode();
+                arith_node2.op = "add";
+                arith_node2.rd = "t0";
+                arith_node2.rs1 = ret.reg;
+                arith_node2.rs2 = "t1";
+                tail.next = arith_node2;
+                tail = arith_node2;
+                // // t0 = t0 + t1
+
+                crux_node = arith_node2;
+            }
         }
         // for (int i = 0; i != node.idxs.length; ++i) {
         // ASMRetType ret_idx = loadValue(var_map, "t1", node.idxs[i]);
@@ -1492,7 +1529,11 @@ public class ASMTransformer {
         } else {
             // in register
 
-            crux_node.rd = alloca_map.get(node.result);
+            if (crux_node instanceof ASMArithNode) {
+                ((ASMArithNode) crux_node).rd = alloca_map.get(node.result);
+            } else if (crux_node instanceof ASMArithImmNode) {
+                ((ASMArithImmNode) crux_node).rd = alloca_map.get(node.result);
+            }
             visit(node.next, crux_node, var_map, total_mem);
         }
 
