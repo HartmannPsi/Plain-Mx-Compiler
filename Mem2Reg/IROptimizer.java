@@ -1232,9 +1232,6 @@ public class IROptimizer {
 
     public Map<String, String> linearScan() {
 
-        // active analysis
-        activeAnalysis();
-
         // ret value
         Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
 

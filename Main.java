@@ -120,6 +120,17 @@ public class Main {
             }
 
             optimizer.getLinearOrder();
+
+            if (DEBUG) {
+                System.out.println("; LIR");
+            }
+
+            optimizer.activeAnalysis();
+
+            if (DEBUG) {
+                System.out.println("; AA");
+            }
+
             Map<String, String> var_map = optimizer.linearScan();
 
             if (DEBUG) {
