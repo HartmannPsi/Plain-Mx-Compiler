@@ -3,6 +3,8 @@ package IR.IRNodes;
 import java.util.Set;
 import java.util.HashSet;
 import Mem2Reg.BasicBlockNode;
+import java.util.Map;
+import java.util.HashMap;
 
 public class IRNode {
     public IRNode next = null, prev = null;
@@ -10,6 +12,7 @@ public class IRNode {
     public Set<String> in = new HashSet<>(), out = new HashSet<>();
     public BasicBlockNode bb = null;
     public int order = -1;
+    static public Map<String, Integer> var_def = new HashMap<>();
 
     public String[] use() {
         return null;

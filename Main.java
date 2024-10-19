@@ -119,6 +119,7 @@ public class Main {
                 optimizer.printIR();
             }
 
+            optimizer.getLinearOrder();
             Map<String, String> var_map = optimizer.linearScan();
 
             if (DEBUG) {

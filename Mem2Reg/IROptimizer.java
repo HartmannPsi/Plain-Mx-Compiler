@@ -20,6 +20,7 @@ public class IROptimizer {
     Map<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> def_in_bbs = new HashMap<>();
     Map<String, IRAllocaNode> allocas = new HashMap<>();
     ArrayList<BasicBlockNode> entries = new ArrayList<>();
+    Map<BasicBlockNode, ArrayList<IRNode>> comm_orders = new HashMap<>();
     int rename_serial = 0;
 
     String renameAlloca(String obj) {
@@ -1181,20 +1182,14 @@ public class IROptimizer {
         }
     }
 
-    public Map<String, String> linearScan() {
-
-        // ret value
-        Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
-
-        // active analysis
-        activeAnalysis();
-
-        // consider every functions independently
+    public void getLinearOrder() {
         for (BasicBlockNode entry : entries) {
-
             // get linear order of commands
             ArrayList<BasicBlockNode> bb_order_rev = new ArrayList<>();
-            ArrayList<IRNode> comm_order = new ArrayList<>();
+
+            comm_orders.put(entry, new ArrayList<>());
+            ArrayList<IRNode> comm_order = comm_orders.get(entry);
+
             Set<BasicBlockNode> visited_bb = new HashSet<>();
             getOrder(entry, bb_order_rev, visited_bb);
             int comm_ser = 0;
@@ -1210,6 +1205,62 @@ public class IROptimizer {
                 }
 
             }
+        }
+
+        // get linear order of mv nodes
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            for (IRNode node = bb.head; node != null; node = node.next) {
+
+                if (node instanceof IRMvNode) {
+                    IRMvNode mv_node = ((IRMvNode) node);
+
+                    if (!IRNode.var_def.containsKey(mv_node.result)) {
+                        IRNode.var_def.put(mv_node.result, mv_node.order);
+
+                    } else if (IRNode.var_def.get(mv_node.result) > mv_node.order) {
+                        IRNode.var_def.put(mv_node.result, mv_node.order);
+                    }
+                }
+
+                if (node == bb.tail) {
+                    break;
+                }
+            }
+        }
+    }
+
+    public Map<String, String> linearScan() {
+
+        // active analysis
+        activeAnalysis();
+
+        // ret value
+        Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
+
+        // consider every functions independently
+        for (BasicBlockNode entry : entries) {
+
+            ArrayList<IRNode> comm_order = comm_orders.get(entry);
+
+            // get linear order of commands
+            // ArrayList<BasicBlockNode> bb_order_rev = new ArrayList<>();
+            // ArrayList<IRNode> comm_order = new ArrayList<>();
+            // Set<BasicBlockNode> visited_bb = new HashSet<>();
+            // getOrder(entry, bb_order_rev, visited_bb);
+            // int comm_ser = 0;
+            // for (int i = bb_order_rev.size() - 1; i >= 0; --i) {
+
+            // BasicBlockNode node = bb_order_rev.get(i);
+            // for (IRNode ir_node = node.head;; ir_node = ir_node.next) {
+            // ir_node.order = comm_ser++;
+            // comm_order.add(ir_node);
+            // if (ir_node == node.tail) {
+            // break;
+            // }
+            // }
+
+            // }
 
             // print order of bbs
             // System.out.println("; Func " + entry.label + ":\n; BB order:");
