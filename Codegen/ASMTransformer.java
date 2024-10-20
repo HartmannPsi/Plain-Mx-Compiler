@@ -818,13 +818,16 @@ public class ASMTransformer {
         // a0-a7 = args[0-7]
         // load args to a0-a7
 
-        int _total_mem = arg_cnt * 4;
+        int _total_mem = (arg_cnt - 8) * 4;
+        if (_total_mem < 0) {
+            _total_mem = 0;
+        }
         while (_total_mem % 16 != 0) {
             _total_mem += 4;
         }
         // the size of the stack space for the arguments
 
-        if (!isBuiltin(node.func_name)) {
+        if (!isBuiltin(node.func_name) && arg_cnt > 8) {
             ASMRetType ret = appStackSpace(_total_mem);
             tail.next = ret.head;
             tail = ret.tail;
@@ -832,13 +835,13 @@ public class ASMTransformer {
             Map<String, Integer> _var_map = new HashMap<>();
             int addr = 0;
 
-            for (int i = 0; i < arg_cnt; ++i) {
+            for (int i = 8; i < arg_cnt; ++i) {
                 _var_map.put(node.args[i], addr);
                 addr += 4;
             }
             addr = 0;
 
-            for (int i = 0; i < arg_cnt; ++i) {
+            for (int i = 8; i < arg_cnt; ++i) {
                 ASMRetType ret2 = getStackAddr(addr, "t0");
                 tail.next = ret2.head;
                 tail = ret2.tail;
@@ -914,7 +917,7 @@ public class ASMTransformer {
 
                 addr += 4;
             }
-            // [sp + 4 * i] = args[i]
+            // [sp + 4 * i] = args[i-8]
             // for non-builtin args: save args to stack
         }
 
@@ -932,7 +935,7 @@ public class ASMTransformer {
         tail = call_node;
         // call func_name
 
-        if (!isBuiltin(node.func_name)) {
+        if (!isBuiltin(node.func_name) && arg_cnt > 8) {
             ASMRetType ret7 = releaseStackSpace(_total_mem);
             tail.next = ret7.head;
             tail = ret7.tail;
@@ -1307,8 +1310,11 @@ public class ASMTransformer {
         String func_name = node.func_name.substring(1, node.func_name.length());
         // funcs.put(func_name, new HashMap<>());
 
-        int args_total_mem = (node.ids == null ? 0 : node.ids.length) * 4;
-        int args_cnt = args_total_mem / 4;
+        int args_total_mem = (node.ids == null ? 0 : node.ids.length - 8) * 4;
+        if (args_total_mem < 0) {
+            args_total_mem = 0;
+        }
+        int args_cnt = (node.ids == null ? 0 : node.ids.length);
         while (args_total_mem % 16 != 0) {
             args_total_mem += 4;
         }
@@ -1327,7 +1333,7 @@ public class ASMTransformer {
         // the size of the stack space for the variables
 
         int addr = 0;
-        for (int i = 0; i != args_cnt; ++i) {
+        for (int i = 8; i < args_cnt; ++i) {
             String arg = node.ids[i];
             _var_map.put(arg, addr + _total_mem);
             addr += 4;
@@ -1373,7 +1379,7 @@ public class ASMTransformer {
         }
         // save callee saved registers: s0-s11
 
-        for (int i = 0; i != args_cnt; ++i) {
+        for (int i = 8; i < args_cnt; ++i) {
             String arg = node.ids[i];
             if (alloca_map.containsKey(arg) && !alloca_map.get(arg).equals("SPILL")) {
                 String reg = alloca_map.get(arg);
