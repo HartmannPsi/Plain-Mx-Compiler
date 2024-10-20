@@ -1374,4 +1374,102 @@ public class IROptimizer {
 
         return var_state;
     }
+
+    public void deleteDeadVar() {
+
+        // build the var_uses graph
+        Map<String, VarUses> var_uses = new HashMap<>();
+        for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
+            BasicBlockNode bb = entry.getValue();
+            for (IRNode node = bb.head; node != null; node = node.next) {
+
+                if (node.def() != null) {
+                    if (!var_uses.containsKey(node.def())) {
+                        var_uses.put(node.def(), new VarUses());
+                    }
+                    var_uses.get(node.def()).def = node;
+                }
+
+                if (node.use() != null) {
+                    for (String use : node.use()) {
+                        if (use != null) {
+                            if (!var_uses.containsKey(use)) {
+                                var_uses.put(use, new VarUses());
+                            }
+                            var_uses.get(use).uses.add(node);
+                        }
+                    }
+                }
+
+                if (node == bb.tail) {
+                    break;
+                }
+            }
+        }
+
+        // print var_uses
+        // System.out.println("; Var uses:");
+        // for (Map.Entry<String, VarUses> entry : var_uses.entrySet()) {
+        // System.out.print("; " + entry.getKey() + " def: ");
+        // if (entry.getValue().def != null) {
+        // System.out.print(entry.getValue().def.toString());
+        // }
+        // System.out.print("\nuses: ");
+        // for (IRNode node : entry.getValue().uses) {
+        // System.out.print(node.toString() + " ");
+        // }
+        // System.out.println();
+        // }
+
+        // find the dead variables
+        Queue<String> dead_vars = new LinkedList<>();
+        for (Map.Entry<String, VarUses> entry : var_uses.entrySet()) {
+            if (entry.getValue().uses.isEmpty()) {
+                dead_vars.add(entry.getKey());
+            }
+        }
+
+        // delete the dead variables
+        while (!dead_vars.isEmpty()) {
+            String var_name = dead_vars.poll();
+            VarUses var_use = var_uses.get(var_name);
+            IRNode def_node = var_use.def;
+
+            // fail to delete if the def_node is call / store / null
+            if (def_node == null || (def_node instanceof IRCallNode) || (def_node instanceof IRStoreNode)) {
+                continue;
+            }
+
+            // remove def_node in other vars' uses
+            if (def_node.use() != null) {
+                for (String used_var : def_node.use()) {
+
+                    if (used_var != null && var_uses.containsKey(used_var)) {
+                        VarUses used_var_uses = var_uses.get(used_var);
+                        used_var_uses.uses.remove(def_node);
+
+                        if (used_var_uses.uses.isEmpty()) {
+                            dead_vars.add(used_var);
+                        }
+                    }
+                }
+            }
+
+            // delete def_node
+            if (def_node.prev instanceof IRDefFuncNode) {
+                ((IRDefFuncNode) def_node.prev).stmt = def_node.next;
+            } else {
+                def_node.prev.next = def_node.next;
+            }
+            if (def_node.next != null) {
+                def_node.next.prev = def_node.prev;
+            }
+
+            // delete dead_var
+            var_uses.remove(var_name);
+
+            // System.out.println("Delete " + var_name);
+        }
+    }
+
 }

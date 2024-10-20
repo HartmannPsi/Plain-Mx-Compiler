@@ -103,6 +103,15 @@ public class Main {
                 // optimizer.printIR();
             }
 
+            optimizer.deleteEliminated();
+
+            optimizer.deleteDeadVar();
+
+            if (DEBUG) {
+                System.out.println("; DVAR");
+                // optimizer.printIR();
+            }
+
             optimizer.eliminatePhi();
 
             if (DEBUG) {
