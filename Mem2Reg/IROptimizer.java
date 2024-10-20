@@ -1273,9 +1273,15 @@ public class IROptimizer {
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
             Set<String> active = new HashSet<>();
             PriorityQueue<VarLifeRange> vars = new PriorityQueue<>();
-            ArrayList<VarLifeRange> vars2 = new ArrayList<>();// just for debugging
+            // ArrayList<VarLifeRange> vars2 = new ArrayList<>();// just for debugging
+            Map<String, Integer> func_args = new HashMap<>();
 
             for (IRNode node : comm_order) {
+
+                if (node instanceof IRPseudoArgNode) {
+                    func_args.put(((IRPseudoArgNode) node).pseudo_def, ((IRPseudoArgNode) node).idx);
+                }
+
                 if (node.def() != null) {
                     if (!life_beg.containsKey(node.def())) {
                         life_beg.put(node.def(), node.order);
@@ -1328,10 +1334,26 @@ public class IROptimizer {
             // }
             // }
 
+            int[] reg_state = new int[26];// 26 available: s0 - s11, t3 - t6, a0 - a7, gp, tp
+            for (int i = 0; i != 26; ++i) {
+                reg_state[i] = 0;
+            }
+
             for (Map.Entry<String, Integer> var_beg : life_beg.entrySet()) {
-                vars.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(), life_end.get(var_beg.getKey())));
-                vars2.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(),
-                        life_end.get(var_beg.getKey())));
+                String var = var_beg.getKey();
+                int t1 = var_beg.getValue(), t2 = life_end.get(var_beg.getKey());
+
+                if (func_args.containsKey(var) && func_args.get(var) < 8) {
+                    // prior to allocate args into a0 - a7
+                    reg_state[func_args.get(var) + 16] = t2;
+                    var_state.put(var, regName(func_args.get(var) + 16));
+
+                } else {
+                    vars.add(new VarLifeRange(var, t1, t2));
+                }
+
+                // vars2.add(new VarLifeRange(var_beg.getKey(), var_beg.getValue(),
+                // life_end.get(var_beg.getKey())));
             }
 
             // print life range of variables
@@ -1342,10 +1364,6 @@ public class IROptimizer {
 
             // allocate registers
             // Map<String, String> var_state = new HashMap<>();// <var, reg / mem>
-            int[] reg_state = new int[26];// 26 available: s0 - s11, t3 - t6, a0 - a7, gp, tp
-            for (int i = 0; i != 26; ++i) {
-                reg_state[i] = 0;
-            }
 
             while (!vars.isEmpty()) {
                 VarLifeRange var = vars.poll();
