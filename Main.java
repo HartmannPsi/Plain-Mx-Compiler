@@ -124,6 +124,12 @@ public class Main {
                 System.out.println("; DEL");
             }
 
+            optimizer.insertPseudoArgs();
+
+            if (DEBUG) {
+                System.out.println("; PARG");
+            }
+
             if (DEBUG) {
                 optimizer.printIR();
             }
@@ -144,7 +150,7 @@ public class Main {
 
             if (DEBUG) {
                 System.out.println("; SCAN");
-                // optimizer.printInOut();
+                optimizer.printInOut();
             }
 
             System.setOut(System.out);

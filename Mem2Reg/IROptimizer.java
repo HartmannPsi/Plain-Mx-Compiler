@@ -1472,4 +1472,35 @@ public class IROptimizer {
         }
     }
 
+    public void insertPseudoArgs() {
+        for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
+            if (cur instanceof IRDefFuncNode) {
+                IRDefFuncNode def_node = ((IRDefFuncNode) cur);
+                if (def_node.ids == null || def_node.ids.length == 0) {
+                    continue;
+                }
+
+                // generate pseudo arg comms
+                IRNode head = new IRNode(), tail = head;
+                for (int i = 0; i != def_node.ids.length; ++i) {
+                    IRPseudoArgNode pseudo_node = new IRPseudoArgNode();
+                    pseudo_node.pseudo_def = def_node.ids[i];
+                    pseudo_node.def_args = def_node;
+                    pseudo_node.idx = i;
+                    tail.next = pseudo_node;
+                    pseudo_node.prev = tail;
+                    tail = pseudo_node;
+                }
+                head = head.next;
+
+                // insert comms into Func Entry Label
+                IRNode entry_label_node = def_node.stmt;
+                entry_label_node.next.prev = tail;
+                tail.next = entry_label_node.next;
+                entry_label_node.next = head;
+                head.prev = entry_label_node;
+            }
+        }
+    }
+
 }

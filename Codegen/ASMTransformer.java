@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 
-//TODO:
+//TODO: Change the way to visit args
 // IRGetEleNode
 // IRIcmpNode
 
@@ -17,8 +17,6 @@ public class ASMTransformer {
     ASMNode asm_beg = new ASMNode();
     int rename_serial = 0;
     Map<String, String> alloca_map = new HashMap<>();
-    // TODO: allocate vars to registers
-    // TODO: Save regs before call function
 
     public ASMTransformer(IRNode beg, Map<String, String> var_map) {
         this.ir_beg = beg;
@@ -92,6 +90,8 @@ public class ASMTransformer {
             visit((IRStoreNode) node, comm_node, var_map, total_mem);
         } else if (node instanceof IRSectionNode) {
             visit((IRSectionNode) node, comm_node, var_map, total_mem);
+        } else if (node instanceof IRPseudoArgNode) {
+            visit((IRPseudoArgNode) node, comm_node, var_map, total_mem);
         } else {
             prev.next = null;
             visit(node.next, prev, var_map, total_mem);
@@ -1087,6 +1087,13 @@ public class ASMTransformer {
         visit(node.next, comm_node, var_map, total_mem);
     }
 
+    void visit(IRPseudoArgNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
+        ASMCommNode comm_node = new ASMCommNode();
+        comm_node.message = "# " + node.toString();
+        prev.next = comm_node;
+        visit(node.next, comm_node, var_map, total_mem);
+    }
+
     void visit(IRDefClsNode node, ASMNode prev, Map<String, Integer> var_map, int total_mem) {
         visit(node.next, prev, var_map, total_mem);
     }
@@ -1309,6 +1316,13 @@ public class ASMTransformer {
 
         Map<String, Integer> _var_map = new HashMap<>();
         Set<String> used_regs = new HashSet<>();
+
+        for (int i = 0; i != args_cnt; ++i) {
+            if (alloca_map.containsKey(node.ids[i]) && !alloca_map.get(node.ids[i]).equals("SPILL")) {
+                used_regs.add(alloca_map.get(node.ids[i]));
+            }
+        }
+
         int _total_mem = collectVars(_var_map, node, used_regs);
         // the size of the stack space for the variables
 
@@ -1358,6 +1372,31 @@ public class ASMTransformer {
             // [sp + 4 * i] = si
         }
         // save callee saved registers: s0-s11
+
+        for (int i = 0; i != args_cnt; ++i) {
+            String arg = node.ids[i];
+            if (alloca_map.containsKey(arg) && !alloca_map.get(arg).equals("SPILL")) {
+                String reg = alloca_map.get(arg);
+                int arg_addr = _var_map.get(arg);
+
+                ASMRetType ret2 = getStackAddr(arg_addr, "t0");
+                tail.next = ret2.head;
+                tail = ret2.tail;
+                // t0 -> arg[i]
+
+                ASMLwNode lw_node = new ASMLwNode();
+                lw_node.rd = reg;
+                lw_node.imm = "0";
+                lw_node.rs1 = "t0";
+                tail.next = lw_node;
+                tail = lw_node;
+                // arg[i] = [t0]
+
+                _var_map.remove(arg);
+                // save arg from memory to register
+            }
+        }
+        // manage args
 
         // _total_mem += args_total_mem;
         // the size of the stack space for the arguments and the variables
