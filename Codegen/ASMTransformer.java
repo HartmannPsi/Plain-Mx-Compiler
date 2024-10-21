@@ -364,17 +364,28 @@ public class ASMTransformer {
             } else {
 
                 int addr = var_map.get(var);
-                ASMRetType ret = getStackAddr(addr, reg);
-                // reg -> value
+                if (addr < 2048 && addr >= -2048) {
 
-                ASMLwNode lw_node = new ASMLwNode();
-                lw_node.rd = reg;
-                lw_node.imm = "0";
-                lw_node.rs1 = reg;
-                ret.tail.next = lw_node;
-                // reg = [reg]
+                    ASMLwNode lw_node = new ASMLwNode();
+                    lw_node.rd = reg;
+                    lw_node.imm = Integer.toString(addr);
+                    lw_node.rs1 = "sp";
 
-                return new ASMRetType(ret.head, lw_node, reg);
+                    return new ASMRetType(lw_node, lw_node, reg);
+
+                } else {
+                    ASMRetType ret = getStackAddr(addr, reg);
+                    // reg -> value
+
+                    ASMLwNode lw_node = new ASMLwNode();
+                    lw_node.rd = reg;
+                    lw_node.imm = "0";
+                    lw_node.rs1 = reg;
+                    ret.tail.next = lw_node;
+                    // reg = [reg]
+
+                    return new ASMRetType(ret.head, lw_node, reg);
+                }
             }
 
         } else if (isNull(var)) {
