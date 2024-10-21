@@ -256,6 +256,31 @@ public class ASMTransformer {
         }
     }
 
+    ASMRetType loadValue(int addr, String reg) {
+        if (addr < 2048 && addr >= -2048) {
+
+            ASMLwNode lw_node = new ASMLwNode();
+            lw_node.rd = reg;
+            lw_node.imm = Integer.toString(addr);
+            lw_node.rs1 = "sp";
+
+            return new ASMRetType(lw_node, lw_node, reg);
+
+        } else {
+            ASMRetType ret = getStackAddr(addr, reg);
+            // reg -> value
+
+            ASMLwNode lw_node = new ASMLwNode();
+            lw_node.rd = reg;
+            lw_node.imm = "0";
+            lw_node.rs1 = reg;
+            ret.tail.next = lw_node;
+            // reg = [reg]
+
+            return new ASMRetType(ret.head, lw_node, reg);
+        }
+    }
+
     ASMRetType storeValue(Map<String, Integer> var_map, String reg, String var) {
         // store reg to var
         if (var == null) {
@@ -314,6 +339,32 @@ public class ASMTransformer {
 
         } else {
             throw new RuntimeException("Unknown variable: " + var);
+        }
+    }
+
+    ASMRetType storeValue(int addr, String reg) {
+        if (addr < 2048 && addr >= -2048) {
+            ASMSwNode sw_node = new ASMSwNode();
+            sw_node.rs1 = "sp";
+            sw_node.rs2 = reg;
+            sw_node.imm = Integer.toString(addr);
+            return new ASMRetType(sw_node, sw_node);
+
+        } else {
+
+            String tmp_reg = (reg.equals("t0") ? "t1" : "t0");
+
+            ASMRetType ret = getStackAddr(addr, tmp_reg);
+            // t0 -> addr
+
+            ASMSwNode sw_node = new ASMSwNode();
+            sw_node.rs1 = tmp_reg;
+            sw_node.rs2 = reg;
+            sw_node.imm = "0";
+            ret.tail.next = sw_node;
+            // [t0] = reg
+
+            return new ASMRetType(ret.head, sw_node);
         }
     }
 
@@ -454,7 +505,7 @@ public class ASMTransformer {
                     throw new RuntimeException("Unknown operator: " + node.operator);
             }
 
-            int addr = 0;
+            // int addr = 0;
             if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
                 // on stack
 
@@ -463,19 +514,22 @@ public class ASMTransformer {
                 li_node.imm = Integer.toString(op1);
                 prev.next = li_node;
 
-                addr = var_map.get(node.result);
-                ASMRetType ret = getStackAddr(addr, "t0");
-                li_node.next = ret.head;
-                // t0 -> result
+                ASMRetType sw_ret = storeValue(var_map, "t1", node.result);
+                li_node.next = sw_ret.head;
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t0";
-                sw_node.rs2 = "t1";
-                sw_node.imm = "0";
-                ret.tail.next = sw_node;
+                // addr = var_map.get(node.result);
+                // ASMRetType ret = getStackAddr(addr, "t0");
+                // li_node.next = ret.head;
+                // // t0 -> result
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t0";
+                // sw_node.rs2 = "t1";
+                // sw_node.imm = "0";
+                // ret.tail.next = sw_node;
                 // [t0] = t1
 
-                visit(node.next, sw_node, var_map, total_mem);
+                visit(node.next, sw_ret.tail, var_map, total_mem);
             } else {
                 // in register
 
@@ -611,22 +665,26 @@ public class ASMTransformer {
                     throw new RuntimeException("Unknown operator: " + node.operator);
             }
 
-            int addr = 0;
+            // int addr = 0;
             if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
                 // on stack
-                addr = var_map.get(node.result);
-                ASMRetType ret = getStackAddr(addr, "t0");
-                arith_node.next = ret.head;
-                // t0 -> result
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t0";
-                sw_node.rs2 = "t1";
-                sw_node.imm = "0";
-                ret.tail.next = sw_node;
+                ASMRetType sw_ret = storeValue(var_map, "t1", node.result);
+                arith_node.next = sw_ret.head;
+
+                // addr = var_map.get(node.result);
+                // ASMRetType ret = getStackAddr(addr, "t0");
+                // arith_node.next = ret.head;
+                // // t0 -> result
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t0";
+                // sw_node.rs2 = "t1";
+                // sw_node.imm = "0";
+                // ret.tail.next = sw_node;
                 // [t0] = t1
 
-                visit(node.next, sw_node, var_map, total_mem);
+                visit(node.next, sw_ret.tail, var_map, total_mem);
 
             } else {
                 // in register
@@ -689,22 +747,26 @@ public class ASMTransformer {
                     throw new RuntimeException("Unknown operator: " + node.operator);
             }
 
-            int addr = 0;
+            // int addr = 0;
             if (!alloca_map.containsKey(node.result) || alloca_map.get(node.result).equals("SPILL")) {
                 // on stack
-                addr = var_map.get(node.result);
-                ASMRetType ret = getStackAddr(addr, "t0");
-                arith_node.next = ret.head;
-                // t0 -> result
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t0";
-                sw_node.rs2 = "t1";
-                sw_node.imm = "0";
-                ret.tail.next = sw_node;
+                ASMRetType sw_ret = storeValue(var_map, "t1", node.result);
+                arith_node.next = sw_ret.head;
+
+                // addr = var_map.get(node.result);
+                // ASMRetType ret = getStackAddr(addr, "t0");
+                // arith_node.next = ret.head;
+                // // t0 -> result
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t0";
+                // sw_node.rs2 = "t1";
+                // sw_node.imm = "0";
+                // ret.tail.next = sw_node;
                 // [t0] = t1
 
-                visit(node.next, sw_node, var_map, total_mem);
+                visit(node.next, sw_ret.tail, var_map, total_mem);
 
             } else {
                 // in register
@@ -927,10 +989,6 @@ public class ASMTransformer {
             addr = 0;
 
             for (int i = 8; i < arg_cnt; ++i) {
-                ASMRetType ret2 = getStackAddr(addr, "t0");
-                tail.next = ret2.head;
-                tail = ret2.tail;
-                // t0 -> arg[i]
 
                 if (isLocal(node.args[i])) {
 
@@ -942,17 +1000,22 @@ public class ASMTransformer {
 
                             int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
                             int arg_addr = var_map.get("a" + arg_ser) + _total_mem;
-                            ASMRetType ld_arg = getStackAddr(arg_addr, "t1");
-                            tail.next = ld_arg.head;
-                            tail = ld_arg.tail;
-                            // t1 -> arg[i]
 
-                            ASMLwNode lw_node = new ASMLwNode();
-                            lw_node.rd = "t1";
-                            lw_node.imm = "0";
-                            lw_node.rs1 = "t1";
-                            ld_arg.tail.next = lw_node;
-                            tail = lw_node;
+                            ASMRetType ld_ret = loadValue(arg_addr, "t1");
+                            tail.next = ld_ret.head;
+                            tail = ld_ret.tail;
+
+                            // ASMRetType ld_arg = getStackAddr(arg_addr, "t1");
+                            // tail.next = ld_arg.head;
+                            // tail = ld_arg.tail;
+                            // // t1 -> arg[i]
+
+                            // ASMLwNode lw_node = new ASMLwNode();
+                            // lw_node.rd = "t1";
+                            // lw_node.imm = "0";
+                            // lw_node.rs1 = "t1";
+                            // ld_arg.tail.next = lw_node;
+                            // tail = lw_node;
                             // t1 = [t1]
 
                         } else {
@@ -971,18 +1034,23 @@ public class ASMTransformer {
 
                         int arg_addr = var_map.get(node.args[i]);
                         arg_addr += _total_mem;
-                        ASMRetType _ret = getStackAddr(arg_addr, "t1");
-                        tail.next = _ret.head;
-                        // reg -> value
 
-                        ASMLwNode lw_node = new ASMLwNode();
-                        lw_node.rd = "t1";
-                        lw_node.imm = "0";
-                        lw_node.rs1 = "t1";
-                        _ret.tail.next = lw_node;
-                        // reg = [reg]
+                        ASMRetType lw_ret = loadValue(arg_addr, "t1");
+                        tail.next = lw_ret.head;
+                        tail = lw_ret.tail;
 
-                        tail = lw_node;
+                        // ASMRetType _ret = getStackAddr(arg_addr, "t1");
+                        // tail.next = _ret.head;
+                        // // reg -> value
+
+                        // ASMLwNode lw_node = new ASMLwNode();
+                        // lw_node.rd = "t1";
+                        // lw_node.imm = "0";
+                        // lw_node.rs1 = "t1";
+                        // _ret.tail.next = lw_node;
+                        // // reg = [reg]
+
+                        // tail = lw_node;
                     }
 
                 } else {
@@ -992,12 +1060,21 @@ public class ASMTransformer {
                 }
                 // t1 = arg[i]
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t0";
-                sw_node.rs2 = "t1";
-                sw_node.imm = "0";
-                tail.next = sw_node;
-                tail = sw_node;
+                ASMRetType sw_ret_ = storeValue(addr, "t1");
+                tail.next = sw_ret_.head;
+                tail = sw_ret_.tail;
+
+                // ASMRetType ret2 = getStackAddr(addr, "t0");
+                // tail.next = ret2.head;
+                // tail = ret2.tail;
+                // // t0 -> arg[i]
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t0";
+                // sw_node.rs2 = "t1";
+                // sw_node.imm = "0";
+                // tail.next = sw_node;
+                // tail = sw_node;
                 // [t0] = t1
 
                 addr += 4;
@@ -1034,17 +1111,22 @@ public class ASMTransformer {
                 // on stack
 
                 int ret_st_addr = var_map.get(node.result);
-                ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
-                tail.next = ret5.head;
-                tail = ret5.tail;
-                // t2 = ret_st_addr
 
-                ASMSwNode sw_node3 = new ASMSwNode();
-                sw_node3.rs1 = "t2";
-                sw_node3.rs2 = "a0";
-                sw_node3.imm = "0";
-                tail.next = sw_node3;
-                tail = sw_node3;
+                ASMRetType sw_ret = storeValue(ret_st_addr, "a0");
+                tail.next = sw_ret.head;
+                tail = sw_ret.tail;
+
+                // ASMRetType ret5 = getStackAddr(ret_st_addr, "t2");
+                // tail.next = ret5.head;
+                // tail = ret5.tail;
+                // // t2 = ret_st_addr
+
+                // ASMSwNode sw_node3 = new ASMSwNode();
+                // sw_node3.rs1 = "t2";
+                // sw_node3.rs2 = "a0";
+                // sw_node3.imm = "0";
+                // tail.next = sw_node3;
+                // tail = sw_node3;
                 // [t2] = a0
             } else {
                 // in register
@@ -1547,17 +1629,21 @@ public class ASMTransformer {
                 String reg = alloca_map.get(arg);
                 int arg_addr = _var_map.get(arg);
 
-                ASMRetType ret2 = getStackAddr(arg_addr, "t0");
-                tail.next = ret2.head;
-                tail = ret2.tail;
-                // t0 -> arg[i]
+                ASMRetType lw_ret = loadValue(arg_addr, reg);
+                tail.next = lw_ret.head;
+                tail = lw_ret.tail;
 
-                ASMLwNode lw_node = new ASMLwNode();
-                lw_node.rd = reg;
-                lw_node.imm = "0";
-                lw_node.rs1 = "t0";
-                tail.next = lw_node;
-                tail = lw_node;
+                // ASMRetType ret2 = getStackAddr(arg_addr, "t0");
+                // tail.next = ret2.head;
+                // tail = ret2.tail;
+                // // t0 -> arg[i]
+
+                // ASMLwNode lw_node = new ASMLwNode();
+                // lw_node.rd = reg;
+                // lw_node.imm = "0";
+                // lw_node.rs1 = "t0";
+                // tail.next = lw_node;
+                // tail = lw_node;
                 // arg[i] = [t0]
 
                 _var_map.remove(arg);
@@ -1721,18 +1807,23 @@ public class ASMTransformer {
             // on stack
 
             int addr = var_map.get(node.result);
-            ASMRetType ret2 = getStackAddr(addr, "t1");
-            tail.next = ret2.head;
-            // t1 -> result
 
-            ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "t1";
-            sw_node.rs2 = "t0";
-            sw_node.imm = "0";
-            ret2.tail.next = sw_node;
+            ASMRetType sw_ret = storeValue(addr, "t0");
+            tail.next = sw_ret.head;
+            tail = sw_ret.tail;
+
+            // ASMRetType ret2 = getStackAddr(addr, "t1");
+            // tail.next = ret2.head;
+            // // t1 -> result
+
+            // ASMSwNode sw_node = new ASMSwNode();
+            // sw_node.rs1 = "t1";
+            // sw_node.rs2 = "t0";
+            // sw_node.imm = "0";
+            // ret2.tail.next = sw_node;
             // [t1] = t0
 
-            visit(node.next, sw_node, var_map, total_mem);
+            visit(node.next, tail, var_map, total_mem);
         } else {
             // in register
 
@@ -1829,18 +1920,23 @@ public class ASMTransformer {
                 tail = li_node;
 
                 int addr = var_map.get(node.result);
-                ASMRetType ret = getStackAddr(addr, "t1");
-                tail.next = ret.head;
-                // t1 -> result
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t1";
-                sw_node.rs2 = "t0";
-                sw_node.imm = "0";
-                ret.tail.next = sw_node;
+                ASMRetType sw_ret = storeValue(addr, "t0");
+                tail.next = sw_ret.head;
+                tail = sw_ret.tail;
+
+                // ASMRetType ret = getStackAddr(addr, "t1");
+                // tail.next = ret.head;
+                // // t1 -> result
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t1";
+                // sw_node.rs2 = "t0";
+                // sw_node.imm = "0";
+                // ret.tail.next = sw_node;
                 // [t1] = t0
 
-                visit(node.next, sw_node, var_map, total_mem);
+                visit(node.next, tail, var_map, total_mem);
                 return;
 
             } else {
@@ -1977,18 +2073,23 @@ public class ASMTransformer {
                 // on stack
 
                 int addr = var_map.get(node.result);
-                ASMRetType ret = getStackAddr(addr, "t1");
-                tail.next = ret.head;
-                // t1 -> result
 
-                ASMSwNode sw_node = new ASMSwNode();
-                sw_node.rs1 = "t1";
-                sw_node.rs2 = "t0";
-                sw_node.imm = "0";
-                ret.tail.next = sw_node;
+                ASMRetType sw_ret = storeValue(addr, "t0");
+                tail.next = sw_ret.head;
+                tail = sw_ret.tail;
+
+                // ASMRetType ret = getStackAddr(addr, "t1");
+                // tail.next = ret.head;
+                // // t1 -> result
+
+                // ASMSwNode sw_node = new ASMSwNode();
+                // sw_node.rs1 = "t1";
+                // sw_node.rs2 = "t0";
+                // sw_node.imm = "0";
+                // ret.tail.next = sw_node;
                 // [t1] = t0
 
-                visit(node.next, sw_node, var_map, total_mem);
+                visit(node.next, tail, var_map, total_mem);
             } else {
                 // in register
 
@@ -2027,18 +2128,22 @@ public class ASMTransformer {
             // on stack
 
             int addr = var_map.get(node.result);
-            ASMRetType ret2 = getStackAddr(addr, "t0");
-            lw_node.next = ret2.head;
-            // t0 -> result
 
-            ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "t0";
-            sw_node.rs2 = "t1";
-            sw_node.imm = "0";
-            ret2.tail.next = sw_node;
+            ASMRetType sw_ret = storeValue(addr, "t1");
+            lw_node.next = sw_ret.head;
+
+            // ASMRetType ret2 = getStackAddr(addr, "t0");
+            // lw_node.next = ret2.head;
+            // // t0 -> result
+
+            // ASMSwNode sw_node = new ASMSwNode();
+            // sw_node.rs1 = "t0";
+            // sw_node.rs2 = "t1";
+            // sw_node.imm = "0";
+            // ret2.tail.next = sw_node;
             // [t0] = t1
 
-            visit(node.next, sw_node, var_map, total_mem);
+            visit(node.next, sw_ret.tail, var_map, total_mem);
         } else {
             // in register
 
@@ -2143,18 +2248,22 @@ public class ASMTransformer {
             // on stack
 
             int addr = var_map.get(node.result);
-            ASMRetType ret = getStackAddr(addr, "t1");
-            label_node2.next = ret.head;
-            // t1 -> result
 
-            ASMSwNode sw_node = new ASMSwNode();
-            sw_node.rs1 = "t1";
-            sw_node.rs2 = "t0";
-            sw_node.imm = "0";
-            ret.tail.next = sw_node;
+            ASMRetType sw_ret = storeValue(addr, "t0");
+            label_node2.next = sw_ret.head;
+
+            // ASMRetType ret = getStackAddr(addr, "t1");
+            // label_node2.next = ret.head;
+            // // t1 -> result
+
+            // ASMSwNode sw_node = new ASMSwNode();
+            // sw_node.rs1 = "t1";
+            // sw_node.rs2 = "t0";
+            // sw_node.imm = "0";
+            // ret.tail.next = sw_node;
             // [t1] = t0
 
-            visit(node.next, sw_node, var_map, total_mem);
+            visit(node.next, sw_ret.tail, var_map, total_mem);
         } else {
             // in register
 
