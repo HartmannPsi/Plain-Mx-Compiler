@@ -1166,12 +1166,12 @@ public class IROptimizer {
     }
 
     String regName(int i) {
-        if (i < 12) {
-            return "s" + i;
-        } else if (i < 16) {
-            return "t" + (i - 9);
+        if (i < 8) {
+            return "a" + i;// a0 - a7
+        } else if (i < 12) {
+            return "t" + (i - 5);// t3 - t6
         } else if (i < 24) {
-            return "a" + (i - 16);
+            return "s" + (i - 12);// s0 - s11
         } else if (i == 24) {
             return "gp";
         } else if (i == 25) {
@@ -1344,8 +1344,8 @@ public class IROptimizer {
 
                 if (func_args.containsKey(var) && func_args.get(var) < 8) {
                     // prior to allocate args into a0 - a7
-                    reg_state[func_args.get(var) + 16] = t2;
-                    var_state.put(var, regName(func_args.get(var) + 16));
+                    reg_state[func_args.get(var)] = t2;
+                    var_state.put(var, regName(func_args.get(var)));
 
                 } else {
                     vars.add(new VarLifeRange(var, t1, t2));
