@@ -13,6 +13,7 @@ public class IRNode {
     public BasicBlockNode bb = null;
     public int order = -1;
     static public Map<String, Integer> var_def = new HashMap<>();
+    public boolean eliminated = false;
 
     public String[] use() {
         return null;

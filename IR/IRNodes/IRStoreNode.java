@@ -2,7 +2,7 @@ package IR.IRNodes;
 
 public class IRStoreNode extends IRNode {
     public String tp = null, value = null, ptr = null;
-    public boolean eliminated = false;
+    // public boolean eliminated = false;
 
     public String[] use() {
         String[] res = new String[2];

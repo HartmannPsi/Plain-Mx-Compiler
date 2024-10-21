@@ -2,7 +2,7 @@ package IR.IRNodes;
 
 public class IRLoadNode extends IRNode {
     public String result = null, tp = null, ptr = null;
-    public boolean eliminated = false;
+    // public boolean eliminated = false;
 
     public String[] use() {
         if (isActive(ptr)) {

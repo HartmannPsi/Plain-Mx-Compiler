@@ -105,10 +105,12 @@ public class Main {
 
             optimizer.deleteEliminated();
 
-            optimizer.deleteDeadVar();
+            optimizer.deadCodeEliminate();
+
+            optimizer.deleteEliminated();
 
             if (DEBUG) {
-                System.out.println("; DVAR");
+                System.out.println("; DCE");
                 // optimizer.printIR();
             }
 

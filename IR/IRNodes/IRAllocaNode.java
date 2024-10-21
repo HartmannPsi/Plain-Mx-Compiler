@@ -2,7 +2,7 @@ package IR.IRNodes;
 
 public class IRAllocaNode extends IRNode {
     public String result = null, tp = null;
-    public boolean eliminated = false;
+    // public boolean eliminated = false;
 
     public void printToString() {
 

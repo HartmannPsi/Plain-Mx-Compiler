@@ -3,7 +3,7 @@ package IR.IRNodes;
 public class IRPhiNode extends IRNode {
     public String result = null, tp = null;
     public String[] vals = null, labels = null;
-    public boolean eliminated = false;
+    // public boolean eliminated = false;
 
     public String[] use() {
         String[] res = new String[vals.length];

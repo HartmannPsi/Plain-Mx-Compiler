@@ -1076,7 +1076,7 @@ public class IROptimizer {
         for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
             if (cur instanceof IRDefFuncNode) {
                 for (IRNode node = ((IRDefFuncNode) cur).stmt; node != null; node = node.next) {
-                    if (node instanceof IRAllocaNode && ((IRAllocaNode) node).eliminated) {
+                    if (node.eliminated) {
                         if (node.prev == cur) {
                             ((IRDefFuncNode) cur).stmt = node.next;
                         } else {
@@ -1085,45 +1085,44 @@ public class IROptimizer {
                         if (node.next != null) {
                             node.next.prev = node.prev;
                         }
+                        // } else if (node instanceof IRLoadNode && ((IRLoadNode) node).eliminated) {
+                        // if (node.prev == cur) {
+                        // ((IRDefFuncNode) cur).stmt = node.next;
+                        // } else {
+                        // node.prev.next = node.next;
+                        // }
+                        // if (node.next != null) {
+                        // node.next.prev = node.prev;
+                        // }
 
-                    } else if (node instanceof IRLoadNode && ((IRLoadNode) node).eliminated) {
-                        if (node.prev == cur) {
-                            ((IRDefFuncNode) cur).stmt = node.next;
-                        } else {
-                            node.prev.next = node.next;
-                        }
-                        if (node.next != null) {
-                            node.next.prev = node.prev;
-                        }
+                        // } else if (node instanceof IRStoreNode && ((IRStoreNode) node).eliminated) {
+                        // if (node.prev == cur) {
+                        // ((IRDefFuncNode) cur).stmt = node.next;
+                        // } else {
+                        // node.prev.next = node.next;
+                        // }
+                        // if (node.next != null) {
+                        // node.next.prev = node.prev;
+                        // }
 
-                    } else if (node instanceof IRStoreNode && ((IRStoreNode) node).eliminated) {
-                        if (node.prev == cur) {
-                            ((IRDefFuncNode) cur).stmt = node.next;
-                        } else {
-                            node.prev.next = node.next;
-                        }
-                        if (node.next != null) {
-                            node.next.prev = node.prev;
-                        }
-
-                    } else if (node instanceof IRPhiNode && ((IRPhiNode) node).eliminated) {
-                        if (node.prev == cur) {
-                            ((IRDefFuncNode) cur).stmt = node.next;
-                        } else {
-                            node.prev.next = node.next;
-                        }
-                        if (node.next != null) {
-                            node.next.prev = node.prev;
-                        }
-                    } else if (node.getClass() == IRNode.class) {
-                        if (node.prev == cur) {
-                            ((IRDefFuncNode) cur).stmt = node.next;
-                        } else {
-                            node.prev.next = node.next;
-                        }
-                        if (node.next != null) {
-                            node.next.prev = node.prev;
-                        }
+                        // } else if (node instanceof IRPhiNode && ((IRPhiNode) node).eliminated) {
+                        // if (node.prev == cur) {
+                        // ((IRDefFuncNode) cur).stmt = node.next;
+                        // } else {
+                        // node.prev.next = node.next;
+                        // }
+                        // if (node.next != null) {
+                        // node.next.prev = node.prev;
+                        // }
+                        // } else if (node.getClass() == IRNode.class) {
+                        // if (node.prev == cur) {
+                        // ((IRDefFuncNode) cur).stmt = node.next;
+                        // } else {
+                        // node.prev.next = node.next;
+                        // }
+                        // if (node.next != null) {
+                        // node.next.prev = node.prev;
+                        // }
                     }
                 }
             }
@@ -1393,14 +1392,26 @@ public class IROptimizer {
         return var_state;
     }
 
-    public void deleteDeadVar() {
+    public void deadCodeEliminate() {
 
-        // build the var_uses graph
+        // build the var_uses graph & collect the critical comms
         Map<String, VarUses> var_uses = new HashMap<>();
+        Queue<IRNode> critical_comms = new LinkedList<>();
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
             for (IRNode node = bb.head; node != null; node = node.next) {
 
+                // suppose node can be eliminated
+                node.eliminated = true;
+                if (node instanceof IRCallNode || node instanceof IRStoreNode || node instanceof IRBrNode
+                        || node instanceof IRRetNode) {
+                    critical_comms.add(node);
+                    node.eliminated = false;
+                } else if (node instanceof IRLabelNode || node instanceof IRDebugNode || node instanceof IRNLNode) {
+                    node.eliminated = false;
+                }
+
+                // build graph
                 if (node.def() != null) {
                     if (!var_uses.containsKey(node.def())) {
                         var_uses.put(node.def(), new VarUses());
@@ -1439,55 +1450,79 @@ public class IROptimizer {
         // System.out.println();
         // }
 
-        // find the dead variables
-        Queue<String> dead_vars = new LinkedList<>();
-        for (Map.Entry<String, VarUses> entry : var_uses.entrySet()) {
-            if (entry.getValue().uses.isEmpty()) {
-                dead_vars.add(entry.getKey());
-            }
-        }
+        // print critical comms
+        // System.out.println("; Critical comms:");
+        // for (IRNode node : critical_comms) {
+        // System.out.println("; " + node.toString());
+        // }
 
-        // delete the dead variables
-        while (!dead_vars.isEmpty()) {
-            String var_name = dead_vars.poll();
-            VarUses var_use = var_uses.get(var_name);
-            IRNode def_node = var_use.def;
-
-            // fail to delete if the def_node is call / store / null
-            if (def_node == null || (def_node instanceof IRCallNode) || (def_node instanceof IRStoreNode)) {
-                continue;
-            }
-
-            // remove def_node in other vars' uses
-            if (def_node.use() != null) {
-                for (String used_var : def_node.use()) {
-
-                    if (used_var != null && var_uses.containsKey(used_var)) {
-                        VarUses used_var_uses = var_uses.get(used_var);
-                        used_var_uses.uses.remove(def_node);
-
-                        if (used_var_uses.uses.isEmpty()) {
-                            dead_vars.add(used_var);
+        // recover critical vars
+        while (!critical_comms.isEmpty()) {
+            IRNode node = critical_comms.poll();
+            if (node.use() != null) {
+                for (String use : node.use()) {
+                    if (use != null) {
+                        VarUses var_use = var_uses.get(use);
+                        if (var_use.def != null && var_use.def.eliminated) {
+                            var_use.def.eliminated = false;
+                            critical_comms.add(var_use.def);
                         }
                     }
                 }
             }
-
-            // delete def_node
-            if (def_node.prev instanceof IRDefFuncNode) {
-                ((IRDefFuncNode) def_node.prev).stmt = def_node.next;
-            } else {
-                def_node.prev.next = def_node.next;
-            }
-            if (def_node.next != null) {
-                def_node.next.prev = def_node.prev;
-            }
-
-            // delete dead_var
-            var_uses.remove(var_name);
-
-            // System.out.println("Delete " + var_name);
         }
+
+        // // find the dead variables
+        // Queue<String> dead_vars = new LinkedList<>();
+        // for (Map.Entry<String, VarUses> entry : var_uses.entrySet()) {
+        // if (entry.getValue().uses.isEmpty()) {
+        // dead_vars.add(entry.getKey());
+        // }
+        // }
+
+        // // delete the dead variables
+        // while (!dead_vars.isEmpty()) {
+        // String var_name = dead_vars.poll();
+        // VarUses var_use = var_uses.get(var_name);
+        // IRNode def_node = var_use.def;
+
+        // // fail to delete if the def_node is call / store / null
+        // if (def_node == null || (def_node instanceof IRCallNode) || (def_node
+        // instanceof IRStoreNode)) {
+        // continue;
+        // }
+
+        // // remove def_node in other vars' uses
+        // if (def_node.use() != null) {
+        // for (String used_var : def_node.use()) {
+
+        // if (used_var != null && var_uses.containsKey(used_var)) {
+        // VarUses used_var_uses = var_uses.get(used_var);
+        // used_var_uses.uses.remove(def_node);
+
+        // if (used_var_uses.uses.isEmpty()) {
+        // dead_vars.add(used_var);
+        // }
+        // }
+        // }
+        // }
+
+        // // delete def_node
+        // if (def_node.prev instanceof IRDefFuncNode) {
+        // ((IRDefFuncNode) def_node.prev).stmt = def_node.next;
+        // } else {
+        // def_node.prev.next = def_node.next;
+        // }
+        // if (def_node.next != null) {
+        // def_node.next.prev = def_node.prev;
+        // }
+
+        // // delete dead_var
+        // var_uses.remove(var_name);
+
+        // // System.out.println("Delete " + var_name);
+        // }
+
     }
 
     public void insertPseudoArgs() {
