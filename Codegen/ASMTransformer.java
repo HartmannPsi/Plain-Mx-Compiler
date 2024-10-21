@@ -712,7 +712,7 @@ public class ASMTransformer {
         // tail = ret4.tail;
         // t2 = ra_st_addr
 
-        int caller_st_addr = 12 * 4;// ra
+        // int caller_st_addr = 12 * 4;// ra
 
         // ASMRetType ra_addr = getStackAddr(caller_st_addr, "t0");
         // tail.next = ra_addr.head;
@@ -976,7 +976,7 @@ public class ASMTransformer {
         }
         // save result
 
-        int caller_ld_addr = 12 * 4;
+        // int caller_ld_addr = 12 * 4;
 
         // ASMRetType lw_ra = getStackAddr(caller_ld_addr, "t0");
         // tail.next = lw_ra.head;
@@ -1102,7 +1102,7 @@ public class ASMTransformer {
         visit(node.next, prev, var_map, total_mem);
     }
 
-    int collectVars(Map<String, Integer> map, IRDefFuncNode def_node, Set<String> used_regs) {
+    int collectVars(Map<String, Integer> map, IRDefFuncNode def_node, Set<String> used_regs_callee) {
 
         int addr = 0;
         // s0-s11: [0, 12 * 4)
@@ -1118,6 +1118,7 @@ public class ASMTransformer {
         // addr += 4;
         // }
         // }
+        Set<String> used_regs_caller = new HashSet<>();
 
         for (IRNode node = def_node.stmt; node != null; node = node.next) {
 
@@ -1140,7 +1141,11 @@ public class ASMTransformer {
 
                 } else if (alloca_map.containsKey(binary_node.result)
                         && !alloca_map.get(binary_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(binary_node.result));
+
+                    String reg = alloca_map.get(binary_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
             } else if (node instanceof IRCallNode) {
@@ -1160,10 +1165,22 @@ public class ASMTransformer {
 
                 } else if (call_node.result != null && alloca_map.containsKey(call_node.result)
                         && !alloca_map.get(call_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(call_node.result));
+
+                    String reg = alloca_map.get(call_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
-                used_regs.add("ra");
+                if (call_node.in != null) {
+                    for (String active_var : call_node.in) {
+                        if (alloca_map.containsKey(active_var) && !alloca_map.get(active_var).equals("SPILL")) {
+                            used_regs_caller.add(alloca_map.get(active_var));
+                        }
+                    }
+                }
+
+                used_regs_callee.add("ra");
                 // result: addr
 
             } else if (node instanceof IRGetEleNode) {
@@ -1175,7 +1192,11 @@ public class ASMTransformer {
 
                 } else if (alloca_map.containsKey(ele_node.result)
                         && !alloca_map.get(ele_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(ele_node.result));
+
+                    String reg = alloca_map.get(ele_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
             } else if (node instanceof IRIcmpNode) {
@@ -1187,7 +1208,11 @@ public class ASMTransformer {
 
                 } else if (alloca_map.containsKey(icmp_node.result)
                         && !alloca_map.get(icmp_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(icmp_node.result));
+
+                    String reg = alloca_map.get(icmp_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
             } else if (node instanceof IRLoadNode) {
@@ -1199,7 +1224,11 @@ public class ASMTransformer {
 
                 } else if (alloca_map.containsKey(load_node.result)
                         && !alloca_map.get(load_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(load_node.result));
+
+                    String reg = alloca_map.get(load_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
             } else if (node instanceof IRPhiNode) {
@@ -1210,7 +1239,11 @@ public class ASMTransformer {
                     addr += 4;
                 } else if (alloca_map.containsKey(phi_node.result)
                         && !alloca_map.get(phi_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(phi_node.result));
+
+                    String reg = alloca_map.get(phi_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
 
             } else if (node instanceof IRSelectNode) {
@@ -1221,15 +1254,19 @@ public class ASMTransformer {
                     addr += 4;
                 } else if (alloca_map.containsKey(select_node.result)
                         && !alloca_map.get(select_node.result).equals("SPILL")) {
-                    used_regs.add(alloca_map.get(select_node.result));
+
+                    String reg = alloca_map.get(select_node.result);
+                    if (reg.charAt(0) == 's') {
+                        used_regs_callee.add(reg);
+                    }
                 }
             } else if (node instanceof IRRetNode) {
                 IRRetNode ret_node = (IRRetNode) node;
-                ret_node.used_regs = used_regs;
+                ret_node.used_regs = used_regs_callee;
             }
         }
 
-        int reg_cnt = used_regs.size();
+        int reg_cnt = used_regs_callee.size() + used_regs_caller.size();
         addr += reg_cnt * 4;
 
         if (reg_cnt > 0) {
@@ -1238,7 +1275,12 @@ public class ASMTransformer {
             }
 
             int reg_addr = 0;
-            for (String reg : used_regs) {
+            for (String reg : used_regs_callee) {
+                map.put(reg, reg_addr * 4);
+                ++reg_addr;
+            }
+
+            for (String reg : used_regs_caller) {
                 map.put(reg, reg_addr * 4);
                 ++reg_addr;
             }
@@ -1355,7 +1397,9 @@ public class ASMTransformer {
 
         for (int i = 0; i != args_cnt; ++i) {
             if (alloca_map.containsKey(node.ids[i]) && !alloca_map.get(node.ids[i]).equals("SPILL")) {
-                used_regs.add(alloca_map.get(node.ids[i]));
+                if (alloca_map.get(node.ids[i]).charAt(0) == 's') {
+                    used_regs.add(alloca_map.get(node.ids[i]));
+                }
             }
         }
 
