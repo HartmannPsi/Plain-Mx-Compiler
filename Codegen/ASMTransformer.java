@@ -214,17 +214,29 @@ public class ASMTransformer {
             } else {
 
                 int addr = var_map.get(var);
-                ASMRetType ret = getStackAddr(addr, reg);
-                // reg -> value
 
-                ASMLwNode lw_node = new ASMLwNode();
-                lw_node.rd = reg;
-                lw_node.imm = "0";
-                lw_node.rs1 = reg;
-                ret.tail.next = lw_node;
-                // reg = [reg]
+                if (addr < 2048 && addr >= -2048) {
 
-                return new ASMRetType(ret.head, lw_node, reg);
+                    ASMLwNode lw_node = new ASMLwNode();
+                    lw_node.rd = reg;
+                    lw_node.imm = Integer.toString(addr);
+                    lw_node.rs1 = "sp";
+
+                    return new ASMRetType(lw_node, lw_node, reg);
+
+                } else {
+                    ASMRetType ret = getStackAddr(addr, reg);
+                    // reg -> value
+
+                    ASMLwNode lw_node = new ASMLwNode();
+                    lw_node.rd = reg;
+                    lw_node.imm = "0";
+                    lw_node.rs1 = reg;
+                    ret.tail.next = lw_node;
+                    // reg = [reg]
+
+                    return new ASMRetType(ret.head, lw_node, reg);
+                }
             }
 
         } else if (isNull(var)) {
@@ -238,6 +250,67 @@ public class ASMTransformer {
             li_node.rd = reg;
             li_node.imm = (var.equals("true") ? "1" : "0");
             return new ASMRetType(li_node, li_node, reg);
+
+        } else {
+            throw new RuntimeException("Unknown variable: " + var);
+        }
+    }
+
+    ASMRetType storeValue(Map<String, Integer> var_map, String reg, String var) {
+        // store reg to var
+        if (var == null) {
+            ASMNode empty_node = new ASMNode();
+            return new ASMRetType(empty_node, empty_node);
+
+        } else if (isGlobal(var)) {
+
+            ASMLaNode la_node = new ASMLaNode();
+            la_node.rd = "t0";
+            la_node.label = var.substring(1, var.length());
+            // t0 = &var
+
+            ASMSwNode sw_node = new ASMSwNode();
+            sw_node.rs1 = "t0";
+            sw_node.rs2 = reg;
+            sw_node.imm = "0";
+            la_node.next = sw_node;
+            // [t0] = reg
+
+            return new ASMRetType(la_node, sw_node);
+
+        } else if (isLocal(var)) {
+
+            // judge whether it is a register or a stack variable
+            if (alloca_map.containsKey(var) && !alloca_map.get(var).equals("SPILL")) {
+                ASMNode empty_node = new ASMNode();
+                return new ASMRetType(empty_node, empty_node);
+
+            } else {
+
+                int addr = var_map.get(var);
+
+                if (addr < 2048 && addr >= -2048) {
+                    ASMSwNode sw_node = new ASMSwNode();
+                    sw_node.rs1 = "sp";
+                    sw_node.rs2 = reg;
+                    sw_node.imm = Integer.toString(addr);
+                    return new ASMRetType(sw_node, sw_node);
+
+                } else {
+
+                    ASMRetType ret = getStackAddr(addr, "t0");
+                    // t0 -> addr
+
+                    ASMSwNode sw_node = new ASMSwNode();
+                    sw_node.rs1 = "t0";
+                    sw_node.rs2 = reg;
+                    sw_node.imm = "0";
+                    ret.tail.next = sw_node;
+                    // [t0] = reg
+
+                    return new ASMRetType(ret.head, sw_node);
+                }
+            }
 
         } else {
             throw new RuntimeException("Unknown variable: " + var);
@@ -967,10 +1040,14 @@ public class ASMTransformer {
 
                 ASMMvNode mv_node = new ASMMvNode();
                 mv_node.rd = alloca_map.get(node.result);
-                mv_node.rs = "a0";
-                tail.next = mv_node;
-                tail = mv_node;
-                res_reg = mv_node.rd;
+                if (!mv_node.rd.equals("a0")) {
+                    mv_node.rs = "a0";
+                    tail.next = mv_node;
+                    tail = mv_node;
+                    res_reg = mv_node.rd;
+                } else {
+                    res_reg = "a0";
+                }
                 // result = a0
             }
         }
