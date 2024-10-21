@@ -10,6 +10,7 @@ import java.util.HashSet;
 //TODO: Change the way to visit args
 // IRGetEleNode
 // IRIcmpNode
+//TODO: reduce applying memory
 
 public class ASMTransformer {
 
@@ -721,7 +722,7 @@ public class ASMTransformer {
         ASMSwNode sw_ra_node = new ASMSwNode();
         sw_ra_node.rs2 = "ra";
         sw_ra_node.rs1 = "sp";
-        sw_ra_node.imm = Integer.toString(caller_st_addr);
+        sw_ra_node.imm = var_map.get("ra").toString();
         tail.next = sw_ra_node;
         tail = sw_ra_node;
         // [t0] = ra
@@ -740,7 +741,7 @@ public class ASMTransformer {
             ASMSwNode sw_ti_node = new ASMSwNode();
             sw_ti_node.rs2 = "t" + i;
             sw_ti_node.rs1 = "sp";
-            sw_ti_node.imm = Integer.toString(caller_st_addr + 4 * (i + 1));
+            sw_ti_node.imm = var_map.get("t" + i).toString();
             tail.next = sw_ti_node;
             tail = sw_ti_node;
             // [t0] = t[i]
@@ -760,7 +761,7 @@ public class ASMTransformer {
             ASMSwNode sw_ai_node = new ASMSwNode();
             sw_ai_node.rs2 = "a" + i;
             sw_ai_node.rs1 = "sp";
-            sw_ai_node.imm = Integer.toString(caller_st_addr + 4 * (i + 7 + 1));
+            sw_ai_node.imm = var_map.get("a" + i).toString();
             tail.next = sw_ai_node;
             tail = sw_ai_node;
             // [t0] = a[i]
@@ -770,7 +771,7 @@ public class ASMTransformer {
             ASMSwNode sw_gp_node = new ASMSwNode();
             sw_gp_node.rs2 = "gp";
             sw_gp_node.rs1 = "sp";
-            sw_gp_node.imm = "112";
+            sw_gp_node.imm = var_map.get("gp").toString();
             tail.next = sw_gp_node;
             tail = sw_gp_node;
         }
@@ -779,7 +780,7 @@ public class ASMTransformer {
             ASMSwNode sw_tp_node = new ASMSwNode();
             sw_tp_node.rs2 = "tp";
             sw_tp_node.rs1 = "sp";
-            sw_tp_node.imm = "116";
+            sw_tp_node.imm = var_map.get("tp").toString();
             tail.next = sw_tp_node;
             tail = sw_tp_node;
         }
@@ -793,7 +794,7 @@ public class ASMTransformer {
                 // need to load from saved memory
 
                 int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
-                int arg_addr = caller_st_addr + 4 * (arg_ser + 8);
+                int arg_addr = var_map.get("a" + arg_ser);
                 // ASMRetType ret = getStackAddr(arg_addr, "t0");
                 // tail.next = ret.head;
                 // tail = ret.tail;
@@ -856,7 +857,7 @@ public class ASMTransformer {
                             // need to load from saved memory
 
                             int arg_ser = alloca_map.get(node.args[i]).charAt(1) - '0';
-                            int arg_addr = caller_st_addr + 4 * (arg_ser + 8) + _total_mem;
+                            int arg_addr = var_map.get("a" + arg_ser) + _total_mem;
                             ASMRetType ld_arg = getStackAddr(arg_addr, "t1");
                             tail.next = ld_arg.head;
                             tail = ld_arg.tail;
@@ -985,7 +986,7 @@ public class ASMTransformer {
         ASMLwNode lw_ra_node = new ASMLwNode();
         lw_ra_node.rd = "ra";
         lw_ra_node.rs1 = "sp";
-        lw_ra_node.imm = Integer.toString(caller_ld_addr);
+        lw_ra_node.imm = var_map.get("ra").toString();
         tail.next = lw_ra_node;
         tail = lw_ra_node;
         // ra = [t0]
@@ -1008,7 +1009,7 @@ public class ASMTransformer {
             ASMLwNode lw_ti_node = new ASMLwNode();
             lw_ti_node.rd = "t" + i;
             lw_ti_node.rs1 = "sp";
-            lw_ti_node.imm = Integer.toString(caller_ld_addr + 4 * (i + 1));
+            lw_ti_node.imm = var_map.get("t" + i).toString();
             tail.next = lw_ti_node;
             tail = lw_ti_node;
             // t[i] = [t0]
@@ -1032,7 +1033,7 @@ public class ASMTransformer {
             ASMLwNode lw_ai_node = new ASMLwNode();
             lw_ai_node.rd = "a" + i;
             lw_ai_node.rs1 = "sp";
-            lw_ai_node.imm = Integer.toString(caller_ld_addr + 4 * (i + 7 + 1));
+            lw_ai_node.imm = var_map.get("a" + i).toString();
             tail.next = lw_ai_node;
             tail = lw_ai_node;
             // a[i] = [t0]
@@ -1042,7 +1043,7 @@ public class ASMTransformer {
             ASMLwNode lw_gp_node = new ASMLwNode();
             lw_gp_node.rd = "gp";
             lw_gp_node.rs1 = "sp";
-            lw_gp_node.imm = "112";
+            lw_gp_node.imm = var_map.get("gp").toString();
             tail.next = lw_gp_node;
             tail = lw_gp_node;
         }
@@ -1051,7 +1052,7 @@ public class ASMTransformer {
             ASMLwNode lw_tp_node = new ASMLwNode();
             lw_tp_node.rd = "tp";
             lw_tp_node.rs1 = "sp";
-            lw_tp_node.imm = "116";
+            lw_tp_node.imm = var_map.get("tp").toString();
             tail.next = lw_tp_node;
             tail = lw_tp_node;
         }
@@ -1103,7 +1104,7 @@ public class ASMTransformer {
 
     int collectVars(Map<String, Integer> map, IRDefFuncNode def_node, Set<String> used_regs) {
 
-        int addr = 12 * 4 + 4 + 7 * 4 + 8 * 4 + 4 + 4;
+        int addr = 0;
         // s0-s11: [0, 12 * 4)
         // ra: [12 * 4, 12 * 4 + 4)
         // t0-t6: [12 * 4 + 4, 12 * 4 + 4 + 7 * 4)
@@ -1161,6 +1162,8 @@ public class ASMTransformer {
                         && !alloca_map.get(call_node.result).equals("SPILL")) {
                     used_regs.add(alloca_map.get(call_node.result));
                 }
+
+                used_regs.add("ra");
                 // result: addr
 
             } else if (node instanceof IRGetEleNode) {
@@ -1226,6 +1229,21 @@ public class ASMTransformer {
             }
         }
 
+        int reg_cnt = used_regs.size();
+        addr += reg_cnt * 4;
+
+        if (reg_cnt > 0) {
+            for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                entry.setValue(entry.getValue() + reg_cnt * 4);
+            }
+
+            int reg_addr = 0;
+            for (String reg : used_regs) {
+                map.put(reg, reg_addr * 4);
+                ++reg_addr;
+            }
+        }
+
         while (addr % 16 != 0) {
             addr += 4;
         }
@@ -1234,6 +1252,12 @@ public class ASMTransformer {
     }
 
     ASMRetType appStackSpace(int imm) {
+
+        if (imm == 0) {
+            ASMNode empty_node = new ASMNode();
+            return new ASMRetType(empty_node, empty_node);
+        }
+
         if (-imm < 1 << 11 && -imm >= -(1 << 11)) {
             ASMArithImmNode arith_node = new ASMArithImmNode();
             arith_node.op = "addi";
@@ -1258,6 +1282,12 @@ public class ASMTransformer {
     }
 
     ASMRetType releaseStackSpace(int imm) {
+
+        if (imm == 0) {
+            ASMNode empty_node = new ASMNode();
+            return new ASMRetType(empty_node, empty_node);
+        }
+
         if (imm < 1 << 11 && imm >= -(1 << 11)) {
             ASMArithImmNode arith_node = new ASMArithImmNode();
             arith_node.op = "addi";
@@ -1372,7 +1402,7 @@ public class ASMTransformer {
             ASMSwNode sw_node = new ASMSwNode();
             sw_node.rs2 = "s" + i;
             sw_node.rs1 = "sp";
-            sw_node.imm = Integer.toString(i * 4);
+            sw_node.imm = _var_map.get("s" + i).toString();
             tail.next = sw_node;
             tail = sw_node;
             // [sp + 4 * i] = si
@@ -1914,7 +1944,7 @@ public class ASMTransformer {
 
             ASMLwNode lw_si_node = new ASMLwNode();
             lw_si_node.rd = "s" + i;
-            lw_si_node.imm = Integer.toString(i * 4);
+            lw_si_node.imm = var_map.get("s" + i).toString();
             lw_si_node.rs1 = "sp";
             tail.next = lw_si_node;
             tail = lw_si_node;
