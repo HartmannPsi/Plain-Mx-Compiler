@@ -142,6 +142,12 @@ public class Main {
                 System.out.println("; LIR");
             }
 
+            optimizer.numVars();
+
+            if (DEBUG) {
+                System.out.println("; NVAR");
+            }
+
             optimizer.activeAnalysis();
 
             if (DEBUG) {

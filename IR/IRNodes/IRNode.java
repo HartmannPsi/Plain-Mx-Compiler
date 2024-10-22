@@ -5,15 +5,29 @@ import java.util.HashSet;
 import Mem2Reg.BasicBlockNode;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.BitSet;
 
 public class IRNode {
     public IRNode next = null, prev = null;
     static public boolean shadow = false;
     public Set<String> in = new HashSet<>(), out = new HashSet<>();
+    public BitSet bin = new BitSet(), bout = new BitSet();
     public BasicBlockNode bb = null;
     public int order = -1;
-    static public Map<String, Integer> var_def = new HashMap<>();
+    public static Map<String, Integer> var_def = new HashMap<>();
+    public static Map<Integer, String> num_to_var = new HashMap<>();
     public boolean eliminated = false;
+
+    public void calcInOut() {
+        // TODO:
+        for (int i = bin.nextSetBit(0); i >= 0; i = bin.nextSetBit(i + 1)) {
+            in.add(num_to_var.get(i));
+        }
+
+        for (int i = bout.nextSetBit(0); i >= 0; i = bout.nextSetBit(i + 1)) {
+            out.add(num_to_var.get(i));
+        }
+    }
 
     public String[] use() {
         return null;
@@ -77,6 +91,6 @@ public class IRNode {
     boolean isActive(String str) {
         return !(str != null && ((str.charAt(0) >= '0' && str.charAt(0) <= '9') || str.charAt(0) == '-'
                 || str.charAt(0) == '@'
-                || str.equals("true") || str.equals("false")));
+                || str.equals("true") || str.equals("false") || str.equals("null")));
     }
 }

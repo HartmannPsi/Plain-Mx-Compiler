@@ -14,6 +14,7 @@ import util.Pair;
 import java.util.BitSet;
 
 //TODO：optimize calc cfg with bitset
+//TODO: optimize active analysis with bitset
 
 public class IROptimizer {
     public IRNode ir_beg = null;
@@ -28,6 +29,10 @@ public class IROptimizer {
     ArrayList<BasicBlockNode> entries = new ArrayList<>();
     Map<BasicBlockNode, ArrayList<IRNode>> comm_orders = new HashMap<>();
     int rename_serial = 0;
+
+    Map<Integer, String> num_to_var = new HashMap<>();
+    Map<String, Integer> var_to_num = new HashMap<>();
+    // int var_idx = 0;
 
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
@@ -162,12 +167,17 @@ public class IROptimizer {
             for (IRNode node = bb.head;; node = node.next) {
                 // System.out.println(node.toString());
                 if (node.def() != null) {
-                    bb.def.add(node.def());
+                    // bb.def.add(node.def());
+                    int def_idx = var_to_num.get(node.def());
+                    bb.bdef.set(def_idx);
                 }
                 if (node.use() != null) {
                     for (String use : node.use()) {
                         if (use != null) {
-                            bb.use.add(use);
+                            // bb.use.add(use);
+                            // System.out.println(node.toString() + " Use: " + use);
+                            int use_idx = var_to_num.get(use);
+                            bb.buse.set(use_idx);
                         }
                     }
                 }
@@ -175,7 +185,8 @@ public class IROptimizer {
                     break;
             }
 
-            bb.use.removeAll(bb.def);
+            // bb.use.removeAll(bb.def);
+            bb.buse.andNot(bb.bdef);
             queue.add(bb);
         }
 
@@ -184,19 +195,29 @@ public class IROptimizer {
         while (!queue.isEmpty()) {
             BasicBlockNode bb = queue.poll();
             // System.out.println(bb.label);
-            bb.in = new HashSet<>(bb.out);
-            bb.in.removeAll(bb.def);
-            bb.in.addAll(bb.use);
+            // bb.in = new HashSet<>(bb.out);
+            bb.bin = (BitSet) bb.bout.clone();
+            // bb.in.removeAll(bb.def);
+            bb.bin.andNot(bb.bdef);
+            // bb.in.addAll(bb.use);
+            bb.bin.or(bb.buse);
 
             for (BasicBlockNode prec : bb.precursors) {
-                if (!prec.out.containsAll(bb.in)) {// out[prec] != \\union in[bb]
-                    prec.out.addAll(bb.in);
+                // if (!prec.out.containsAll(bb.in)) {// out[prec] != \\union in[bb]
+                // prec.out.addAll(bb.in);
+                // queue.add(prec);
+                // }
+                BitSet tmp = (BitSet) prec.bout.clone();// tmp = prec.bout
+                tmp.and(bb.bin);// tmp = prec.bout & bb.bin
+                // if bb.bin \subset prec.bout then tmp == bb.bin
+                if (!tmp.equals(bb.bin)) {
+                    prec.bout.or(bb.bin);
                     queue.add(prec);
                 }
             }
         }
 
-        // calc in / out of ir
+        // calc bin / bout of ir
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
 
             BasicBlockNode bb = entry.getValue();
@@ -212,25 +233,45 @@ public class IROptimizer {
             // break;
             // }
 
-            Set<String> last_out = new HashSet<>(bb.out);
+            // Set<String> last_out = new HashSet<>(bb.out);
+            BitSet last_out = (BitSet) bb.bout.clone();
+
             for (IRNode node = bb.tail;; node = node.prev) {
                 // IRNode node = list.get(i);
-                node.out = new HashSet<>(last_out);
+                // node.out = new HashSet<>(last_out);
+                node.bout = (BitSet) last_out.clone();
+
                 if (node.def() != null) {
-                    last_out.remove(node.def());
+                    // last_out.remove(node.def());
+                    int def_idx = var_to_num.get(node.def());
+                    last_out.clear(def_idx);
                 }
                 if (node.use() != null) {
                     for (String use : node.use()) {
                         if (use != null) {
-                            last_out.add(use);
+                            // last_out.add(use);
+                            int use_idx = var_to_num.get(use);
+                            last_out.set(use_idx);
                         }
                     }
                     // last_out.add(node.use());
                 }
-                node.in = new HashSet<>(last_out);
+                // node.in = new HashSet<>(last_out);
+                node.bin = (BitSet) last_out.clone();
 
                 if (node == bb.head)
                     break;
+            }
+        }
+
+        // calc in / out of ir
+
+        IRNode.num_to_var = num_to_var;
+        BasicBlockNode.num_to_var = num_to_var;
+
+        for (ArrayList<IRNode> comm_order : comm_orders.values()) {
+            for (IRNode node : comm_order) {
+                node.calcInOut();
             }
         }
     }
@@ -290,11 +331,11 @@ public class IROptimizer {
             BasicBlockNode bb = entry.getValue();
             System.out.println("BB " + bb.label + ":");
             System.out.print("  in: ");
-            for (String in : bb.in) {
+            for (String in : bb.in()) {
                 System.out.print(" " + in);
             }
             System.out.print("\n  out: ");
-            for (String out : bb.out) {
+            for (String out : bb.out()) {
                 System.out.print(" " + out);
             }
             System.out.println();
@@ -1255,6 +1296,25 @@ public class IROptimizer {
                 }
             }
         }
+    }
+
+    public void numVars() {
+        for (ArrayList<IRNode> comm_order : comm_orders.values()) {
+            for (IRNode node : comm_order) {
+                String var = node.def();
+                if (var != null && !var_to_num.containsKey(var)) {
+                    int var_idx = var_to_num.size();
+                    var_to_num.put(var, var_idx);
+                    num_to_var.put(var_idx, var);
+                }
+            }
+        }
+
+        // print var to num
+        // System.out.println("Var to Num:");
+        // for (Map.Entry<String, Integer> entry : var_to_num.entrySet()) {
+        // System.out.println(entry.getKey() + ": " + entry.getValue());
+        // }
     }
 
     public Map<String, String> linearScan() {
