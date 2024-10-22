@@ -699,7 +699,7 @@ public class IRGenerator {
         // System.out.println(") {");
         IRNode tail;
 
-        if (((IdNode) node.name).id.equals("main")) {
+        if (((IdNode) node.name).rename_id.equals("@main")) {
             IRCallNode call_node = new IRCallNode();
             call_node.func_name = global_var_init;
             call_node.res_tp = "void";
