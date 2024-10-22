@@ -87,9 +87,15 @@ public class Main {
                 System.out.println("; OPTI");
             }
 
+            optimizer.buildFuncCallMap();
+            if (DEBUG) {
+                System.out.println("; FCM");
+                // optimizer.printRecursive();
+            }
+
             optimizer.globalVarAnalysis();
             optimizer.globalVarToConstant();
-            // optimizer.glbalVarLocalization();
+            optimizer.glbalVarLocalization();
             if (DEBUG) {
                 System.out.println("; GVAR");
             }

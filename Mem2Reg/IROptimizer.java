@@ -9,15 +9,13 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
-
-import org.stringtemplate.v4.compiler.CodeGenerator.conditional_return;
-
 import java.util.PriorityQueue;
 import util.Pair;
 import java.util.BitSet;
 
 //TODO：optimize calc cfg with bitset
 //TODO: optimize active analysis with bitset
+//TODO: build function call graph
 
 public class IROptimizer {
     public IRNode ir_beg = null;
@@ -39,6 +37,9 @@ public class IROptimizer {
 
     Map<String, GlbVarUsage> glb_var_usage = new HashMap<>();
     IRDefFuncNode glb_var_init = null;
+    int glb_rename_idx = 0;
+
+    Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
@@ -46,6 +47,23 @@ public class IROptimizer {
 
     String bbLabel() {
         return "Label.eli_CE." + rename_serial++;
+    }
+
+    boolean isBuiltin(String func_name) {
+        if (func_name.equals("@print") || func_name.equals("@println") || func_name.equals("@printInt")
+                || func_name.equals("@printlnInt") || func_name.equals("@getString") || func_name.equals("@getInt")
+                || func_name.equals("@toString") || func_name.equals("@boolToString")
+                || func_name.equals("@string.length")
+                || func_name.equals("@string.substring")
+                || func_name.equals("@string.parseInt") || func_name.equals("@string.ord")
+                || func_name.equals("@string.add") || func_name.equals("@string.eq")
+                || func_name.equals("@string.ne") || func_name.equals("@string.lt")
+                || func_name.equals("@string.le") || func_name.equals("@string.gt")
+                || func_name.equals("@string.ge") || func_name.equals("@array.malloc")
+                || func_name.equals("@array.size") || func_name.equals("@malloc")) {
+            return true;
+        }
+        return false;
     }
 
     public IROptimizer(IRNode beg) {
@@ -1736,6 +1754,7 @@ public class IROptimizer {
                 continue;
 
             } else if (type == 1) {// use store value
+                usage.eliminated = true;
                 String val = null;
                 Set<IRStoreNode> store_nodes = new HashSet<>();
 
@@ -1751,6 +1770,7 @@ public class IROptimizer {
                 }
 
                 if (val.charAt(0) == '%' || val.charAt(0) == '@') {
+                    usage.eliminated = false;
                     continue;
                 }
 
@@ -1885,6 +1905,7 @@ public class IROptimizer {
                 // init_node.eliminated = true;
 
             } else if (type == 2) {// use init value
+                usage.eliminated = true;
                 String val = usage.init_node.val;
                 if (val == null) {
                     switch (usage.init_node.tp) {
@@ -2024,6 +2045,7 @@ public class IROptimizer {
                 init_node.eliminated = true;
 
             } else if (type == 3) {// delete
+                usage.eliminated = true;
                 IRGlbInitNode init_node = usage.init_node;
                 init_node.prev.next = init_node.next;
                 if (init_node.next != null) {
@@ -2032,6 +2054,7 @@ public class IROptimizer {
                 init_node.eliminated = true;
 
             } else {
+                usage.eliminated = true;
                 for (IRDefFuncNode func_node : usage.store_funcs) {
                     for (IRNode node = func_node.stmt; node != null; node = node.next) {
 
@@ -2052,11 +2075,253 @@ public class IROptimizer {
         }
     }
 
+    String renameLocalize(String var_name) {
+        return "%" + var_name.substring(1, var_name.length()) + ".Localize." + glb_rename_idx++;
+    }
+
     public void glbalVarLocalization() {
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
             GlbVarUsage usage = entry.getValue();
-            // TODO:
+
+            // System.out.println("var: " + var);
+            // usage.print();
+
+            if (usage.eliminated) {
+                continue;
+            }
+
+            if (usage.load_funcs.size() > 2 || usage.store_funcs.size() > 2) {
+                continue;
+            }
+
+            if (usage.load_funcs.size() == 2 && !usage.load_funcs.contains(glb_var_init)) {
+                continue;
+            }
+
+            if (usage.store_funcs.size() == 2 && !usage.store_funcs.contains(glb_var_init)) {
+                continue;
+            }
+
+            // the function that owns the global variable
+            IRDefFuncNode func_node = null;
+            for (IRDefFuncNode node : usage.load_funcs) {
+                if (node != glb_var_init) {
+                    func_node = node;
+                    break;
+                }
+            }
+
+            if (func_node.recursive()) {
+                continue;
+            }
+
+            if (!func_node.func_name.equals("@main")) {
+                continue;
+            }
+
+            if (!usage.store_funcs.contains(glb_var_init)) {
+                IRNode beg = func_node.stmt;
+                String rename = renameLocalize(var);
+                // String val = null;
+
+                // add alloca node & init store node
+                IRAllocaNode alloca_node = new IRAllocaNode();
+                alloca_node.result = rename;
+                alloca_node.tp = usage.init_node.tp;
+
+                IRStoreNode store_node = new IRStoreNode();
+                store_node.ptr = rename;
+                store_node.value = usage.init_node.val;
+                store_node.tp = usage.init_node.tp;
+                if (store_node.value == null) {
+                    switch (store_node.tp) {
+                        case "i32":
+                            store_node.value = "0";
+                            break;
+                        case "i1":
+                            store_node.value = "false";
+                            break;
+                        default:
+                            store_node.value = "null";
+                            break;
+                    }
+                }
+                // val = store_node.value;
+
+                alloca_node.next = store_node;
+                store_node.prev = alloca_node;
+
+                // rename the global variable
+                for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                    if (node instanceof IRStoreNode) {
+                        IRStoreNode st_node = (IRStoreNode) node;
+                        if (st_node.ptr.equals(var)) {
+                            st_node.ptr = rename;
+                        }
+
+                    } else if (node instanceof IRLoadNode) {
+                        IRLoadNode ld_node = (IRLoadNode) node;
+                        if (ld_node.ptr.equals(var)) {
+                            ld_node.ptr = rename;
+                        }
+                    }
+                }
+
+                // insert init after beg
+                if (func_node.func_name.equals("@main")) {
+                    beg = func_node.stmt.next;// call @Global.Var.Init
+                }
+                alloca_node.prev = beg;
+                store_node.next = beg.next;
+                beg.next = alloca_node;
+                if (store_node.next != null) {
+                    store_node.next.prev = store_node;
+                }
+                allocas.put(rename, alloca_node);
+
+                if (!usage.load_funcs.contains(glb_var_init)) {
+                    // delete init node
+                    IRGlbInitNode init_node = usage.init_node;
+                    init_node.prev.next = init_node.next;
+                    if (init_node.next != null) {
+                        init_node.next.prev = init_node.prev;
+                    }
+                    init_node.eliminated = true;
+                }
+
+                usage.eliminated = true;
+
+            } else {
+                IRStoreNode last_store_node = null;
+                for (IRNode node = glb_var_init.stmt; node != null; node = node.next) {
+                    if (node instanceof IRStoreNode) {
+                        IRStoreNode st_node = (IRStoreNode) node;
+                        if (st_node.ptr.equals(var)) {
+                            last_store_node = st_node;
+                        }
+                    }
+                }
+                IRNode beg = last_store_node;
+                while (true) {
+
+                    if (beg.prev instanceof IRStoreNode) {
+                        IRStoreNode store_node = (IRStoreNode) beg.prev;
+                        if (store_node.glb() != null && !store_node.glb().equals(var)) {
+                            break;
+                        }
+
+                    } else if (beg.prev instanceof IRDefFuncNode) {
+                        beg = beg.next;
+                        break;
+                    }
+
+                    beg = beg.prev;
+                }
+                // the comms that initialize the global variable: [beg, last_store_node]
+
+                // delete from glb_var_init
+                beg.prev.next = last_store_node.next;
+                if (last_store_node.next != null) {
+                    last_store_node.next.prev = beg.prev;
+                }
+
+                // add alloca node
+                String rename = renameLocalize(var);
+                IRAllocaNode alloca_node = new IRAllocaNode();
+                alloca_node.result = rename;
+                alloca_node.tp = usage.init_node.tp;
+                alloca_node.next = beg;
+                beg.prev = alloca_node;
+
+                // rename the global variable
+                for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                    if (node instanceof IRStoreNode) {
+                        IRStoreNode st_node = (IRStoreNode) node;
+                        if (st_node.ptr.equals(var)) {
+                            st_node.ptr = rename;
+                        }
+
+                    } else if (node instanceof IRLoadNode) {
+                        IRLoadNode ld_node = (IRLoadNode) node;
+                        if (ld_node.ptr.equals(var)) {
+                            ld_node.ptr = rename;
+                        }
+                    }
+                }
+
+                // update glb_var_usage & rename the global variable in [beg, last_store_node]
+                for (IRNode node = beg; node != last_store_node; node = node.next) {
+                    if (node instanceof IRStoreNode) {
+                        IRStoreNode st_node = (IRStoreNode) node;
+                        if (st_node.glb() != null && !st_node.glb().equals(var)) {
+                            glb_var_usage.get(st_node.glb()).store_funcs.add(func_node);
+                        } else if (st_node.glb() != null && st_node.glb().equals(var)) {
+                            st_node.ptr = rename;
+                        }
+                    } else if (node instanceof IRLoadNode) {
+                        IRLoadNode ld_node = (IRLoadNode) node;
+                        if (ld_node.glb() != null && !ld_node.glb().equals(var)) {
+                            glb_var_usage.get(ld_node.glb()).load_funcs.add(func_node);
+                        } else if (ld_node.glb() != null && ld_node.glb().equals(var)) {
+                            ld_node.ptr = rename;
+                        }
+                    }
+                }
+                last_store_node.ptr = rename;
+
+                // insert init after beg
+                beg = func_node.stmt;
+                if (func_node.func_name.equals("@main")) {
+                    beg = func_node.stmt.next;// call @Global.Var.Init
+                }
+                alloca_node.prev = beg;
+                last_store_node.next = beg.next;
+                beg.next = alloca_node;
+                if (last_store_node.next != null) {
+                    last_store_node.next.prev = last_store_node;
+                }
+                allocas.put(rename, alloca_node);
+
+                // delete init node
+                IRGlbInitNode init_node = usage.init_node;
+                init_node.prev.next = init_node.next;
+                if (init_node.next != null) {
+                    init_node.next.prev = init_node.prev;
+                }
+                init_node.eliminated = true;
+                usage.eliminated = true;
+            }
+        }
+    }
+
+    public void buildFuncCallMap() {
+        // collect funcs
+        for (IRNode node = ir_beg; node != null; node = node.next) {
+            if (node instanceof IRDefFuncNode) {
+                IRDefFuncNode def_node = (IRDefFuncNode) node;
+                funcs.put(def_node.func_name, def_node);
+            }
+        }
+
+        // build call map
+        for (IRDefFuncNode func : funcs.values()) {
+            for (IRNode node = func.stmt; node != null; node = node.next) {
+                if (node instanceof IRCallNode) {
+                    IRCallNode call_node = (IRCallNode) node;
+                    if (!isBuiltin(call_node.func_name)) {
+                        IRDefFuncNode callee = funcs.get(call_node.func_name);
+                        func.callees.add(callee);
+                        callee.callers.add(func);
+                    }
+                }
+            }
+        }
+    }
+
+    public void printRecursive() {
+        for (IRDefFuncNode func : funcs.values()) {
+            System.out.println(func.func_name + " recursive: " + func.recursive());
         }
     }
 
