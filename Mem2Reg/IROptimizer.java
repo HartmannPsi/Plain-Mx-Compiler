@@ -11,11 +11,17 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.PriorityQueue;
 import util.Pair;
+import java.util.BitSet;
+
+//TODO：optimize calc cfg with bitset
 
 public class IROptimizer {
     public IRNode ir_beg = null;
     // BasicBlockNode dom_tree_root = null;
     Map<String, BasicBlockNode> bbs = new HashMap<>();
+    Map<BasicBlockNode, Integer> bb_to_num = new HashMap<>();
+    Map<Integer, BasicBlockNode> num_to_bb = new HashMap<>();
+    int bb_idx = 0;
     // ArrayList<Pair<IRStoreNode, BasicBlockNode>> def_in_bbs = new ArrayList<>();
     Map<String, ArrayList<Pair<IRStoreNode, BasicBlockNode>>> def_in_bbs = new HashMap<>();
     Map<String, IRAllocaNode> allocas = new HashMap<>();
@@ -78,6 +84,8 @@ public class IROptimizer {
 
                         bb.tail = node;
                         bbs.put(bb.label, bb);
+                        bb_to_num.put(bb, bb_idx);
+                        num_to_bb.put(bb_idx++, bb);
 
                     } else if (node instanceof IRStoreNode) {
 
@@ -112,7 +120,7 @@ public class IROptimizer {
                     succ2.precursors.add(bb);
                 }
 
-            } else {
+                // } else {
                 // instanceof IRRetNode
             }
         }
@@ -120,13 +128,17 @@ public class IROptimizer {
         // System.out.println("CCCC");
 
         // set dom set to the whole set of bbs
-        Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
+        // Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
+        BitSet all_bbs = new BitSet();
+        all_bbs.set(0, bb_idx);
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
             if (bb.precursors.isEmpty()) {
                 entries.add(bb);
             }
         }
+
+        BasicBlockNode.num_to_bb = num_to_bb;
 
         // System.out.println("DDDD");
 
@@ -243,10 +255,10 @@ public class IROptimizer {
             }
             System.out.println();
             System.out.print("  dominates: ");
-            for (BasicBlockNode dom : bb.dominates) {
+            for (BasicBlockNode dom : bb.dominates()) {
                 System.out.print(dom.label + " ");
             }
-            System.out.println("\n" + bb.dominates.size() + "\n");
+            System.out.println("\n" + bb.dominates.cardinality() + "\n");
         }
     }
 
@@ -298,8 +310,9 @@ public class IROptimizer {
 
         for (BasicBlockNode entry : entries) {
             // System.out.println("Entry: " + entry.label);
-            entry.dominates = new HashSet<>();
-            entry.dominates.add(entry);
+            entry.dominates = new BitSet();
+            int entry_idx = bb_to_num.get(entry);
+            entry.dominates.set(entry_idx);
             Queue<BasicBlockNode> queue = new LinkedList<>();
             queue.add(entry);
 
@@ -308,15 +321,18 @@ public class IROptimizer {
 
                 for (BasicBlockNode succ : bb.successors) {
 
-                    Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates);
+                    // Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates);
                     // tmp.addAll(bb.dominates);
+                    BitSet tmp = (BitSet) bb.dominates.clone();
+
                     for (BasicBlockNode prec : succ.precursors) {
                         if (prec == bb) {
                             continue;
                         }
-                        tmp.retainAll(prec.dominates);
+                        tmp.and(prec.dominates);
                     }
-                    tmp.add(succ);
+                    int succ_idx = bb_to_num.get(succ);
+                    tmp.set(succ_idx);
 
                     if (tmp.equals(succ.dominates)) {
                         continue;
@@ -336,7 +352,7 @@ public class IROptimizer {
 
             // System.out.println(bb.label);
 
-            if (bb.precursors.isEmpty() || bb.dominates.size() == 1) {
+            if (bb.precursors.isEmpty() || bb.dominates.cardinality() == 1) {
                 continue;
             }
 
@@ -356,10 +372,12 @@ public class IROptimizer {
                 BasicBlockNode tmp = queue.poll();
                 // System.out.println(tmp.label);
 
-                if (tmp.dominates.size() == bb.dominates.size() - 1) {
-                    Set<BasicBlockNode> set = new HashSet<>(bb.dominates);
-                    set.removeAll(tmp.dominates);
-                    if (set.size() == 1 && set.contains(bb)) {
+                if (tmp.dominates.cardinality() == bb.dominates.cardinality() - 1) {
+                    // Set<BasicBlockNode> set = new HashSet<>(bb.dominates);
+                    BitSet set = (BitSet) bb.dominates.clone();
+                    // set.removeAll(tmp.dominates);
+                    set.andNot(tmp.dominates);
+                    if (set.cardinality() == 1 && set.get(bb_to_num.get(bb))) {
                         bb.idom = tmp;
                         break;
                     }
@@ -388,16 +406,26 @@ public class IROptimizer {
         // calc dom frontier of bbs
         for (BasicBlockNode bb : bbs.values()) {
 
-            Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates), set = new HashSet<>();
-            tmp.remove(bb);
+            // Set<BasicBlockNode> tmp = new HashSet<>(bb.dominates), set = new HashSet<>();
+            BitSet tmp = (BitSet) bb.dominates.clone(), set = new BitSet();
+            // tmp.remove(bb);
+            int bb_idx = bb_to_num.get(bb);
+            tmp.clear(bb_idx);
 
             for (BasicBlockNode prec : bb.precursors) {
-                Set<BasicBlockNode> tmp2 = new HashSet<>(prec.dominates);
-                tmp2.removeAll(tmp);
-                set.addAll(tmp2);
+                // Set<BasicBlockNode> tmp2 = new HashSet<>(prec.dominates);
+                BitSet tmp2 = (BitSet) prec.dominates.clone();
+                // tmp2.removeAll(tmp);
+                tmp2.andNot(tmp);
+                // set.addAll(tmp2);
+                set.or(tmp2);
             }
 
-            for (BasicBlockNode node : set) {
+            // for (BasicBlockNode node : set) {
+            // node.dom_frontier.add(bb);
+            // }
+            for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
+                BasicBlockNode node = num_to_bb.get(i);
                 node.dom_frontier.add(bb);
             }
         }
