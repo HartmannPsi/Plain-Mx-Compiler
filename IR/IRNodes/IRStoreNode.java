@@ -31,6 +31,14 @@ public class IRStoreNode extends IRNode {
         printNext();
     }
 
+    public String glb() {
+        if (ptr.charAt(0) == '@') {
+            return ptr;
+        } else {
+            return null;
+        }
+    }
+
     public String toString() {
 
         if (eliminated) {

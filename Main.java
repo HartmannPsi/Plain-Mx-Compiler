@@ -13,6 +13,14 @@ import java.io.IOException;
 import java.util.Map;
 import Mem2Reg.*;
 
+/*
+TODO:
+ inline function ->
+ jump optimization ->
+ global variable to constant ->
+ global variable localization
+ */
+
 public class Main {
     public static void main(String[] args) throws Exception {
 
@@ -78,56 +86,56 @@ public class Main {
             if (DEBUG) {
                 System.out.println("; OPTI");
             }
-            optimizer.calcCFG();
 
+            optimizer.globalVarAnalysis();
+            optimizer.globalVarToConstant();
+            // optimizer.glbalVarLocalization();
+            if (DEBUG) {
+                System.out.println("; GVAR");
+            }
+
+            optimizer.calcCFG();
             if (DEBUG) {
                 System.out.println("; CCFG");
             }
-            optimizer.calcDominate();
 
+            optimizer.calcDominate();
             if (DEBUG) {
                 System.out.println("; CDOM");
                 // optimizer.printFrontier();
             }
-            optimizer.placePhi();
 
+            optimizer.placePhi();
             if (DEBUG) {
                 System.out.println("; PPHI");
                 // optimizer.printIR();
             }
 
             optimizer.sortPhi();
-
             if (DEBUG) {
                 System.out.println("; SPHI");
                 // optimizer.printIR();
             }
 
             optimizer.deleteEliminated();
-
             optimizer.deadCodeEliminate();
-
             optimizer.deleteEliminated();
-
             if (DEBUG) {
                 System.out.println("; DCE");
                 // optimizer.printIR();
             }
 
             optimizer.eliminatePhi();
-
             if (DEBUG) {
                 System.out.println("; EPHI");
             }
 
             optimizer.deleteEliminated();
-
             if (DEBUG) {
                 System.out.println("; DEL");
             }
 
             optimizer.insertPseudoArgs();
-
             if (DEBUG) {
                 System.out.println("; PARG");
             }
@@ -137,32 +145,27 @@ public class Main {
             }
 
             optimizer.getLinearOrder();
-
             if (DEBUG) {
                 System.out.println("; LIR");
             }
 
             optimizer.numVars();
-
             if (DEBUG) {
                 System.out.println("; NVAR");
             }
 
             optimizer.activeAnalysis();
-
             if (DEBUG) {
                 System.out.println("; AA");
             }
 
             Map<String, String> var_map = optimizer.linearScan();
-
             if (DEBUG) {
                 System.out.println("; SCAN");
                 // optimizer.printInOut();
             }
 
             System.setOut(System.out);
-
             if (DEBUG) {
                 System.setOut(new PrintStream(arg_parser.getASMStream()));
             }

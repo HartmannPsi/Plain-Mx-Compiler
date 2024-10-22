@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
+
+import org.stringtemplate.v4.compiler.CodeGenerator.conditional_return;
+
 import java.util.PriorityQueue;
 import util.Pair;
 import java.util.BitSet;
@@ -33,6 +36,9 @@ public class IROptimizer {
     Map<Integer, String> num_to_var = new HashMap<>();
     Map<String, Integer> var_to_num = new HashMap<>();
     // int var_idx = 0;
+
+    Map<String, GlbVarUsage> glb_var_usage = new HashMap<>();
+    IRDefFuncNode glb_var_init = null;
 
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
@@ -1656,6 +1662,401 @@ public class IROptimizer {
                 entry_label_node.next = head;
                 head.prev = entry_label_node;
             }
+        }
+    }
+
+    public void globalVarAnalysis() {
+        for (IRNode glb_node = ir_beg; glb_node != null; glb_node = glb_node.next) {
+            if (glb_node instanceof IRGlbInitNode) {
+                IRGlbInitNode glb_init_node = ((IRGlbInitNode) glb_node);
+                if (!glb_var_usage.containsKey(glb_init_node.result)) {
+                    glb_var_usage.put(glb_init_node.result, new GlbVarUsage());
+                }
+                glb_var_usage.get(glb_init_node.result).init_node = glb_init_node;
+
+            } else if (glb_node instanceof IRDefFuncNode) {
+                IRDefFuncNode def_func_node = ((IRDefFuncNode) glb_node);
+
+                if (def_func_node.func_name.equals("@Global.Var.Init")) {
+                    glb_var_init = def_func_node;
+                }
+
+                for (IRNode lcl_node = def_func_node.stmt; lcl_node != null; lcl_node = lcl_node.next) {
+
+                    if (lcl_node instanceof IRStoreNode) {
+                        IRStoreNode store_node = (IRStoreNode) lcl_node;
+                        String glb_var = store_node.glb();
+                        if (glb_var != null) {
+                            if (!glb_var_usage.containsKey(glb_var)) {
+                                glb_var_usage.put(glb_var, new GlbVarUsage());
+                            }
+                            glb_var_usage.get(glb_var).store_funcs.add(def_func_node);
+                        }
+
+                    } else if (lcl_node instanceof IRLoadNode) {
+                        IRLoadNode load_node = (IRLoadNode) lcl_node;
+                        String glb_var = load_node.glb();
+                        if (glb_var != null) {
+                            if (!glb_var_usage.containsKey(glb_var)) {
+                                glb_var_usage.put(glb_var, new GlbVarUsage());
+                            }
+                            glb_var_usage.get(glb_var).load_funcs.add(def_func_node);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void optiGlbVarInit() {
+        Map<String, String> glb_var_store = new HashMap<>();
+
+        for (IRNode node = glb_var_init.stmt; node != null; node = node.next) {
+        }
+    }
+
+    public void globalVarToConstant() {
+        for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
+            String var = entry.getKey();
+            GlbVarUsage usage = entry.getValue();
+            int type = 0;
+            if (usage.store_funcs.size() == 1 && usage.store_funcs.contains(glb_var_init)) {
+                type = 1;
+            } else if (usage.store_funcs.isEmpty()) {
+                if (usage.load_funcs.isEmpty()) {
+                    type = 3;
+                } else {
+                    type = 2;
+                }
+            } else if (usage.load_funcs.isEmpty()) {
+                type = 4;
+            }
+
+            if (type == 0) {// cannot be optimized
+                continue;
+
+            } else if (type == 1) {// use store value
+                String val = null;
+                Set<IRStoreNode> store_nodes = new HashSet<>();
+
+                // find last var && store nodes
+                for (IRNode node = glb_var_init.stmt; node != null; node = node.next) {
+                    if (node instanceof IRStoreNode) {
+                        IRStoreNode store_node = (IRStoreNode) node;
+                        if (store_node.glb() != null && store_node.glb().equals(var)) {
+                            val = store_node.value;
+                            store_nodes.add(store_node);
+                        }
+                    }
+                }
+
+                if (val.charAt(0) == '%' || val.charAt(0) == '@') {
+                    continue;
+                }
+
+                for (IRDefFuncNode func_node : usage.load_funcs) {
+
+                    if (func_node == glb_var_init) {
+                        continue;
+                    }
+
+                    Set<String> replace = new HashSet<>();
+
+                    // add to replace
+                    for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                        if (node instanceof IRLoadNode) {
+                            IRLoadNode load_node = (IRLoadNode) node;
+                            if (load_node.glb() != null && load_node.glb().equals(var)) {
+                                replace.add(load_node.result);
+                                load_node.eliminated = true;
+
+                                // delete node
+                                IRNode prev = node.prev, next = node.next;
+                                prev.next = next;
+                                if (next != null) {
+                                    next.prev = prev;
+                                }
+                                node = prev;
+                            }
+                        }
+                    }
+
+                    // replace
+                    for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                        if (node instanceof IRLoadNode) {
+                            IRLoadNode load_node = (IRLoadNode) node;
+                            if (replace.contains(load_node.ptr)) {
+                                load_node.ptr = val;
+                            }
+
+                        } else if (node instanceof IRBinaryNode) {
+                            IRBinaryNode binary_node = (IRBinaryNode) node;
+                            if (replace.contains(binary_node.op1)) {
+                                binary_node.op1 = val;
+                            }
+                            if (replace.contains(binary_node.op2)) {
+                                binary_node.op2 = val;
+                            }
+
+                        } else if (node instanceof IRBrNode) {
+                            IRBrNode br_node = (IRBrNode) node;
+                            if (br_node.cond != null && replace.contains(br_node.cond)) {
+                                br_node.cond = val;
+                            }
+
+                        } else if (node instanceof IRCallNode) {
+                            IRCallNode call_node = (IRCallNode) node;
+                            if (call_node.args != null) {
+                                for (int i = 0; i != call_node.args.length; ++i) {
+                                    if (replace.contains(call_node.args[i])) {
+                                        call_node.args[i] = val;
+                                    }
+                                }
+                            }
+
+                        } else if (node instanceof IRGetEleNode) {
+                            IRGetEleNode get_ele_node = (IRGetEleNode) node;
+                            if (replace.contains(get_ele_node.ptr)) {
+                                get_ele_node.ptr = val;
+                            }
+                            if (get_ele_node.idxs != null) {
+                                for (int i = 0; i != get_ele_node.idxs.length; ++i) {
+                                    if (replace.contains(get_ele_node.idxs[i])) {
+                                        get_ele_node.idxs[i] = val;
+                                    }
+                                }
+                            }
+
+                        } else if (node instanceof IRIcmpNode) {
+                            IRIcmpNode icmp_node = (IRIcmpNode) node;
+                            if (replace.contains(icmp_node.op1)) {
+                                icmp_node.op1 = val;
+                            }
+                            if (replace.contains(icmp_node.op2)) {
+                                icmp_node.op2 = val;
+                            }
+
+                        } else if (node instanceof IRPhiNode) {
+                            IRPhiNode phi_node = (IRPhiNode) node;
+                            for (int i = 0; i != phi_node.vals.length; ++i) {
+                                if (replace.contains(phi_node.vals[i])) {
+                                    phi_node.vals[i] = val;
+                                }
+                            }
+
+                        } else if (node instanceof IRRetNode) {
+                            IRRetNode ret_node = (IRRetNode) node;
+                            if (ret_node.val != null && replace.contains(ret_node.val)) {
+                                ret_node.val = val;
+                            }
+
+                        } else if (node instanceof IRSelectNode) {
+                            IRSelectNode select_node = (IRSelectNode) node;
+                            if (replace.contains(select_node.cond)) {
+                                select_node.cond = val;
+                            }
+                            if (replace.contains(select_node.val1)) {
+                                select_node.val1 = val;
+                            }
+                            if (replace.contains(select_node.val2)) {
+                                select_node.val2 = val;
+                            }
+
+                        } else if (node instanceof IRStoreNode) {
+                            IRStoreNode store_node = (IRStoreNode) node;
+                            if (replace.contains(store_node.ptr)) {
+                                store_node.ptr = val;
+                            }
+                            if (replace.contains(store_node.value)) {
+                                store_node.value = val;
+                            }
+                        }
+                    }
+                }
+
+                // TODO:
+                // delete store_nodes in glb_var_init
+                // delete init node
+                // IRGlbInitNode init_node = usage.init_node;
+                // init_node.prev.next = init_node.next;
+                // if (init_node.next != null) {
+                // init_node.next.prev = init_node.prev;
+                // }
+                // init_node.eliminated = true;
+
+            } else if (type == 2) {// use init value
+                String val = usage.init_node.val;
+                if (val == null) {
+                    switch (usage.init_node.tp) {
+                        case "i32":
+                            val = "0";
+                            break;
+                        case "i1":
+                            val = "false";
+                            break;
+                        default:
+                            val = "null";
+                            break;
+                    }
+                }
+
+                for (IRDefFuncNode func_node : usage.load_funcs) {
+                    Set<String> replace = new HashSet<>();
+
+                    // add to replace
+                    for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                        if (node instanceof IRLoadNode) {
+                            IRLoadNode load_node = (IRLoadNode) node;
+                            if (load_node.glb() != null && load_node.glb().equals(var)) {
+                                replace.add(load_node.result);
+                                load_node.eliminated = true;
+
+                                // delete node
+                                IRNode prev = node.prev, next = node.next;
+                                prev.next = next;
+                                if (next != null) {
+                                    next.prev = prev;
+                                }
+                                node = prev;
+                            }
+                        }
+                    }
+
+                    // replace
+                    for (IRNode node = func_node.stmt; node != null; node = node.next) {
+                        if (node instanceof IRLoadNode) {
+                            IRLoadNode load_node = (IRLoadNode) node;
+                            if (replace.contains(load_node.ptr)) {
+                                load_node.ptr = val;
+                            }
+
+                        } else if (node instanceof IRBinaryNode) {
+                            IRBinaryNode binary_node = (IRBinaryNode) node;
+                            if (replace.contains(binary_node.op1)) {
+                                binary_node.op1 = val;
+                            }
+                            if (replace.contains(binary_node.op2)) {
+                                binary_node.op2 = val;
+                            }
+
+                        } else if (node instanceof IRBrNode) {
+                            IRBrNode br_node = (IRBrNode) node;
+                            if (br_node.cond != null && replace.contains(br_node.cond)) {
+                                br_node.cond = val;
+                            }
+
+                        } else if (node instanceof IRCallNode) {
+                            IRCallNode call_node = (IRCallNode) node;
+                            if (call_node.args != null) {
+                                for (int i = 0; i != call_node.args.length; ++i) {
+                                    if (replace.contains(call_node.args[i])) {
+                                        call_node.args[i] = val;
+                                    }
+                                }
+                            }
+
+                        } else if (node instanceof IRGetEleNode) {
+                            IRGetEleNode get_ele_node = (IRGetEleNode) node;
+                            if (replace.contains(get_ele_node.ptr)) {
+                                get_ele_node.ptr = val;
+                            }
+                            if (get_ele_node.idxs != null) {
+                                for (int i = 0; i != get_ele_node.idxs.length; ++i) {
+                                    if (replace.contains(get_ele_node.idxs[i])) {
+                                        get_ele_node.idxs[i] = val;
+                                    }
+                                }
+                            }
+
+                        } else if (node instanceof IRIcmpNode) {
+                            IRIcmpNode icmp_node = (IRIcmpNode) node;
+                            if (replace.contains(icmp_node.op1)) {
+                                icmp_node.op1 = val;
+                            }
+                            if (replace.contains(icmp_node.op2)) {
+                                icmp_node.op2 = val;
+                            }
+
+                        } else if (node instanceof IRPhiNode) {
+                            IRPhiNode phi_node = (IRPhiNode) node;
+                            for (int i = 0; i != phi_node.vals.length; ++i) {
+                                if (replace.contains(phi_node.vals[i])) {
+                                    phi_node.vals[i] = val;
+                                }
+                            }
+
+                        } else if (node instanceof IRRetNode) {
+                            IRRetNode ret_node = (IRRetNode) node;
+                            if (ret_node.val != null && replace.contains(ret_node.val)) {
+                                ret_node.val = val;
+                            }
+
+                        } else if (node instanceof IRSelectNode) {
+                            IRSelectNode select_node = (IRSelectNode) node;
+                            if (replace.contains(select_node.cond)) {
+                                select_node.cond = val;
+                            }
+                            if (replace.contains(select_node.val1)) {
+                                select_node.val1 = val;
+                            }
+                            if (replace.contains(select_node.val2)) {
+                                select_node.val2 = val;
+                            }
+
+                        } else if (node instanceof IRStoreNode) {
+                            IRStoreNode store_node = (IRStoreNode) node;
+                            if (replace.contains(store_node.ptr)) {
+                                store_node.ptr = val;
+                            }
+                            if (replace.contains(store_node.value)) {
+                                store_node.value = val;
+                            }
+                        }
+                    }
+                }
+
+                // delete init node
+                IRGlbInitNode init_node = usage.init_node;
+                init_node.prev.next = init_node.next;
+                if (init_node.next != null) {
+                    init_node.next.prev = init_node.prev;
+                }
+                init_node.eliminated = true;
+
+            } else if (type == 3) {// delete
+                IRGlbInitNode init_node = usage.init_node;
+                init_node.prev.next = init_node.next;
+                if (init_node.next != null) {
+                    init_node.next.prev = init_node.prev;
+                }
+                init_node.eliminated = true;
+
+            } else {
+                for (IRDefFuncNode func_node : usage.store_funcs) {
+                    for (IRNode node = func_node.stmt; node != null; node = node.next) {
+
+                        if (node instanceof IRStoreNode) {
+                            IRStoreNode store_node = (IRStoreNode) node;
+                            if (store_node.glb() != null && store_node.glb().equals(var)) {
+                                // delete
+                                node.prev.next = node.next;
+                                if (node.next != null) {
+                                    node.next.prev = node.prev;
+                                }
+                                node = node.prev;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void glbalVarLocalization() {
+        for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
+            String var = entry.getKey();
+            GlbVarUsage usage = entry.getValue();
+            // TODO:
         }
     }
 
