@@ -841,8 +841,8 @@ public class ASMTransformer {
         // System.out.println(node.toString());
 
         Set<String> saved_regs = new HashSet<>();
-        if (node.in != null) {
-            for (String active_var : node.in) {
+        if (node.in() != null) {
+            for (String active_var : node.in()) {
                 if (alloca_map.containsKey(active_var) && !alloca_map.get(active_var).equals("SPILL")) {
                     saved_regs.add(alloca_map.get(active_var));
                 }
@@ -1342,8 +1342,8 @@ public class ASMTransformer {
                     }
                 }
 
-                if (call_node.in != null) {
-                    for (String active_var : call_node.in) {
+                if (call_node.in() != null) {
+                    for (String active_var : call_node.in()) {
                         if (alloca_map.containsKey(active_var) && !alloca_map.get(active_var).equals("SPILL")) {
                             used_regs_caller.add(alloca_map.get(active_var));
                         }

@@ -269,11 +269,11 @@ public class IROptimizer {
         IRNode.num_to_var = num_to_var;
         BasicBlockNode.num_to_var = num_to_var;
 
-        for (ArrayList<IRNode> comm_order : comm_orders.values()) {
-            for (IRNode node : comm_order) {
-                node.calcInOut();
-            }
-        }
+        // for (ArrayList<IRNode> comm_order : comm_orders.values()) {
+        // for (IRNode node : comm_order) {
+        // node.calcInOut();
+        // }
+        // }
     }
 
     public void printCFG() {
@@ -1377,10 +1377,10 @@ public class IROptimizer {
                     }
                     active.add(node.def());
                 }
-                active.addAll(node.in);
+                active.addAll(node.in());
 
                 Set<String> dead_vars = new HashSet<>(active);
-                dead_vars.removeAll(node.out);
+                dead_vars.removeAll(node.out());
 
                 for (String dead_var : dead_vars) {
                     active.remove(dead_var);

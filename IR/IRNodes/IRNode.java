@@ -10,7 +10,7 @@ import java.util.BitSet;
 public class IRNode {
     public IRNode next = null, prev = null;
     static public boolean shadow = false;
-    public Set<String> in = new HashSet<>(), out = new HashSet<>();
+    // public Set<String> in = new HashSet<>(), out = new HashSet<>();
     public BitSet bin = new BitSet(), bout = new BitSet();
     public BasicBlockNode bb = null;
     public int order = -1;
@@ -18,15 +18,31 @@ public class IRNode {
     public static Map<Integer, String> num_to_var = new HashMap<>();
     public boolean eliminated = false;
 
-    public void calcInOut() {
-        // TODO:
+    // public void calcInOut() {
+    // // TODO:
+    // // for (int i = bin.nextSetBit(0); i >= 0; i = bin.nextSetBit(i + 1)) {
+    // // in.add(num_to_var.get(i));
+    // // }
+
+    // // for (int i = bout.nextSetBit(0); i >= 0; i = bout.nextSetBit(i + 1)) {
+    // // out.add(num_to_var.get(i));
+    // // }
+    // }
+
+    public Set<String> in() {
+        Set<String> in = new HashSet<>();
         for (int i = bin.nextSetBit(0); i >= 0; i = bin.nextSetBit(i + 1)) {
             in.add(num_to_var.get(i));
         }
+        return in;
+    }
 
+    public Set<String> out() {
+        Set<String> out = new HashSet<>();
         for (int i = bout.nextSetBit(0); i >= 0; i = bout.nextSetBit(i + 1)) {
             out.add(num_to_var.get(i));
         }
+        return out;
     }
 
     public String[] use() {

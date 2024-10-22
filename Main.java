@@ -158,7 +158,7 @@ public class Main {
 
             if (DEBUG) {
                 System.out.println("; SCAN");
-                optimizer.printInOut();
+                // optimizer.printInOut();
             }
 
             System.setOut(System.out);
@@ -207,6 +207,9 @@ public class Main {
             System.exit(1);
             throw new RuntimeException();
 
+        } catch (OutOfMemoryError e) {
+            System.out.println("Error: Out of Memory " + e.getMessage());
+            System.exit(1);
         } catch (Throwable e) {
             System.exit(0);
         }

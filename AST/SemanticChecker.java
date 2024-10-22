@@ -31,9 +31,9 @@ public class SemanticChecker {
             throw new semanticError(error, new position(114, 514));
     }
 
-    String rename(String id, boolean local) {
+    String rename(String id, boolean local, boolean def_in_cls) {
 
-        if (id.equals("main")) {
+        if (id.equals("main") && !def_in_cls) {
             return "@main";
         }
 
@@ -60,7 +60,7 @@ public class SemanticChecker {
                 throw_semantic(mul_def, node.pos);
             }
             global_func.put(id, type);
-            root.rename_funcs.put(id, rename(id, false));
+            root.rename_funcs.put(id, rename(id, false, false));
 
         } else if (node.father instanceof DefClassNode) {// method func
             Map<String, FuncType> methods = ((DefClassNode) node.father).methods;
@@ -73,7 +73,7 @@ public class SemanticChecker {
                 throw_semantic(mul_def, node.pos);
             }
             methods.put(id, type);
-            rename_methods.put(id, rename(id, false));
+            rename_methods.put(id, rename(id, false, true));
         }
     }
 
@@ -127,7 +127,7 @@ public class SemanticChecker {
         } else {
             scope.put(id, type);
             boolean local = !(node instanceof ProgNode);
-            rename_scope.put(id, rename(id, local));
+            rename_scope.put(id, rename(id, local, local));
         }
     }
 
@@ -593,7 +593,7 @@ public class SemanticChecker {
                     throw_semantic(mul_def, node.pos);
                 } else {
                     node.vars.put(_id, tp);
-                    ((IdNode) node.ids[i]).rename_id = rename(_id, true);
+                    ((IdNode) node.ids[i]).rename_id = rename(_id, true, true);
                     node.rename_vars.put(_id, ((IdNode) node.ids[i]).rename_id);
                 }
             }
