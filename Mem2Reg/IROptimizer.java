@@ -1358,7 +1358,8 @@ public class IROptimizer {
 
             // get the sorted life range of variables
             Map<String, Integer> life_beg = new HashMap<>(), life_end = new HashMap<>();
-            Set<String> active = new HashSet<>();
+            BitSet active = new BitSet();
+            // Set<String> active = new HashSet<>();
             PriorityQueue<VarLifeRange> vars = new PriorityQueue<>();
             // ArrayList<VarLifeRange> vars2 = new ArrayList<>();// just for debugging
             Map<String, Integer> func_args = new HashMap<>();
@@ -1375,15 +1376,26 @@ public class IROptimizer {
                     } else if (life_beg.get(node.def()) > node.order) {
                         life_beg.put(node.def(), node.order);
                     }
-                    active.add(node.def());
+                    // active.add(node.def());
+                    int def_idx = var_to_num.get(node.def());
+                    active.set(def_idx);
                 }
-                active.addAll(node.in());
+                // active.addAll(node.in());
+                active.or(node.bin);
 
-                Set<String> dead_vars = new HashSet<>(active);
-                dead_vars.removeAll(node.out());
+                // Set<String> dead_vars = new HashSet<>(active);
+                BitSet dead_vars = (BitSet) active.clone();
+                // dead_vars.removeAll(node.out());
+                dead_vars.andNot(node.bout);
 
-                for (String dead_var : dead_vars) {
-                    active.remove(dead_var);
+                // for (String dead_var : dead_vars) {
+                for (int dead_idx = dead_vars.nextSetBit(0); dead_idx >= 0; dead_idx = dead_vars
+                        .nextSetBit(dead_idx + 1)) {
+
+                    // active.remove(dead_var);
+                    active.clear(dead_idx);
+                    String dead_var = num_to_var.get(dead_idx);
+
                     if (!life_end.containsKey(dead_var)) {
                         life_end.put(dead_var, node.order);
                     } else if (life_end.get(dead_var) < node.order) {
@@ -1393,7 +1405,10 @@ public class IROptimizer {
                 }
             }
 
-            for (String var : active) {
+            // for (String var : active) {
+            for (int var_idx = active.nextSetBit(0); var_idx >= 0; var_idx = active.nextSetBit(var_idx + 1)) {
+
+                String var = num_to_var.get(var_idx);
                 if (!life_end.containsKey(var)) {
                     life_end.put(var, comm_order.getLast().order);
                 } else if (life_end.get(var) < comm_order.getLast().order) {
