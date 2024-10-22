@@ -5,7 +5,7 @@ build:
 
 .PHONY: run
 run:
-	java -Xss512m -cp /ulib/antlr-4.13.2-complete.jar:bin Main
+	java -Xss1024m -cp /ulib/antlr-4.13.2-complete.jar:bin Main
 
 .PHONY: compile
 compile:
@@ -13,4 +13,4 @@ compile:
 
 .PHONY: start
 start:
-	java -Xss512m -cp lib/antlr-4.13.2-complete.jar:bin Main
+	java -Xss1024m -cp lib/antlr-4.13.2-complete.jar:bin Main
