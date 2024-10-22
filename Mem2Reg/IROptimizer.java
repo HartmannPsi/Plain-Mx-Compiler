@@ -2112,6 +2112,10 @@ public class IROptimizer {
                 }
             }
 
+            if (func_node == null) {
+                return;
+            }
+
             if (func_node.recursive()) {
                 continue;
             }
