@@ -9,9 +9,6 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
-
-import org.antlr.v4.gui.SystemFontMetrics;
-
 import java.util.PriorityQueue;
 import util.Pair;
 import java.util.BitSet;
@@ -43,7 +40,7 @@ public class IROptimizer {
 
     Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
-    final int MAX_INLINE_SCALE = 1024;
+    int MAX_INLINE_SCALE = 1024;
     int bb_cnt = 0;
 
     String renameAlloca(String obj) {
@@ -188,7 +185,7 @@ public class IROptimizer {
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
             if (bb.precursors.isEmpty()) {
-                if (bb.label.contains("Init.Entry") || bb.label.contains("Func.Entry")) {
+                if (bb.isBegOfFunc()) {
                     // begin of function
                     entries.add(bb);
                 } else {
@@ -1781,10 +1778,10 @@ public class IROptimizer {
 
     public void globalVarAnalysis() {
 
-        if (bb_cnt > 9000) {
-            System.out.println("# Too many basic blocks, skip global var analysis");
-            return;
-        }
+        // if (bb_cnt > 9000) {
+        // System.out.println("# Too many basic blocks, skip global var analysis");
+        // return;
+        // }
 
         for (IRNode glb_node = ir_beg; glb_node != null; glb_node = glb_node.next) {
             if (glb_node instanceof IRGlbInitNode) {
@@ -1841,10 +1838,10 @@ public class IROptimizer {
 
     public void globalVarToConstant() {
 
-        if (bb_cnt > 9000) {
-            System.out.println("# Too many basic blocks, skip global var to constant");
-            return;
-        }
+        // if (bb_cnt > 9000) {
+        // System.out.println("# Too many basic blocks, skip global var to constant");
+        // return;
+        // }
 
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
@@ -2189,10 +2186,10 @@ public class IROptimizer {
 
     public void glbalVarLocalization() {
 
-        if (bb_cnt > 9000) {
-            System.out.println("# Too many basic blocks, skip global var localization");
-            return;
-        }
+        // if (bb_cnt > 9000) {
+        // System.out.println("# Too many basic blocks, skip global var localization");
+        // return;
+        // }
 
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
@@ -2812,8 +2809,9 @@ public class IROptimizer {
 
         // System.out.println("bb cnt: " + bb_cnt);
         if (bb_cnt > 9000) {
-            System.out.println("# to many basic blocks, skip inline");
-            return;
+            // System.out.println("# to many basic blocks, skip inline");
+            // return;
+            MAX_INLINE_SCALE = 512;
         }
         // inline
         for (IRDefFuncNode callee_func_node : funcs.values()) {
@@ -2946,4 +2944,17 @@ public class IROptimizer {
         // end inline
     }
 
+    public void detectMain() {
+        for (IRNode node = ir_beg; node != null; node = node.next) {
+            if (node instanceof IRDefFuncNode) {
+                IRDefFuncNode func_node = (IRDefFuncNode) node;
+                if (func_node.func_name.equals("@main")) {
+                    return;
+                }
+            }
+        }
+
+        System.out.println("# No main function");
+        System.exit(1);
+    }
 }

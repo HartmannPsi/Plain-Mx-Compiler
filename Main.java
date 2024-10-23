@@ -103,10 +103,12 @@ public class Main {
             if (DEBUG) {
                 System.out.println("; GVAR");
             }
+
             optimizer.globalVarToConstant();
             if (DEBUG) {
                 System.out.println("; GVAR");
             }
+
             optimizer.glbalVarLocalization();
             if (DEBUG) {
                 System.out.println("; GVAR");

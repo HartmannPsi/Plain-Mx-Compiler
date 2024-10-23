@@ -49,6 +49,10 @@ public class BasicBlockNode {
         return ret;
     }
 
+    public boolean isBegOfFunc() {
+        return head.prev instanceof IRDefFuncNode;
+    }
+
     // public Set<BasicBlockNode> dom_frontier() {
     // return new HashSet<>();
     // }
