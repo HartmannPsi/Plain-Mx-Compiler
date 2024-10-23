@@ -40,7 +40,7 @@ public class IROptimizer {
 
     Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
-    final int MAX_INLINE = 700;
+    final int MAX_INLINE = 125;
 
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
@@ -180,10 +180,38 @@ public class IROptimizer {
         // Set<BasicBlockNode> all_bbs = new HashSet<>(bbs.values());
         BitSet all_bbs = new BitSet();
         all_bbs.set(0, bb_idx);
+        Queue<BasicBlockNode> useless_bb = new LinkedList<>();
         for (BasicBlockNode bb : bbs.values()) {
             bb.dominates = all_bbs;
             if (bb.precursors.isEmpty()) {
-                entries.add(bb);
+                if (bb.label.contains("Init.Entry") || bb.label.contains("Func.Entry")) {
+                    // begin of function
+                    entries.add(bb);
+                } else {
+                    // useless block
+                    useless_bb.add(bb);
+                }
+            }
+        }
+
+        // delete useless bbs
+        while (!useless_bb.isEmpty()) {
+            BasicBlockNode bb = useless_bb.poll();
+
+            // delete from bbs
+            bbs.remove(bb.label);
+
+            // delete from ir
+            bb.head.prev.next = bb.tail.next;
+            if (bb.tail.next != null) {
+                bb.tail.next.prev = bb.head.prev;
+            }
+
+            for (BasicBlockNode succ : bb.successors) {
+                succ.precursors.remove(bb);
+                if (succ.precursors.isEmpty()) {
+                    useless_bb.add(succ);
+                }
             }
         }
 
@@ -208,8 +236,13 @@ public class IROptimizer {
 
         for (Map.Entry<String, BasicBlockNode> entry : bbs.entrySet()) {
             BasicBlockNode bb = entry.getValue();
+
+            // System.out.println("BB: " + bb.label);
+
             for (IRNode node = bb.head;; node = node.next) {
+
                 // System.out.println(node.toString());
+
                 if (node.def() != null) {
                     // bb.def.add(node.def());
                     int def_idx = var_to_num.get(node.def());
@@ -1715,6 +1748,10 @@ public class IROptimizer {
             } else if (glb_node instanceof IRDefFuncNode) {
                 IRDefFuncNode def_func_node = ((IRDefFuncNode) glb_node);
 
+                if (def_func_node.eliminated) {
+                    continue;
+                }
+
                 if (def_func_node.func_name.equals("@Global.Var.Init")) {
                     glb_var_init = def_func_node;
                 }
@@ -2347,16 +2384,32 @@ public class IROptimizer {
         }
     }
 
+    public void printFuncCallMap() {
+        for (IRDefFuncNode func : funcs.values()) {
+            System.out.println(func.func_name + ":");
+            // System.out.println("caller: ");
+            // for (IRDefFuncNode caller : func.caller_nodes) {
+            // System.out.print(caller.func_name + " ");
+            // }
+            // System.out.println();
+            System.out.println("callee: ");
+            for (IRDefFuncNode callee : func.callee_nodes) {
+                System.out.println(callee.func_name);
+            }
+            System.out.println();
+        }
+    }
+
     InlineRetType rewriteInlineFunc(IRDefFuncNode func_node, IRCallNode call_node) {
 
         boolean void_tp = func_node.result_tp.equals("void");
         String ret_val = (void_tp ? null : renameInline("%InlineRetVal"));
-        String end_label = renameInlineLabel("InlineEndLabel");
+        String end_label = renameInlineLabel("Func.End.Label");
         IRNode beg = new IRNode(), end = beg;
         Map<String, String> rename_map = new HashMap<>();
         Map<IRDefFuncNode, ArrayList<IRCallNode>> callee_update = new HashMap<>();
 
-        System.out.println("Rewrite " + func_node.func_name);
+        // System.out.println("Rewrite " + func_node.func_name);
 
         // add args to rename_map
         if (call_node.args != null) {
@@ -2368,7 +2421,7 @@ public class IROptimizer {
         // rename local variables in function
         for (IRNode node = func_node.stmt.next; node != null; node = node.next) {
 
-            System.out.println("Type: " + node.getClass().getName());
+            // System.out.println("Type: " + node.getClass().getName());
 
             if (node instanceof IRAllocaNode) {
                 IRAllocaNode old_node = (IRAllocaNode) node, new_node = new IRAllocaNode();
@@ -2379,6 +2432,8 @@ public class IROptimizer {
                 end.next = new_node;
                 new_node.prev = end;
                 end = new_node;
+
+                allocas.put(new_node.result, new_node);
 
             } else if (node instanceof IRBinaryNode) {
                 IRBinaryNode old_node = (IRBinaryNode) node, new_node = new IRBinaryNode();
@@ -2683,6 +2738,8 @@ public class IROptimizer {
             beg.next.prev = ret_alloca_node;
             beg.next = ret_alloca_node;
             ret_alloca_node.prev = beg;
+
+            allocas.put(ret_val, ret_alloca_node);
         }
 
         return new InlineRetType(beg.next, end, ret_val, callee_update);
@@ -2703,6 +2760,10 @@ public class IROptimizer {
 
             for (IRDefFuncNode caller_func_node : callee_func_node.caller_nodes) {
                 // IRDefFuncNode caller_func_node = caller_node.getKey();
+
+                // System.out.println(callee_func_node.func_name + " scale: " +
+                // callee_func_node.scale + " -> inline -> " +
+                // caller_func_node.func_name);
 
                 // find all insert points in caller
                 ArrayList<IRCallNode> insert_inlines = new ArrayList<>();
@@ -2744,6 +2805,9 @@ public class IROptimizer {
                         rewrite_res.end = load_node;
                     }
 
+                    // add the callee's scale to caller
+                    caller_func_node.scale += callee_func_node.scale;
+
                     {// update caller function
                      // Map<IRDefFuncNode, ArrayList<IRCallNode>> callee_update =
                      // rewrite_res.callee_update;
@@ -2778,10 +2842,17 @@ public class IROptimizer {
                 // delete callee inline function from caller
                 caller_func_node.callee_nodes.remove(callee_func_node);
                 // add callee's callees to caller
-                callee_func_node.callee_nodes.addAll(callee_func_node.callee_nodes);
+                // callee_func_node.callee_nodes.addAll(callee_func_node.callee_nodes);
                 // add caller to callee's callees
                 for (IRDefFuncNode callee_of_callee : callee_func_node.callee_nodes) {
+                    // System.out.println(
+                    // "add " + caller_func_node.func_name + " to the caller of" +
+                    // callee_of_callee.func_name);
                     callee_of_callee.caller_nodes.add(caller_func_node);
+                    // System.out.println(
+                    // "add " + callee_of_callee.func_name + " to the callee of" +
+                    // caller_func_node.func_name);
+                    caller_func_node.callee_nodes.add(callee_of_callee);
                 }
             }
 
@@ -2790,8 +2861,18 @@ public class IROptimizer {
                 callee_of_callee.caller_nodes.remove(callee_func_node);
             }
 
+            // clear callee's callers
+            callee_func_node.caller_nodes.clear();
+            callee_func_node.callee_nodes.clear();
+
             // delete callee inline function
             callee_func_node.eliminated = true;
+
+            // delete callee function
+            callee_func_node.prev.next = callee_func_node.next;
+            if (callee_func_node.next != null) {
+                callee_func_node.next.prev = callee_func_node.prev;
+            }
         }
         // end inline
     }

@@ -38,6 +38,14 @@ public class IRDefFuncNode extends IRNode {
         return false;
     }
 
+    public boolean isMember() {
+        if (ids == null) {
+            return false;
+        } else {
+            return ids[0].equals("%this");
+        }
+    }
+
     public void printToString() {
 
         // shadow = false;
@@ -47,6 +55,9 @@ public class IRDefFuncNode extends IRNode {
         // return;
         // }
 
+        if (scale != -1) {
+            System.out.println("; scale: " + scale);
+        }
         System.out.print("define dso_local " + result_tp + " " + func_name + "(");
 
         if (tps != null) {

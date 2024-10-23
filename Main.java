@@ -90,7 +90,7 @@ public class Main {
             optimizer.buildFuncCallMap();
             if (DEBUG) {
                 System.out.println("; FCM");
-                // optimizer.printRecursive();
+                // optimizer.printFuncCallMap();
             }
 
             optimizer.inlineFuncs();
@@ -115,6 +115,8 @@ public class Main {
             optimizer.calcCFG();
             if (DEBUG) {
                 System.out.println("; CCFG");
+                // optimizer.printCFG();
+                // optimizer.printIR();
             }
 
             optimizer.calcDominate();
