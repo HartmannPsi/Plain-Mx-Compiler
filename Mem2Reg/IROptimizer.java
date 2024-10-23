@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
+
+import org.antlr.v4.gui.SystemFontMetrics;
+
 import java.util.PriorityQueue;
 import util.Pair;
 import java.util.BitSet;
@@ -40,7 +43,8 @@ public class IROptimizer {
 
     Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
-    final int MAX_INLINE = 125;
+    final int MAX_INLINE_SCALE = 1024;
+    int bb_cnt = 0;
 
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
@@ -245,6 +249,12 @@ public class IROptimizer {
 
                 if (node.def() != null) {
                     // bb.def.add(node.def());
+
+                    if (!var_to_num.containsKey(node.def())) {
+                        System.out.println("NOT FOUND: " + node.def());
+                        System.exit(1);
+                    }
+
                     int def_idx = var_to_num.get(node.def());
                     bb.bdef.set(def_idx);
                 }
@@ -253,6 +263,12 @@ public class IROptimizer {
                         if (use != null) {
                             // bb.use.add(use);
                             // System.out.println(node.toString() + " Use: " + use);
+
+                            if (!var_to_num.containsKey(use)) {
+                                System.out.println("NOT FOUND: " + use);
+                                System.exit(1);
+                            }
+
                             int use_idx = var_to_num.get(use);
                             bb.buse.set(use_idx);
                         }
@@ -320,6 +336,12 @@ public class IROptimizer {
 
                 if (node.def() != null) {
                     // last_out.remove(node.def());
+
+                    if (!var_to_num.containsKey(node.def())) {
+                        System.out.println("NOT FOUND: " + node.def());
+                        System.exit(1);
+                    }
+
                     int def_idx = var_to_num.get(node.def());
                     last_out.clear(def_idx);
                 }
@@ -327,6 +349,12 @@ public class IROptimizer {
                     for (String use : node.use()) {
                         if (use != null) {
                             // last_out.add(use);
+
+                            if (!var_to_num.containsKey(use)) {
+                                System.out.println("NOT FOUND: " + use);
+                                System.exit(1);
+                            }
+
                             int use_idx = var_to_num.get(use);
                             last_out.set(use_idx);
                         }
@@ -1376,15 +1404,30 @@ public class IROptimizer {
     }
 
     public void numVars() {
-        for (ArrayList<IRNode> comm_order : comm_orders.values()) {
-            for (IRNode node : comm_order) {
-                String var = node.def();
-                if (var != null && !var_to_num.containsKey(var)) {
-                    int var_idx = var_to_num.size();
-                    var_to_num.put(var, var_idx);
-                    num_to_var.put(var_idx, var);
+        // for (ArrayList<IRNode> comm_order : comm_orders.values()) {
+        // for (IRNode node : comm_order) {
+        // String var = node.def();
+        // if (var != null && !var_to_num.containsKey(var)) {
+        // int var_idx = var_to_num.size();
+        // var_to_num.put(var, var_idx);
+        // num_to_var.put(var_idx, var);
+        // }
+        // }
+        // }
+
+        for (IRNode cur = ir_beg; cur != null; cur = cur.next) {
+            if (cur instanceof IRDefFuncNode) {
+                IRDefFuncNode def_func_node = ((IRDefFuncNode) cur);
+                for (IRNode node = def_func_node.stmt; node != null; node = node.next) {
+                    String var = node.def();
+                    if (var != null && !var_to_num.containsKey(var)) {
+                        int var_idx = var_to_num.size();
+                        var_to_num.put(var, var_idx);
+                        num_to_var.put(var_idx, var);
+                    }
                 }
             }
+
         }
 
         // print var to num
@@ -1737,6 +1780,12 @@ public class IROptimizer {
     }
 
     public void globalVarAnalysis() {
+
+        if (bb_cnt > 9000) {
+            System.out.println("# Too many basic blocks, skip global var analysis");
+            return;
+        }
+
         for (IRNode glb_node = ir_beg; glb_node != null; glb_node = glb_node.next) {
             if (glb_node instanceof IRGlbInitNode) {
                 IRGlbInitNode glb_init_node = ((IRGlbInitNode) glb_node);
@@ -1791,6 +1840,12 @@ public class IROptimizer {
     }
 
     public void globalVarToConstant() {
+
+        if (bb_cnt > 9000) {
+            System.out.println("# Too many basic blocks, skip global var to constant");
+            return;
+        }
+
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
             GlbVarUsage usage = entry.getValue();
@@ -2133,6 +2188,12 @@ public class IROptimizer {
     }
 
     public void glbalVarLocalization() {
+
+        if (bb_cnt > 9000) {
+            System.out.println("# Too many basic blocks, skip global var localization");
+            return;
+        }
+
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
             GlbVarUsage usage = entry.getValue();
@@ -2373,6 +2434,8 @@ public class IROptimizer {
                         func.callee_nodes.add(callee);
                         callee.caller_nodes.add(func);
                     }
+                } else if (node instanceof IRLabelNode) {
+                    ++bb_cnt;
                 }
             }
         }
@@ -2746,11 +2809,17 @@ public class IROptimizer {
     }
 
     public void inlineFuncs() {
+
+        // System.out.println("bb cnt: " + bb_cnt);
+        if (bb_cnt > 9000) {
+            System.out.println("# to many basic blocks, skip inline");
+            return;
+        }
         // inline
         for (IRDefFuncNode callee_func_node : funcs.values()) {
 
             // check if the function can be inlined
-            if (callee_func_node.scale > MAX_INLINE ||
+            if (callee_func_node.scale > MAX_INLINE_SCALE ||
                     callee_func_node.caller_nodes.isEmpty()
                     || callee_func_node.func_name.equals("@main")
                     || callee_func_node.func_name.equals("@Global.Var.Init") ||

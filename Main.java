@@ -15,10 +15,10 @@ import Mem2Reg.*;
 
 /*
 TODO:
- inline function ->
+ inline function -> (x)
  jump optimization ->
- global variable to constant ->
- global variable localization
+ global variable to constant -> (x)
+ global variable localization (x)
  */
 
 public class Main {
@@ -96,7 +96,7 @@ public class Main {
             optimizer.inlineFuncs();
             if (DEBUG) {
                 System.out.println("; INL");
-                optimizer.printIR();
+                // optimizer.printIR();
             }
 
             optimizer.globalVarAnalysis();
@@ -234,6 +234,7 @@ public class Main {
             System.out.println("Error: Out of Memory " + e.getMessage());
             System.exit(1);
         } catch (Throwable e) {
+            System.out.println("Error: " + e.getMessage());
             System.exit(0);
         }
     }
