@@ -236,7 +236,7 @@ public class Main {
             System.out.println("Error: Out of Memory " + e.getMessage());
             System.exit(1);
         } catch (Throwable e) {
-            System.out.println("Error: " + e.getMessage());
+            // System.out.println("Error: " + e.getMessage());
             System.exit(0);
         }
     }

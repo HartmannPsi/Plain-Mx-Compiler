@@ -247,10 +247,10 @@ public class IROptimizer {
                 if (node.def() != null) {
                     // bb.def.add(node.def());
 
-                    if (!var_to_num.containsKey(node.def())) {
-                        System.out.println("NOT FOUND: " + node.def());
-                        System.exit(1);
-                    }
+                    // if (!var_to_num.containsKey(node.def())) {
+                    // System.out.println("NOT FOUND: " + node.def());
+                    // System.exit(1);
+                    // }
 
                     int def_idx = var_to_num.get(node.def());
                     bb.bdef.set(def_idx);
@@ -261,10 +261,10 @@ public class IROptimizer {
                             // bb.use.add(use);
                             // System.out.println(node.toString() + " Use: " + use);
 
-                            if (!var_to_num.containsKey(use)) {
-                                System.out.println("NOT FOUND: " + use);
-                                System.exit(1);
-                            }
+                            // if (!var_to_num.containsKey(use)) {
+                            // System.out.println("NOT FOUND: " + use);
+                            // System.exit(1);
+                            // }
 
                             int use_idx = var_to_num.get(use);
                             bb.buse.set(use_idx);
@@ -334,10 +334,10 @@ public class IROptimizer {
                 if (node.def() != null) {
                     // last_out.remove(node.def());
 
-                    if (!var_to_num.containsKey(node.def())) {
-                        System.out.println("NOT FOUND: " + node.def());
-                        System.exit(1);
-                    }
+                    // if (!var_to_num.containsKey(node.def())) {
+                    // System.out.println("NOT FOUND: " + node.def());
+                    // System.exit(1);
+                    // }
 
                     int def_idx = var_to_num.get(node.def());
                     last_out.clear(def_idx);
@@ -347,10 +347,10 @@ public class IROptimizer {
                         if (use != null) {
                             // last_out.add(use);
 
-                            if (!var_to_num.containsKey(use)) {
-                                System.out.println("NOT FOUND: " + use);
-                                System.exit(1);
-                            }
+                            // if (!var_to_num.containsKey(use)) {
+                            // System.out.println("NOT FOUND: " + use);
+                            // System.exit(1);
+                            // }
 
                             int use_idx = var_to_num.get(use);
                             last_out.set(use_idx);
