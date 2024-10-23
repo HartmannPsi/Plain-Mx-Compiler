@@ -93,6 +93,12 @@ public class Main {
                 // optimizer.printRecursive();
             }
 
+            optimizer.inlineFuncs();
+            if (DEBUG) {
+                System.out.println("; INL");
+                optimizer.printIR();
+            }
+
             optimizer.globalVarAnalysis();
             if (DEBUG) {
                 System.out.println("; GVAR");

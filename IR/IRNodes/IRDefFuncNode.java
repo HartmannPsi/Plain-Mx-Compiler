@@ -1,18 +1,20 @@
 package IR.IRNodes;
 
-import java.util.ArrayList;
 import java.util.Queue;
 import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Set;
+//import java.util.ArrayList;
 
 public class IRDefFuncNode extends IRNode {
     public String result_tp = null, func_name = null;
     public String[] tps = null, ids = null;
     public IRNode stmt = null;
+    public int scale = -1;
+    public boolean inline = false;
     // public boolean multiple_call = false;
 
-    public ArrayList<IRDefFuncNode> callers = new ArrayList<>(), callees = new ArrayList<>();
+    public Set<IRDefFuncNode> caller_nodes = new HashSet<>(), callee_nodes = new HashSet<>();
 
     public boolean recursive() {
         Queue<IRDefFuncNode> queue = new LinkedList<>();
@@ -22,7 +24,7 @@ public class IRDefFuncNode extends IRNode {
 
         while (!queue.isEmpty()) {
             IRDefFuncNode cur = queue.poll();
-            for (IRDefFuncNode callee : cur.callees) {
+            for (IRDefFuncNode callee : cur.callee_nodes) {
                 if (callee == this) {
                     return true;
                 }

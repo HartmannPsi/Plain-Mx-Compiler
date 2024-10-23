@@ -37,12 +37,32 @@ public class IROptimizer {
 
     Map<String, GlbVarUsage> glb_var_usage = new HashMap<>();
     IRDefFuncNode glb_var_init = null;
-    int glb_rename_idx = 0;
 
     Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
+    final int MAX_INLINE = 700;
+
     String renameAlloca(String obj) {
         return obj + ".Replace." + rename_serial++;
+    }
+
+    String renameLocalize(String obj) {
+        return "%" + obj.substring(1, obj.length()) + ".Localize." + rename_serial++;
+    }
+
+    String renameInline(String obj) {
+        if (isLocal(obj))
+            return obj + ".Inline." + rename_serial++;
+        else
+            return obj;
+    }
+
+    String renameInlineLabel(String obj) {
+        return obj + ".Inline." + rename_serial++;
+    }
+
+    boolean isLocal(String obj) {
+        return obj.charAt(0) == '%';
     }
 
     String bbLabel() {
@@ -1727,7 +1747,7 @@ public class IROptimizer {
     }
 
     public void optiGlbVarInit() {
-        Map<String, String> glb_var_store = new HashMap<>();
+        // Map<String, String> glb_var_store = new HashMap<>();
 
         for (IRNode node = glb_var_init.stmt; node != null; node = node.next) {
         }
@@ -2075,10 +2095,6 @@ public class IROptimizer {
         }
     }
 
-    String renameLocalize(String var_name) {
-        return "%" + var_name.substring(1, var_name.length()) + ".Localize." + glb_rename_idx++;
-    }
-
     public void glbalVarLocalization() {
         for (Map.Entry<String, GlbVarUsage> entry : glb_var_usage.entrySet()) {
             String var = entry.getKey();
@@ -2116,9 +2132,9 @@ public class IROptimizer {
                 return;
             }
 
-            if (func_node.recursive()) {
-                continue;
-            }
+            // if (func_node.recursive()) {
+            // continue;
+            // }
 
             if (!func_node.func_name.equals("@main")) {
                 continue;
@@ -2310,13 +2326,15 @@ public class IROptimizer {
 
         // build call map
         for (IRDefFuncNode func : funcs.values()) {
+            func.scale = 0;
             for (IRNode node = func.stmt; node != null; node = node.next) {
+                ++func.scale;
                 if (node instanceof IRCallNode) {
                     IRCallNode call_node = (IRCallNode) node;
                     if (!isBuiltin(call_node.func_name)) {
                         IRDefFuncNode callee = funcs.get(call_node.func_name);
-                        func.callees.add(callee);
-                        callee.callers.add(func);
+                        func.callee_nodes.add(callee);
+                        callee.caller_nodes.add(func);
                     }
                 }
             }
@@ -2327,6 +2345,455 @@ public class IROptimizer {
         for (IRDefFuncNode func : funcs.values()) {
             System.out.println(func.func_name + " recursive: " + func.recursive());
         }
+    }
+
+    InlineRetType rewriteInlineFunc(IRDefFuncNode func_node, IRCallNode call_node) {
+
+        boolean void_tp = func_node.result_tp.equals("void");
+        String ret_val = (void_tp ? null : renameInline("%InlineRetVal"));
+        String end_label = renameInlineLabel("InlineEndLabel");
+        IRNode beg = new IRNode(), end = beg;
+        Map<String, String> rename_map = new HashMap<>();
+        Map<IRDefFuncNode, ArrayList<IRCallNode>> callee_update = new HashMap<>();
+
+        System.out.println("Rewrite " + func_node.func_name);
+
+        // add args to rename_map
+        if (call_node.args != null) {
+            for (int i = 0; i != call_node.args.length; ++i) {
+                rename_map.put(func_node.ids[i], call_node.args[i]);
+            }
+        }
+
+        // rename local variables in function
+        for (IRNode node = func_node.stmt.next; node != null; node = node.next) {
+
+            System.out.println("Type: " + node.getClass().getName());
+
+            if (node instanceof IRAllocaNode) {
+                IRAllocaNode old_node = (IRAllocaNode) node, new_node = new IRAllocaNode();
+                new_node.result = renameInline(old_node.result);
+                new_node.tp = old_node.tp;
+                rename_map.put(old_node.result, new_node.result);
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRBinaryNode) {
+                IRBinaryNode old_node = (IRBinaryNode) node, new_node = new IRBinaryNode();
+                new_node.operator = old_node.operator;
+                new_node.tp = old_node.tp;
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                if (rename_map.containsKey(old_node.op1)) {
+                    new_node.op1 = rename_map.get(old_node.op1);
+                } else {
+                    new_node.op1 = renameInline(old_node.op1);
+                    rename_map.put(old_node.op1, new_node.op1);
+                }
+                if (rename_map.containsKey(old_node.op2)) {
+                    new_node.op2 = rename_map.get(old_node.op2);
+                } else {
+                    new_node.op2 = renameInline(old_node.op2);
+                    rename_map.put(old_node.op2, new_node.op2);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRBrNode) {
+                IRBrNode old_node = (IRBrNode) node, new_node = new IRBrNode();
+                if (old_node.cond != null) {
+                    if (rename_map.containsKey(old_node.cond)) {
+                        new_node.cond = rename_map.get(old_node.cond);
+                    } else {
+                        new_node.cond = renameInline(old_node.cond);
+                        rename_map.put(old_node.cond, new_node.cond);
+                    }
+                }
+                if (rename_map.containsKey(old_node.label_true)) {
+                    new_node.label_true = rename_map.get(old_node.label_true);
+                } else {
+                    new_node.label_true = renameInlineLabel(old_node.label_true);
+                    rename_map.put(old_node.label_true, new_node.label_true);
+                }
+                if (old_node.label_false != null) {
+                    if (rename_map.containsKey(old_node.label_false)) {
+                        new_node.label_false = rename_map.get(old_node.label_false);
+                    } else {
+                        new_node.label_false = renameInlineLabel(old_node.label_false);
+                        rename_map.put(old_node.label_false, new_node.label_false);
+                    }
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRCallNode) {
+                IRCallNode old_node = (IRCallNode) node, new_node = new IRCallNode();
+                new_node.func_name = old_node.func_name;
+                new_node.res_tp = old_node.res_tp;
+                new_node.tps = old_node.tps;
+                if (old_node.result != null) {
+                    new_node.result = renameInline(old_node.result);
+                    rename_map.put(old_node.result, new_node.result);
+                }
+                if (old_node.args != null) {
+                    new_node.args = new String[old_node.args.length];
+                    for (int i = 0; i != old_node.args.length; ++i) {
+                        if (rename_map.containsKey(old_node.args[i])) {
+                            new_node.args[i] = rename_map.get(old_node.args[i]);
+                        } else {
+                            new_node.args[i] = renameInline(old_node.args[i]);
+                            rename_map.put(old_node.args[i], new_node.args[i]);
+                        }
+                    }
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+                IRDefFuncNode callee = funcs.get(new_node.func_name);
+                if (!callee_update.containsKey(callee)) {
+                    callee_update.put(callee, new ArrayList<>());
+                }
+                callee_update.get(callee).add(new_node);
+
+            } else if (node instanceof IRGetEleNode) {
+                IRGetEleNode old_node = (IRGetEleNode) node, new_node = new IRGetEleNode();
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                new_node.tp = old_node.tp;
+                new_node.tps = old_node.tps;
+                if (rename_map.containsKey(old_node.ptr)) {
+                    new_node.ptr = rename_map.get(old_node.ptr);
+                } else {
+                    new_node.ptr = renameInline(old_node.ptr);
+                    rename_map.put(old_node.ptr, new_node.ptr);
+                }
+                new_node.idxs = new String[old_node.idxs.length];
+                for (int i = 0; i != old_node.idxs.length; ++i) {
+                    if (rename_map.containsKey(old_node.idxs[i])) {
+                        new_node.idxs[i] = rename_map.get(old_node.idxs[i]);
+                    } else {
+                        new_node.idxs[i] = renameInline(old_node.idxs[i]);
+                        rename_map.put(old_node.idxs[i], new_node.idxs[i]);
+                    }
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRIcmpNode) {
+                IRIcmpNode old_node = (IRIcmpNode) node, new_node = new IRIcmpNode();
+                new_node.cond = old_node.cond;
+                new_node.tp = old_node.tp;
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                if (rename_map.containsKey(old_node.op1)) {
+                    new_node.op1 = rename_map.get(old_node.op1);
+                } else {
+                    new_node.op1 = renameInline(old_node.op1);
+                    rename_map.put(old_node.op1, new_node.op1);
+                }
+                if (rename_map.containsKey(old_node.op2)) {
+                    new_node.op2 = rename_map.get(old_node.op2);
+                } else {
+                    new_node.op2 = renameInline(old_node.op2);
+                    rename_map.put(old_node.op2, new_node.op2);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRLabelNode) {
+                IRLabelNode old_node = (IRLabelNode) node, new_node = new IRLabelNode();
+                if (rename_map.containsKey(old_node.label)) {
+                    new_node.label = rename_map.get(old_node.label);
+                } else {
+                    new_node.label = renameInlineLabel(old_node.label);
+                    rename_map.put(old_node.label, new_node.label);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRLoadNode) {
+                IRLoadNode old_node = (IRLoadNode) node, new_node = new IRLoadNode();
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                new_node.tp = old_node.tp;
+                if (rename_map.containsKey(old_node.ptr)) {
+                    new_node.ptr = rename_map.get(old_node.ptr);
+                } else {
+                    new_node.ptr = renameInline(old_node.ptr);
+                    rename_map.put(old_node.ptr, new_node.ptr);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRNLNode) {
+                IRNLNode new_node = new IRNLNode();
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRPhiNode) {
+                IRPhiNode old_node = (IRPhiNode) node, new_node = new IRPhiNode();
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                new_node.tp = old_node.tp;
+                new_node.vals = new String[old_node.vals.length];
+                new_node.labels = new String[old_node.labels.length];
+                for (int i = 0; i != old_node.vals.length; ++i) {
+                    if (rename_map.containsKey(old_node.vals[i])) {
+                        new_node.vals[i] = rename_map.get(old_node.vals[i]);
+                    } else {
+                        new_node.vals[i] = renameInline(old_node.vals[i]);
+                        rename_map.put(old_node.vals[i], new_node.vals[i]);
+                    }
+                    if (rename_map.containsKey(old_node.labels[i])) {
+                        new_node.labels[i] = rename_map.get(old_node.labels[i]);
+                    } else {
+                        new_node.labels[i] = renameInlineLabel(old_node.labels[i]);
+                        rename_map.put(old_node.labels[i], new_node.labels[i]);
+                    }
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRRetNode) {
+                IRRetNode old_node = (IRRetNode) node;
+                if (void_tp) {// ret void
+                    IRBrNode br_node = new IRBrNode();
+                    br_node.label_true = end_label;
+
+                    end.next = br_node;
+                    br_node.prev = end;
+                    end = br_node;
+
+                } else {
+                    IRStoreNode store_node = new IRStoreNode();
+                    store_node.tp = old_node.tp;
+                    if (rename_map.containsKey(old_node.val)) {
+                        store_node.value = rename_map.get(old_node.val);
+                    } else {
+                        store_node.value = renameInline(old_node.val);
+                        rename_map.put(old_node.val, store_node.value);
+                    }
+                    store_node.ptr = ret_val;
+                    IRBrNode br_node = new IRBrNode();
+                    br_node.label_true = end_label;
+
+                    store_node.next = br_node;
+                    br_node.prev = store_node;
+                    end.next = store_node;
+                    store_node.prev = end;
+                    end = br_node;
+                }
+
+            } else if (node instanceof IRSelectNode) {
+                IRSelectNode old_node = (IRSelectNode) node, new_node = new IRSelectNode();
+                new_node.result = renameInline(old_node.result);
+                rename_map.put(old_node.result, new_node.result);
+                new_node.tp = old_node.tp;
+                if (rename_map.containsKey(old_node.cond)) {
+                    new_node.cond = rename_map.get(old_node.cond);
+                } else {
+                    new_node.cond = renameInline(old_node.cond);
+                    rename_map.put(old_node.cond, new_node.cond);
+                }
+                if (rename_map.containsKey(old_node.val1)) {
+                    new_node.val1 = rename_map.get(old_node.val1);
+                } else {
+                    new_node.val1 = renameInline(old_node.val1);
+                    rename_map.put(old_node.val1, new_node.val1);
+                }
+                if (rename_map.containsKey(old_node.val2)) {
+                    new_node.val2 = rename_map.get(old_node.val2);
+                } else {
+                    new_node.val2 = renameInline(old_node.val2);
+                    rename_map.put(old_node.val2, new_node.val2);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRStoreNode) {
+                IRStoreNode old_node = (IRStoreNode) node, new_node = new IRStoreNode();
+                new_node.tp = old_node.tp;
+                if (rename_map.containsKey(old_node.ptr)) {
+                    new_node.ptr = rename_map.get(old_node.ptr);
+                } else {
+                    new_node.ptr = renameInline(old_node.ptr);
+                    rename_map.put(old_node.ptr, new_node.ptr);
+                }
+                if (rename_map.containsKey(old_node.value)) {
+                    new_node.value = rename_map.get(old_node.value);
+                } else {
+                    new_node.value = renameInline(old_node.value);
+                    rename_map.put(old_node.value, new_node.value);
+                }
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+
+            } else if (node instanceof IRDebugNode) {
+                IRDebugNode old_node = (IRDebugNode) node, new_node = new IRDebugNode();
+                new_node.message = old_node.message;
+
+                end.next = new_node;
+                new_node.prev = end;
+                end = new_node;
+                // } else {
+                // IRNode new_node = new IRNode();
+                // end.next = new_node;
+                // new_node.prev = end;
+                // end = new_node;
+
+            }
+        }
+
+        // attach end_label node
+        IRLabelNode end_label_node = new IRLabelNode();
+        end_label_node.label = end_label;
+        end.next = end_label_node;
+        end_label_node.prev = end;
+        end = end_label_node;
+
+        // insert ret_vall alloca if returns value
+        if (!void_tp) {
+            IRAllocaNode ret_alloca_node = new IRAllocaNode();
+            ret_alloca_node.result = ret_val;
+            ret_alloca_node.tp = func_node.result_tp;
+            ret_alloca_node.next = beg.next;
+            beg.next.prev = ret_alloca_node;
+            beg.next = ret_alloca_node;
+            ret_alloca_node.prev = beg;
+        }
+
+        return new InlineRetType(beg.next, end, ret_val, callee_update);
+    }
+
+    public void inlineFuncs() {
+        // inline
+        for (IRDefFuncNode callee_func_node : funcs.values()) {
+
+            // check if the function can be inlined
+            if (callee_func_node.scale > MAX_INLINE ||
+                    callee_func_node.caller_nodes.isEmpty()
+                    || callee_func_node.func_name.equals("@main")
+                    || callee_func_node.func_name.equals("@Global.Var.Init") ||
+                    callee_func_node.recursive()) {
+                continue;
+            }
+
+            for (IRDefFuncNode caller_func_node : callee_func_node.caller_nodes) {
+                // IRDefFuncNode caller_func_node = caller_node.getKey();
+
+                // find all insert points in caller
+                ArrayList<IRCallNode> insert_inlines = new ArrayList<>();
+                for (IRNode node = caller_func_node.stmt; node != null; node = node.next) {
+                    if (node instanceof IRCallNode) {
+                        IRCallNode call_node = (IRCallNode) node;
+                        if (call_node.func_name.equals(callee_func_node.func_name)) {
+                            insert_inlines.add(call_node);
+                        }
+                    }
+                }
+
+                // inline
+                for (IRCallNode call_node : insert_inlines) {
+                    // get rewrited inline function
+                    InlineRetType rewrite_res = rewriteInlineFunc(callee_func_node, call_node);
+
+                    // attach inline function
+                    rewrite_res.beg.prev = call_node.prev;
+                    call_node.prev.next = rewrite_res.beg;
+                    rewrite_res.end.next = call_node.next;
+                    if (call_node.next != null) {
+                        call_node.next.prev = rewrite_res.end;
+                    }
+
+                    // load the return value from inline function
+                    if (call_node.result != null) {
+                        IRLoadNode load_node = new IRLoadNode();
+                        load_node.tp = call_node.res_tp;
+                        load_node.result = call_node.result;
+                        load_node.ptr = rewrite_res.ret_val;
+
+                        load_node.next = rewrite_res.end.next;
+                        if (rewrite_res.end.next != null) {
+                            rewrite_res.end.next.prev = load_node;
+                        }
+                        rewrite_res.end.next = load_node;
+                        load_node.prev = rewrite_res.end;
+                        rewrite_res.end = load_node;
+                    }
+
+                    {// update caller function
+                     // Map<IRDefFuncNode, ArrayList<IRCallNode>> callee_update =
+                     // rewrite_res.callee_update;
+                     // for (Map.Entry<IRDefFuncNode, ArrayList<IRCallNode>> entry :
+                     // callee_update.entrySet()) {
+                     // IRDefFuncNode new_callee = entry.getKey();
+                     // ArrayList<IRCallNode> calls = entry.getValue();
+                     // ArrayList<IRCallNode> cpy1 = new ArrayList<>(calls), cpy2 = new
+                     // ArrayList<>(calls);
+
+                        // if (caller_func_node.callee_nodes.containsKey(new_callee)) {
+                        // ArrayList<IRCallNode> old_calls =
+                        // caller_func_node.callee_nodes.get(new_callee);
+                        // cpy1.removeAll(old_calls);
+                        // old_calls.addAll(cpy1);
+                        // } else {
+                        // caller_func_node.callee_nodes.put(new_callee, cpy1);
+                        // }
+
+                        // if (new_callee.caller_nodes.containsKey(caller_func_node)) {
+                        // ArrayList<IRCallNode> old_calls =
+                        // new_callee.caller_nodes.get(caller_func_node);
+                        // cpy2.removeAll(old_calls);
+                        // old_calls.addAll(cpy2);
+                        // } else {
+                        // new_callee.caller_nodes.put(caller_func_node, cpy2);
+                        // }
+                        // }
+                    }
+                }
+
+                // delete callee inline function from caller
+                caller_func_node.callee_nodes.remove(callee_func_node);
+                // add callee's callees to caller
+                callee_func_node.callee_nodes.addAll(callee_func_node.callee_nodes);
+                // add caller to callee's callees
+                for (IRDefFuncNode callee_of_callee : callee_func_node.callee_nodes) {
+                    callee_of_callee.caller_nodes.add(caller_func_node);
+                }
+            }
+
+            // delete callee function from callees of callee
+            for (IRDefFuncNode callee_of_callee : callee_func_node.callee_nodes) {
+                callee_of_callee.caller_nodes.remove(callee_func_node);
+            }
+
+            // delete callee inline function
+            callee_func_node.eliminated = true;
+        }
+        // end inline
     }
 
 }
