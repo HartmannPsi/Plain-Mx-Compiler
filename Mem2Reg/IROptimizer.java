@@ -2146,12 +2146,12 @@ public class IROptimizer {
                 }
 
                 // delete init node
-                IRGlbInitNode init_node = usage.init_node;
-                init_node.prev.next = init_node.next;
-                if (init_node.next != null) {
-                    init_node.next.prev = init_node.prev;
-                }
-                init_node.eliminated = true;
+                // IRGlbInitNode init_node = usage.init_node;
+                // init_node.prev.next = init_node.next;
+                // if (init_node.next != null) {
+                // init_node.next.prev = init_node.prev;
+                // }
+                // init_node.eliminated = true;
 
             } else if (type == 3) {// delete
                 usage.eliminated = true;
@@ -2184,7 +2184,7 @@ public class IROptimizer {
         }
     }
 
-    public void glbalVarLocalization() {
+    public void globalVarToCache() {
 
         // if (bb_cnt > 9000) {
         // System.out.println("# Too many basic blocks, skip global var localization");
@@ -2295,15 +2295,15 @@ public class IROptimizer {
                 }
                 allocas.put(rename, alloca_node);
 
-                if (!usage.load_funcs.contains(glb_var_init)) {
-                    // delete init node
-                    IRGlbInitNode init_node = usage.init_node;
-                    init_node.prev.next = init_node.next;
-                    if (init_node.next != null) {
-                        init_node.next.prev = init_node.prev;
-                    }
-                    init_node.eliminated = true;
-                }
+                // if (!usage.load_funcs.contains(glb_var_init)) {
+                // // delete init node
+                // IRGlbInitNode init_node = usage.init_node;
+                // init_node.prev.next = init_node.next;
+                // if (init_node.next != null) {
+                // init_node.next.prev = init_node.prev;
+                // }
+                // init_node.eliminated = true;
+                // }
 
                 usage.eliminated = true;
 
@@ -2399,12 +2399,12 @@ public class IROptimizer {
                 allocas.put(rename, alloca_node);
 
                 // delete init node
-                IRGlbInitNode init_node = usage.init_node;
-                init_node.prev.next = init_node.next;
-                if (init_node.next != null) {
-                    init_node.next.prev = init_node.prev;
-                }
-                init_node.eliminated = true;
+                // IRGlbInitNode init_node = usage.init_node;
+                // init_node.prev.next = init_node.next;
+                // if (init_node.next != null) {
+                // init_node.next.prev = init_node.prev;
+                // }
+                // init_node.eliminated = true;
                 usage.eliminated = true;
             }
         }
@@ -2807,7 +2807,7 @@ public class IROptimizer {
 
     public void inlineFuncs() {
 
-        //System.out.println("bb cnt: " + bb_cnt);
+        // System.out.println("bb cnt: " + bb_cnt);
         if (bb_cnt > 9000) {
             // System.out.println("# to many basic blocks, skip inline");
             // return;
@@ -2831,8 +2831,8 @@ public class IROptimizer {
                 // IRDefFuncNode caller_func_node = caller_node.getKey();
 
                 // System.out.println(callee_func_node.func_name + " scale: " +
-                //         callee_func_node.scale + " -> inline -> " +
-                //         caller_func_node.func_name);
+                // callee_func_node.scale + " -> inline -> " +
+                // caller_func_node.func_name);
 
                 // find all insert points in caller
                 ArrayList<IRCallNode> insert_inlines = new ArrayList<>();

@@ -109,7 +109,7 @@ public class Main {
                 System.out.println("; GVAR");
             }
 
-            optimizer.glbalVarLocalization();
+            optimizer.globalVarToCache();
             if (DEBUG) {
                 System.out.println("; GVAR");
             }
