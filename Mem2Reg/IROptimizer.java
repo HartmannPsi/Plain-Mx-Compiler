@@ -2807,7 +2807,7 @@ public class IROptimizer {
 
     public void inlineFuncs() {
 
-        System.out.println("bb cnt: " + bb_cnt);
+        //System.out.println("bb cnt: " + bb_cnt);
         if (bb_cnt > 9000) {
             // System.out.println("# to many basic blocks, skip inline");
             // return;
@@ -2830,9 +2830,9 @@ public class IROptimizer {
             for (IRDefFuncNode caller_func_node : callee_func_node.caller_nodes) {
                 // IRDefFuncNode caller_func_node = caller_node.getKey();
 
-                System.out.println(callee_func_node.func_name + " scale: " +
-                        callee_func_node.scale + " -> inline -> " +
-                        caller_func_node.func_name);
+                // System.out.println(callee_func_node.func_name + " scale: " +
+                //         callee_func_node.scale + " -> inline -> " +
+                //         caller_func_node.func_name);
 
                 // find all insert points in caller
                 ArrayList<IRCallNode> insert_inlines = new ArrayList<>();
