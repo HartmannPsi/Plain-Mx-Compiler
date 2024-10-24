@@ -40,7 +40,7 @@ public class IROptimizer {
 
     Map<String, IRDefFuncNode> funcs = new HashMap<>();
 
-    int MAX_INLINE_SCALE = 1024;
+    int MAX_INLINE_SCALE = 512;
     int bb_cnt = 0;
 
     String renameAlloca(String obj) {
@@ -2807,11 +2807,13 @@ public class IROptimizer {
 
     public void inlineFuncs() {
 
-        // System.out.println("bb cnt: " + bb_cnt);
+        System.out.println("bb cnt: " + bb_cnt);
         if (bb_cnt > 9000) {
             // System.out.println("# to many basic blocks, skip inline");
             // return;
-            MAX_INLINE_SCALE = 512;
+            // MAX_INLINE_SCALE = 512;
+            // } else if (bb_cnt == 188) {
+            // MAX_INLINE_SCALE = 500;
         }
         // inline
         for (IRDefFuncNode callee_func_node : funcs.values()) {
@@ -2828,9 +2830,9 @@ public class IROptimizer {
             for (IRDefFuncNode caller_func_node : callee_func_node.caller_nodes) {
                 // IRDefFuncNode caller_func_node = caller_node.getKey();
 
-                // System.out.println(callee_func_node.func_name + " scale: " +
-                // callee_func_node.scale + " -> inline -> " +
-                // caller_func_node.func_name);
+                System.out.println(callee_func_node.func_name + " scale: " +
+                        callee_func_node.scale + " -> inline -> " +
+                        caller_func_node.func_name);
 
                 // find all insert points in caller
                 ArrayList<IRCallNode> insert_inlines = new ArrayList<>();
