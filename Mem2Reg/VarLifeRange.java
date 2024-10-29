@@ -12,11 +12,11 @@ public class VarLifeRange implements Comparable<VarLifeRange> {
 
     @Override
     public int compareTo(VarLifeRange other) {
-        int res1 = Integer.compare(this.beg, other.beg);
+        int res1 = Integer.compare(this.end, other.end);
         if (res1 != 0) {
             return res1;
         } else {
-            int res2 = Integer.compare(this.end, other.end);
+            int res2 = Integer.compare(this.beg, other.beg);
             if (res2 != 0) {
                 return res2;
             } else {
