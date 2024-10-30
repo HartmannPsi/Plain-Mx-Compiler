@@ -2280,6 +2280,26 @@ public class IROptimizer {
                         if (ld_node.ptr.equals(var)) {
                             ld_node.ptr = rename;
                         }
+                    } else if (node instanceof IRRetNode) {
+                        // store the value to global variable
+                        IRLoadNode ld_node = new IRLoadNode();
+                        ld_node.result = renameLocalize("%CacheStVal");
+                        ld_node.tp = usage.init_node.tp;
+                        ld_node.ptr = rename;
+
+                        IRStoreNode st_node = new IRStoreNode();
+                        st_node.ptr = var;
+                        st_node.value = ld_node.result;
+                        st_node.tp = usage.init_node.tp;
+
+                        ld_node.next = st_node;
+                        st_node.prev = ld_node;
+
+                        // insert before ret
+                        node.prev.next = ld_node;
+                        ld_node.prev = node.prev;
+                        st_node.next = node;
+                        node.prev = st_node;
                     }
                 }
 
@@ -2362,6 +2382,26 @@ public class IROptimizer {
                         if (ld_node.ptr.equals(var)) {
                             ld_node.ptr = rename;
                         }
+                    } else if (node instanceof IRRetNode) {
+                        // store the value to global variable
+                        IRLoadNode ld_node = new IRLoadNode();
+                        ld_node.result = renameLocalize("%CacheStVal");
+                        ld_node.tp = usage.init_node.tp;
+                        ld_node.ptr = rename;
+
+                        IRStoreNode st_node = new IRStoreNode();
+                        st_node.ptr = var;
+                        st_node.value = ld_node.result;
+                        st_node.tp = usage.init_node.tp;
+
+                        ld_node.next = st_node;
+                        st_node.prev = ld_node;
+
+                        // insert before ret
+                        node.prev.next = ld_node;
+                        ld_node.prev = node.prev;
+                        st_node.next = node;
+                        node.prev = st_node;
                     }
                 }
 
