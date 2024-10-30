@@ -109,10 +109,10 @@ public class Main {
                 System.out.println("; GVAR");
             }
 
-            // optimizer.globalVarToCache();
-            // if (DEBUG) {
-            // System.out.println("; GVAR");
-            // }
+            optimizer.globalVarToCache();
+            if (DEBUG) {
+                System.out.println("; GVAR");
+            }
 
             optimizer.calcCFG();
             if (DEBUG) {
